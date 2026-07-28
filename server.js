@@ -21,7 +21,7 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir la carpeta pública del cliente (index.html, Phaser, assets)[cite: 1]
+// Servir la carpeta pública del cliente (index.html, Phaser, assets)
 app.use(express.static('public'));
 
 // Eventos base de WebSockets (Socket.io)
@@ -41,13 +41,10 @@ async function startServer() {
   await connectDB();
 
   // 2. Sincronizar modelos con MariaDB
-  // ⚠️ NOTA PARA TU COMPAÑERA:
-  // Si necesitan borrar las tablas viejas que ella creó manualmente, 
-  // reemplaza { alter: true } por { force: true } una sola vez, enciende el servidor y vuelve a dejar { alter: true }.
   await sequelize.sync({ alter: true });
   console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
 
-  // 3. Encender el servidor HTTP y Socket.io[cite: 1]
+  // 3. Encender el servidor HTTP y Socket.io
   server.listen(PORT, () => {
     console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
   });
