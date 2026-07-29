@@ -1,6 +1,37 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+  <meta charset="UTF-8">
+  <title>Foreign Tracks</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- 1. Cargar la librería de Socket.io que ofrece el servidor -->
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- 2. Tu código para conectar enviando el token -->
+  <script>
+    // Recuperar el token guardado en el navegador (se guardó al iniciar sesión)
+    const token = localStorage.getItem('token');
+
+    // Conectar a Socket.io enviando el token en la propiedad auth
+    const socket = io({
+      auth: {
+        token: token
+      }
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Conectado a Socket.io exitosamente:', socket.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Error de autenticación en Socket.io:', err.message);
+    });
+  </script>
+</body>
+</html>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Juego Educativo Interactivo</title>
