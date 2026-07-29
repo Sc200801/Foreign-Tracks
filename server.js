@@ -4,6 +4,9 @@ const { Server } = require('socket.io');
 const { sequelize, connectDB } = require('./src-server/config/db');
 require('dotenv').config();
 
+// 1. Importar el manejador de salas de la carpeta sockets
+const registerRoomHandlers = require('./src-server/sockets/roomHandler');
+
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
 
@@ -27,6 +30,9 @@ app.use(express.static('public'));
 // Eventos base de WebSockets (Socket.io)
 io.on('connection', (socket) => {
   console.log(`🔌 Jugador conectado vía WebSocket: ${socket.id}`);
+
+  // 2. Registrar los eventos de las salas para este jugador
+  registerRoomHandlers(io, socket);
 
   socket.on('disconnect', () => {
     console.log(`❌ Jugador desconectado: ${socket.id}`);
