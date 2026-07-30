@@ -13,6 +13,7 @@ const authRoutes = require('./src-server/routes/authRoutes');
 
 // 3. Importar el Seeder de datos iniciales (Hotel y Ending)
 const seedInitialData = require('./src-server/seeders/seedData'); // <-- AQUÍ (NÚMERO 1): Importar el seeder
+const authRoutes = require('./src-server/routes/authRoutes'); // Ajusta la ruta si tus routes están en la raíz
 
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
@@ -35,6 +36,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // Integración de Rutas de la API REST
+// 3. Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 
 // Registrar middleware de autenticación en Socket.io (se ejecuta antes del 'connection')
@@ -43,6 +45,9 @@ io.use(authSocketMiddleware);
 // Eventos base de WebSockets
 io.on('connection', (socket) => {
   const { id, role, name, playerId, teacherId } = socket.user || {};
+  // Extraemos la identidad vinculada por el middleware de socket
+  const { id, role, name, playerId, teacherId } = socket.user || {};
+  
   const activeId = role === 'teacher' ? `Teacher ID: ${teacherId || id}` : `Player ID: ${playerId || id}`;
 
   console.log(`🔌 WebSocket conectado:`);
@@ -51,6 +56,7 @@ io.on('connection', (socket) => {
   console.log(`   - Rol: ${role || 'desconocido'}`);
   console.log(`   - Identidad: ${activeId}`);
 
+  // Registrar eventos de las salas
   registerRoomHandlers(io, socket);
 
   socket.on('disconnect', () => {
@@ -73,6 +79,7 @@ async function startServer() {
   await seedInitialData(); // <-- AQUÍ (NÚMERO 2): Ejecutar la función justo después de sincronizar
 
   // 4. Encender el servidor
+  // 3. Encender el servidor
   server.listen(PORT, () => {
     console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
     console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);
