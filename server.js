@@ -9,7 +9,10 @@ const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
 
 // 2. Importar rutas REST de la API
-const authRoutes = require('./src-server/routes/authRoutes'); // Ajusta la ruta si tus routes están en la raíz
+const authRoutes = require('./src-server/routes/authRoutes');
+
+// 3. Importar el Seeder de datos iniciales (Hotel y Ending)
+const seedInitialData = require('./src-server/seeders/seedData'); // <-- AQUÍ (NÚMERO 1): Importar el seeder
 
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
@@ -31,7 +34,7 @@ app.use(express.urlencoded({ extended: true }));
 // Servir la carpeta pública del cliente (index.html, Phaser, assets)
 app.use(express.static('public'));
 
-// 3. Integración de Rutas de la API REST
+// Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 
 // Registrar middleware de autenticación en Socket.io (se ejecuta antes del 'connection')
@@ -39,9 +42,7 @@ io.use(authSocketMiddleware);
 
 // Eventos base de WebSockets
 io.on('connection', (socket) => {
-  // Extraemos la identidad vinculada por el middleware de socket
   const { id, role, name, playerId, teacherId } = socket.user || {};
-  
   const activeId = role === 'teacher' ? `Teacher ID: ${teacherId || id}` : `Player ID: ${playerId || id}`;
 
   console.log(`🔌 WebSocket conectado:`);
@@ -50,7 +51,6 @@ io.on('connection', (socket) => {
   console.log(`   - Rol: ${role || 'desconocido'}`);
   console.log(`   - Identidad: ${activeId}`);
 
-  // Registrar eventos de las salas
   registerRoomHandlers(io, socket);
 
   socket.on('disconnect', () => {
@@ -69,7 +69,10 @@ async function startServer() {
   await sequelize.sync({ alter: true });
   console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
 
-  // 3. Encender el servidor
+  // 3. Cargar datos iniciales en la BD (Hotel y Ending)
+  await seedInitialData(); // <-- AQUÍ (NÚMERO 2): Ejecutar la función justo después de sincronizar
+
+  // 4. Encender el servidor
   server.listen(PORT, () => {
     console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
     console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);
