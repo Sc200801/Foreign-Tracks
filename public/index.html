@@ -1,6 +1,99 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego Educativo Interactivo</title>
+
+    <!-- Hoja de estilos externa -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- 1. Librería de Phaser 3 -->
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+
+    <!-- 2. Librería de Socket.io para tiempo real -->
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+</head>
+<body>
+
+    <!-- PANTALLA 1: Formulario de Login -->
+    <div id="pantalla-login" class="pantalla">
+        <h2>Iniciar Sesión</h2>
+        <form id="form-login">
+            <div class="form-group">
+                <label for="usuario">Usuario / Estudiante:</label>
+                <input type="text" id="usuario" placeholder="Ingresa tu nombre" required>
+            </div>
+            <button type="submit">Ingresar</button>
+        </form>
+    </div>
+
+    <!-- PANTALLA 2: Selección de Rol (Oculta por defecto) -->
+    <div id="pantalla-rol" class="pantalla oculto">
+        <h2>Choose your rol</h2>
+        <div class="form-group" style="display: flex; flex-direction: column; gap: 15px;">
+            <button type="button" id="btn-docente" class="btn btn-profesor">PROFESOR</button>
+            <button type="button" id="btn-estudiante" class="btn btn-estudiante">STUDENT</button>
+        </div>
+    </div>
+
+    <!-- PANTALLA 3A: Panel de Profesor (Oculta por defecto) -->
+    <div id="pantalla-profesor" class="pantalla oculto">
+        <h2>Panel del Profesor</h2>
+        <p id="saludo-profesor"></p>
+        <button type="button" class="btn" onclick="alert('Creando sala...')">Crear Sala de Juego</button>
+    </div>
+
+    <!-- PANTALLA 3B: Panel de Estudiante / Juego (Oculta por defecto) -->
+    <div id="pantalla-estudiante" class="pantalla oculto">
+        <h2>Área de Juego</h2>
+        <p id="saludo-estudiante"></p>
+        <div id="game-container"></div>
+    </div>
+
+    <!-- CÓDIGO JAVASCRIPT PARA INTERACCIÓN -->
+    <script>
+        // Variables de estado
+        let usuarioActual = "";
+
+        // Captura de elementos del DOM
+        const formLogin = document.getElementById('form-login');
+        const pantallaLogin = document.getElementById('pantalla-login');
+        const pantallaRol = document.getElementById('pantalla-rol');
+        const pantallaProfesor = document.getElementById('pantalla-profesor');
+        const pantallaEstudiante = document.getElementById('pantalla-estudiante');
+        
+        const btnDocente = document.getElementById('btn-docente');
+        const btnEstudiante = document.getElementById('btn-estudiante');
+
+        // 1. Evento de Login
+        formLogin.addEventListener('submit', (evento) => {
+            evento.preventDefault(); 
+            
+            usuarioActual = document.getElementById('usuario').value;
+
+            // Transición a la pantalla de Roles
+            pantallaLogin.classList.add('oculto');
+            pantallaRol.classList.remove('oculto');
+        });
+
+        // 2. Clic en botón PROFESOR
+        btnDocente.addEventListener('click', () => {
+            pantallaRol.classList.add('oculto');
+            pantallaProfesor.classList.remove('oculto');
+            document.getElementById('saludo-profesor').innerText = `¡Bienvenido/a Profe ${usuarioActual}!`;
+        });
+
+        // 3. Clic en botón STUDENT
+        btnEstudiante.addEventListener('click', () => {
+            pantallaRol.classList.add('oculto');
+            pantallaEstudiante.classList.remove('oculto');
+            document.getElementById('saludo-estudiante').innerText = `¡Hola ${usuarioActual}! Preparado para el juego.`;
+        });
+    </script>
+
+</body>
+</html>
   <meta charset="UTF-8">
   <title>Foreign Tracks</title>
   <link rel="stylesheet" href="style.css">
