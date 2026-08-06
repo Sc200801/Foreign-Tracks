@@ -4,6 +4,10 @@ const { Server } = require('socket.io');
 const { sequelize, connectDB } = require('./src-server/config/db');
 require('dotenv').config();
 
+// 1. Importar las rutas de autenticación (Login y Registro)
+const authRoutes = require('./src-server/routes/authRoutes');
+
+// 2. Importar el manejador de salas de la carpeta sockets
 // 1. Importar manejador de salas y middleware de sockets
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
@@ -31,6 +35,10 @@ app.use(express.urlencoded({ extended: true }));
 // Servir la carpeta pública del cliente (index.html, Phaser, assets)
 app.use(express.static('public'));
 
+// === CONEXIÓN DE RUTAS API (LOGIN Y REGISTRO) ===
+app.use('/api', authRoutes);
+
+// Eventos base de WebSockets (Socket.io)
 // 3. Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 
@@ -50,6 +58,7 @@ io.on('connection', (socket) => {
   console.log(`   - Rol: ${role || 'desconocido'}`);
   console.log(`   - Identidad: ${activeId}`);
 
+  // Registrar los eventos de las salas para este jugador
   // Registrar eventos de las salas
   registerRoomHandlers(io, socket);
 
