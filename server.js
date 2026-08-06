@@ -4,7 +4,10 @@ const { Server } = require('socket.io');
 const { sequelize, connectDB } = require('./src-server/config/db');
 require('dotenv').config();
 
-// 1. Importar el manejador de salas de la carpeta sockets
+// 1. Importar las rutas de autenticación (Login y Registro)
+const authRoutes = require('./src-server/routes/authRoutes');
+
+// 2. Importar el manejador de salas de la carpeta sockets
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
@@ -27,11 +30,14 @@ app.use(express.urlencoded({ extended: true }));
 // Servir la carpeta pública del cliente (index.html, Phaser, assets)
 app.use(express.static('public'));
 
+// === CONEXIÓN DE RUTAS API (LOGIN Y REGISTRO) ===
+app.use('/api', authRoutes);
+
 // Eventos base de WebSockets (Socket.io)
 io.on('connection', (socket) => {
   console.log(`🔌 Jugador conectado vía WebSocket: ${socket.id}`);
 
-  // 2. Registrar los eventos de las salas para este jugador
+  // Registrar los eventos de las salas para este jugador
   registerRoomHandlers(io, socket);
 
   socket.on('disconnect', () => {
