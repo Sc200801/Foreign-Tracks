@@ -86,3 +86,9 @@ router.post('/login-player', async (req, res) => {
 });
 // Ruta para Login / Auto-registro de Alumnos (Usando el modelo Players)
 module.exports = router;
+const authController = require('../controllers/authController');
+
+// Endpoint: POST /api/auth/register
+router.post('/register', authController.register);
+
+module.exports = router;

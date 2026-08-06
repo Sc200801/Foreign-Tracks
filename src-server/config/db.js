@@ -4,9 +4,10 @@ require('dotenv').config();
 console.log('--- VERIFICANDO VARIABLES QUE LEE NODE ---');
 console.log('HOST:', process.env.DB_HOST);
 console.log('USER:', process.env.DB_USER);
-console.log('DB_NAME:', process.env.DB_NAME);
-console.log('PORT:', process.env.PORT);
-console.log('------------------------------------------');
+console.log('DB NAME:', process.env.DB_NAME);
+console.log('PORT:', process.env.DB_PORT);
+console.log('-----------------------------------------');
+
 // Inicialización de Sequelize con MariaDB
 const sequelize = new Sequelize(
   process.env.DB_NAME,
