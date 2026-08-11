@@ -32,19 +32,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 3. REGISTRO DE CUENTA DE USUARIO
+  // 3. REGISTRO DE CUENTA DE USUARIO
     const formRegistro = document.getElementById('form-registro-inicial');
     if (formRegistro) {
         formRegistro.addEventListener('submit', (e) => {
             e.preventDefault();
-            const fullname = document.getElementById('reg-fullname').value.trim();
-            const username = document.getElementById('reg-username').value.trim();
 
-            if (fullname && username) {
-                // Guardar usuario para mantener sesión persistente
-                localStorage.setItem('usuarioRegistrado', JSON.stringify({ fullname, username }));
-                mostrarPantalla('pantalla-rol');
+            // Capturar datos del formulario según tus inputs
+            const fullnameInput = document.getElementById('reg-fullname');
+            const usernameInput = document.getElementById('reg-username');
+            const passwordInput = document.getElementById('reg-password'); // Asegúrate que tu input de contraseña tenga este ID
+
+            const fullname = fullnameInput ? fullnameInput.value.trim() : '';
+            const username = usernameInput ? usernameInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value : '';
+
+            // Validación preliminar
+            if (!fullname || !username || !password) {
+                alert('Por favor, completa todos los campos.');
+                return;
             }
+
+            // Guardado temporal en sessionStorage para el flujo de dos pasos
+            const tempUserData = { fullname, username, password };
+            sessionStorage.setItem('tempUserData', JSON.stringify(tempUserData));
+
+            // Avanzar suavemente a la Pantalla de Selección de Rol
+            mostrarPantalla('pantalla-rol');
         });
     }
 

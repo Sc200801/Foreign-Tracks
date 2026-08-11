@@ -12,9 +12,6 @@ const authRoutes = require('./src-server/routes/authRoutes');
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
 
-// 2. Importar rutas REST de la API
-const authRoutes = require('./src-server/routes/authRoutes'); // Ajusta la ruta si tus routes están en la raíz
-
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
 

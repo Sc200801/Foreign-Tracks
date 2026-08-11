@@ -1,3 +1,6 @@
+// URL base del backend Express
+export const API_BASE_URL = 'http://localhost:3000/api';
+
 // Clave secreta institucional para docentes
 const CLAVE_DOCENTE_SECRET = "ADMIN123";
 
@@ -11,7 +14,8 @@ function mostrarPantalla(idPantalla) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. EVALUAR SI YA EXISTE UN REGISTRO EN LOCALSTORAGE
+    // 1. EVALUAR SI YA EXISTE UN REGISTRO TEMPORAL O DEFINITIVO
+    // Si hay datos temporales o registro previa, se evalúa a dónde enviar al usuario
     const usuarioGuardado = localStorage.getItem('usuarioRegistrado');
 
     if (usuarioGuardado) {
@@ -45,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const resetSesion = (e) => {
         if (e) e.preventDefault();
         localStorage.removeItem('usuarioRegistrado');
+        sessionStorage.removeItem('tempUserData');
         mostrarPantalla('pantalla-registro-inicial');
     };
 
