@@ -12,9 +12,6 @@ const authRoutes = require('./src-server/routes/authRoutes');
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
 
-// 2. Importar rutas REST de la API
-const authRoutes = require('./src-server/routes/authRoutes'); // Ajusta la ruta si tus routes están en la raíz
-
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
 
@@ -51,7 +48,7 @@ io.on('connection', (socket) => {
   const { id, role, name, playerId, teacherId } = socket.user || {};
   
   const activeId = role === 'teacher' ? `Teacher ID: ${teacherId || id}` : `Player ID: ${playerId || id}`;
-
+ 
   console.log(`🔌 WebSocket conectado:`);
   console.log(`   - Socket ID: ${socket.id}`);
   console.log(`   - Usuario: ${name || 'Sin nombre'}`);
@@ -62,8 +59,15 @@ io.on('connection', (socket) => {
   // Registrar eventos de las salas
   registerRoomHandlers(io, socket);
 
-  socket.on('disconnect', () => {
-    console.log(`❌ Usuario desconectado (Socket: ${socket.id}, User ID: ${id})`);
+  // --- MANEJO DE DESCONEXIÓN Y LIMPIEZA DE RECURSOS ---
+  socket.on('disconnect', (reason) => {
+    console.log(`❌ Usuario desconectado (Socket: ${socket.id}, User ID: ${id}) - Razón: ${reason}`);
+
+    // Liberación explícita de listeners para prevenir fugas de memoria
+    socket.removeAllListeners();
+
+    // ⚡ PRUEBA RÁPIDA DE VERIFICACIÓN
+    console.log('✅ Eventos limpios:', socket.eventNames());
   });
 });
 

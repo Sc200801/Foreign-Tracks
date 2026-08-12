@@ -16,7 +16,16 @@ const GroupRoom = sequelize.define('GroupRoom', {
     allowNull: false,
     unique: true,
   },
+  teacherId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'Teachers', // Nombre exacto de la tabla de profesores en MariaDB
+      key: 'id'
+    }
+  }
 }, {
+  tableName: 'GroupRooms', // Apunta exactamente a la tabla GroupRooms en MariaDB
   timestamps: true,
 });
 

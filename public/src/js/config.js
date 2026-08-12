@@ -1,28 +1,65 @@
-// Clave secreta institucional para docentes
+// ==========================================
+// 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN
+// ==========================================
+
+const API_BASE_URL = 'http://localhost:3000';
+
+const CONFIG = {
+    API_URL: API_BASE_URL,
+    SOCKET_URL: API_BASE_URL
+};
+
+function obtenerToken() {
+    const usuarioGuardado = JSON.parse(localStorage.getItem('usuarioRegistrado') || '{}');
+    return usuarioGuardado.token || localStorage.getItem('token') || null;
+}
+
+// Clave secreta institucional
 const CLAVE_DOCENTE_SECRET = "ADMIN123";
 
-// Función global para alternar la visibilidad entre las pantallas
+// Hacer disponibles en window para los demás scripts
+window.API_BASE_URL = API_BASE_URL;
+window.CONFIG = CONFIG;
+window.obtenerToken = obtenerToken;
+window.CLAVE_DOCENTE_SECRET = CLAVE_DOCENTE_SECRET;
+
+// ==========================================
+// 2. CONTROL DE NAVEGACIÓN ENTRE PANTALLAS
+// ==========================================
+
 function mostrarPantalla(idPantalla) {
-    document.querySelectorAll('.pantalla').forEach(div => div.classList.add('oculto'));
+    // Ocultar todas las pantallas y pantallas de bienvenida
+    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(div => {
+        div.classList.add('oculto');
+    });
+
+    // Mostrar la pantalla objetivo
     const pantallaTarget = document.getElementById(idPantalla);
     if (pantallaTarget) {
         pantallaTarget.classList.remove('oculto');
     }
 }
 
+// Hacer global la función para que auth-teacher.js y room.js la usen directamente
+window.mostrarPantalla = mostrarPantalla;
+
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. EVALUAR SI YA EXISTE UN REGISTRO EN LOCALSTORAGE
+    // 1. EVALUAR REGISTRO PREVIO
     const usuarioGuardado = localStorage.getItem('usuarioRegistrado');
 
     if (usuarioGuardado) {
-        // Si ya se registró antes, pasa directo a Selección de Rol
         mostrarPantalla('pantalla-rol');
     } else {
-        // Si es primera vez, muestra la pantalla de Registro Inicial
-        mostrarPantalla('pantalla-registro-inicial');
+        mostrarPantalla('pantalla-bienvenida-inicial');
     }
 
-    // 2. NAVEGACIÓN EN LA SELECCIÓN DE ROL
+    // 2. BOTÓN BIENVENIDA -> REGISTRO
+    document.getElementById('btn-ir-registro')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        mostrarPantalla('pantalla-registro-inicial');
+    });
+
+    // 3. NAVEGACIÓN EN LA SELECCIÓN DE ROL
     document.getElementById('btn-rol-profesor')?.addEventListener('click', (e) => {
         e.preventDefault();
         mostrarPantalla('pantalla-clave-docente');
@@ -41,10 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarPantalla('pantalla-rol');
     });
 
-    // 3. CERRAR SESIÓN (REINICIAR CUENTA LOCAL)
+    // 4. CERRAR SESIÓN
     const resetSesion = (e) => {
         if (e) e.preventDefault();
         localStorage.removeItem('usuarioRegistrado');
+        localStorage.removeItem('token');
         mostrarPantalla('pantalla-registro-inicial');
     };
 

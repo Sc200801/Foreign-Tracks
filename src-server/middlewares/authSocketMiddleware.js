@@ -14,12 +14,23 @@ const authSocketMiddleware = (socket, next) => {
 
   try {
     const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+
+    // 🟢 COMPATIBILIDAD EN DESARROLLO (Si el token es un demo-token generado en frontend)
+    if (typeof cleanToken === 'string' && cleanToken.startsWith('demo-token')) {
+      socket.user = {
+        id: 'demo-user-123',
+        role: 'teacher', // O 'player' según lo requieras
+        playerId: 'demo-user-123',
+        teacherId: 'demo-user-123',
+        name: 'Usuario Demo'
+      };
+      return next(); // Permite la conexión directa
+    }
     
-    // Desciframos la información que viene dentro del JWT
+    // Desciframos la información que viene dentro del JWT real
     const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET || 'tu_clave_secreta');
 
     // 🔗 VINCULACIÓN: Guardamos los datos de identidad en la propiedad del socket
-    // Soporta según la estructura de tu token si viene con role ('player'/'teacher') o id directo
     socket.user = {
       id: decoded.id || decoded.userId,
       role: decoded.role || 'player', // 'player' o 'teacher'
