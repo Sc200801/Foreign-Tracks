@@ -1,216 +1,277 @@
-function generarCodigoSala() {
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let codigo = '';
-    for (let i = 0; i < 6; i++) {
-        codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-    }
-    return codigo;
-}
-
-let isPlayerReady = false;
-// Control de niveles desbloqueados por defecto (Nivel 1 abierto)
-let maxUnlockedLevel = 1; 
-
 document.addEventListener('DOMContentLoaded', () => {
-    // --- LÓGICA DOCENTE ---
-    const btnGenerarCodigo = document.getElementById('btn-crear-sala');
-    const inputCodigo = document.getElementById('room-code-display');
+    // 1. OBTENER TOKEN BUSCANDO EN TODAS LAS UBICACIONES POSIBLES
+    const obtenerTokenSeguro = () => {
+        let token = '';
+
+        // Intento 1: De la función global de config.js
+        if (typeof window.obtenerToken === 'function') {
+            token = window.obtenerToken();
+        }
+
+        // Intento 2: Directo del objeto usuarioRegistrado
+        if (!token) {
+            try {
+                const userObj = JSON.parse(localStorage.getItem('usuarioRegistrado') || '{}');
+                token = userObj.token || userObj.jwt || '';
+            } catch (e) {
+                console.error('Error al leer usuarioRegistrado:', e);
+            }
+        }
+
+        // Intento 3: Directo de la clave 'token' en localStorage
+        if (!token) {
+            token = localStorage.getItem('token') || localStorage.getItem('jwt') || '';
+        }
+
+        return token;
+    };
+
+    let token = obtenerTokenSeguro();
+    console.log('🔑 Token detectado para Socket:', token ? ' [TOKEN ENCONTRADO]' : '❌ [SIN TOKEN]');
+
+    const serverUrl = (window.CONFIG && window.CONFIG.SOCKET_URL) ? window.CONFIG.SOCKET_URL : 'http://localhost:3000';
+
+    // 2. CONECTAR CON SOCKET.IO Y EXPONERLO GLOBALMENTE
+    let socket = null;
+
+    if (typeof io !== 'undefined') {
+        socket = io(serverUrl, {
+            auth: { 
+                token: token
+            },
+            extraHeaders: {
+                Authorization: `Bearer ${token}`
+            },
+            transports: ['websocket', 'polling']
+        });
+    } else if (window.io) {
+        socket = window.io(serverUrl, {
+            auth: { 
+                token: token
+            },
+            extraHeaders: {
+                Authorization: `Bearer ${token}`
+            },
+            transports: ['websocket', 'polling']
+        });
+    }
+
+    // Guardar referencia en el objeto window para que auth-player.js pueda emitir eventos
+    window.socket = socket;
+
+    // Elementos del DOM
+    const btnCrearCodigo = document.getElementById('btn-crear-sala');
+    const inputRoomCode = document.getElementById('room-code-display');
+    const inputRoomName = document.getElementById('room-name-input');
     const formCrearSala = document.getElementById('form-crear-sala');
-
-    if (btnGenerarCodigo && inputCodigo) {
-        btnGenerarCodigo.addEventListener('click', (e) => {
-            e.preventDefault();
-            inputCodigo.value = generarCodigoSala();
-        });
-    }
-
-    if (formCrearSala) {
-        formCrearSala.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const roomName = document.getElementById('room-name-input').value.trim();
-            const roomCode = inputCodigo.value.trim();
-
-            if (!roomCode) {
-                alert('Por favor haz clic en "Create room code" primero.');
-                return;
-            }
-
-            alert(`¡Sala "${roomName}" creada con éxito! Código: ${roomCode}`);
-        });
-    }
-
-    // --- LÓGICA ALUMNO ---
-    const formUnirseSala = document.getElementById('form-unirse-sala');
-
-    if (formUnirseSala) {
-        formUnirseSala.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const codigoIngresado = document.getElementById('codigo-sala-input').value.trim();
-
-            if (codigoIngresado.length > 0) {
-                localStorage.setItem('activeRoomCode', codigoIngresado);
-                mostrarPantalla('pantalla-menu-juego');
-            } else {
-                alert('Ingresa un código de sala válido.');
-            }
-        });
-    }
-
-    // --- MENÚ PRINCIPAL DEL JUEGO ---
-    const btnPlay = document.getElementById('btn-game-play');
-    const btnTutorial = document.getElementById('btn-game-tutorial');
-    const btnExit = document.getElementById('btn-game-exit');
-    const btnVolverMenu = document.getElementById('btn-volver-menu');
-
-    if (btnPlay) {
-        btnPlay.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            const user = JSON.parse(localStorage.getItem('usuarioRegistrado') || '{}');
-            const roomCode = localStorage.getItem('activeRoomCode') || '123';
-            const playerName = user.fullname || user.username || 'Player 1';
-
-            document.getElementById('room-header-title').innerText = `Room A (Code: ${roomCode})`;
-            document.getElementById('label-player1-name').innerText = playerName;
-            document.getElementById('active-player-display').value = playerName;
-
-            isPlayerReady = false;
-            const btnReady = document.getElementById('btn-ready');
-            if (btnReady) {
-                btnReady.innerText = 'Ready?';
-                btnReady.classList.remove('btn-ready-active');
-            }
-            document.getElementById('status-player1')?.classList.add('oculto');
-
-            mostrarPantalla('pantalla-sala-espera');
-        });
-    }
-
-    if (btnTutorial) {
-        btnTutorial.addEventListener('click', (e) => {
-            e.preventDefault();
-            mostrarPantalla('pantalla-tutorial');
-        });
-    }
-
-    if (btnExit) {
-        btnExit.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('codigo-sala-input').value = '';
-            mostrarPantalla('pantalla-alumno');
-        });
-    }
-
-    if (btnVolverMenu) {
-        btnVolverMenu.addEventListener('click', (e) => {
-            e.preventDefault();
-            mostrarPantalla('pantalla-menu-juego');
-        });
-    }
-
-    // --- LÓGICA DE SALA DE ESPERA ---
+    const btnVolverProfesor = document.getElementById('btn-volver-rol-profesor');
     const btnReady = document.getElementById('btn-ready');
     const btnStartGame = document.getElementById('btn-start-game');
 
-    if (btnReady) {
-        btnReady.addEventListener('click', (e) => {
+    // Escuchar el evento que envía auth-player.js cuando el alumno intenta unirse a una sala
+    window.addEventListener('unirseSalaSocket', (e) => {
+        if (socket && socket.connected) {
+            socket.emit('room:join', e.detail);
+        }
+    });
+
+    // 3. GENERAR CÓDIGO ALEATORIO
+    if (btnCrearCodigo) {
+        btnCrearCodigo.addEventListener('click', (e) => {
             e.preventDefault();
-            isPlayerReady = !isPlayerReady;
+            e.stopPropagation();
 
-            const statusLabel = document.getElementById('status-player1');
-
-            if (isPlayerReady) {
-                btnReady.innerText = 'Ready!';
-                btnReady.classList.add('btn-ready-active');
-                if (statusLabel) statusLabel.classList.remove('oculto');
-            } else {
-                btnReady.innerText = 'Ready?';
-                btnReady.classList.remove('btn-ready-active');
-                if (statusLabel) statusLabel.classList.add('oculto');
-            }
-        });
-    }
-
-    if (btnStartGame) {
-        btnStartGame.addEventListener('click', (e) => {
-            e.preventDefault();
-
-            if (!isPlayerReady) {
-                alert('Debes presionar "Ready?" obligatoriamente antes de continuar.');
+            if (inputRoomName && !inputRoomName.value.trim()) {
+                alert('Por favor escribe primero el nombre de la sala.');
+                inputRoomName.focus();
                 return;
             }
 
-            // Transición a Selección de Escenas
-            actualizarEstadoNiveles();
-            mostrarPantalla('pantalla-seleccion-escena');
-        });
-    }
-
-    // --- LÓGICA DE NIVELES Y DESBLOQUEO ---
-    const btnPlayScene1 = document.getElementById('btn-play-scene1');
-    const btnPlayScene2 = document.getElementById('btn-play-scene2');
-    const btnPlayScene3 = document.getElementById('btn-play-scene3');
-    const btnVolverLobby = document.getElementById('btn-volver-lobby');
-
-    function actualizarEstadoNiveles() {
-        // Nivel 2
-        const btn2 = document.getElementById('btn-play-scene2');
-        const lock2 = document.getElementById('lock-scene2');
-        if (maxUnlockedLevel >= 2) {
-            btn2.disabled = false;
-            lock2.classList.add('oculto');
-        } else {
-            btn2.disabled = true;
-            lock2.classList.remove('oculto');
-        }
-
-        // Nivel 3
-        const btn3 = document.getElementById('btn-play-scene3');
-        const lock3 = document.getElementById('lock-scene3');
-        if (maxUnlockedLevel >= 3) {
-            btn3.disabled = false;
-            lock3.classList.add('oculto');
-        } else {
-            btn3.disabled = true;
-            lock3.classList.remove('oculto');
-        }
-    }
-
-    if (btnPlayScene1) {
-        btnPlayScene1.addEventListener('click', () => {
-            alert('¡Entrando a la Escena 1: Hotel!');
-            
-            // Simulación: Al superar la Scene 1, desbloqueamos la Scene 2
-            if (maxUnlockedLevel < 2) {
-                maxUnlockedLevel = 2;
-                alert('¡Felicidades! Has superado el nivel Hotel. La Scene 2 (Hospital) ha sido desbloqueada.');
-                actualizarEstadoNiveles();
+            const codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
+            if (inputRoomCode) {
+                inputRoomCode.value = codigoGenerado;
             }
         });
     }
 
-    if (btnPlayScene2) {
-        btnPlayScene2.addEventListener('click', () => {
-            alert('¡Entrando a la Escena 2: Hospital!');
-            
-            // Simulación: Al superar la Scene 2, desbloqueamos la Scene 3
-            if (maxUnlockedLevel < 3) {
-                maxUnlockedLevel = 3;
-                alert('¡Felicidades! Has superado el nivel Hospital. La Scene 3 (Restaurant) ha sido desbloqueada.');
-                actualizarEstadoNiveles();
+    // 4. FORMULARIO: CREAR SALA (PROFESOR)
+    if (formCrearSala) {
+        formCrearSala.addEventListener('submit', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const roomName = inputRoomName ? inputRoomName.value.trim() : '';
+            const roomCode = inputRoomCode ? inputRoomCode.value.trim() : '';
+
+            if (!roomName) {
+                alert('Por favor escribe un nombre para la sala.');
+                inputRoomName.focus();
+                return;
+            }
+
+            if (!roomCode) {
+                alert('Genera primero el código presionando "Create room code".');
+                return;
+            }
+
+            const user = JSON.parse(localStorage.getItem('usuarioRegistrado') || '{}');
+            const tokenActual = obtenerTokenSeguro();
+
+            // Asegurar que el socket actualice sus credenciales si se obtuvieron después de la conexión inicial
+            if (socket && tokenActual) {
+                socket.auth = { token: tokenActual };
+            }
+
+            // Guardar contexto localmente
+            localStorage.setItem('currentRoom', JSON.stringify({ 
+                name: roomName, 
+                code: roomCode,
+                isHost: true 
+            }));
+
+            // Si el socket está listo, emitimos la creación al servidor
+            if (socket && socket.connected) {
+                console.log('🚀 Emitiendo "room:create" hacia roomHandler.js...');
+                socket.emit('room:create', {
+                    roomId: roomCode,       // Se usará como accessCode en MariaDB
+                    roomName: roomName,     // Se usará como groupName en MariaDB
+                    username: user.fullname || user.username || 'Profesor'
+                });
+            } else {
+                console.warn('⚠️ Socket no conectado. Avanzando a la pantalla del Lobby...');
+                cambiarALobby(roomName, roomCode);
             }
         });
     }
 
-    if (btnPlayScene3) {
-        btnPlayScene3.addEventListener('click', () => {
-            alert('¡Entrando a la Escena 3: Restaurant! ¡Último nivel!');
+    // 5. BOTÓN "READY?" PARA ESTUDIANTES
+    if (btnReady) {
+        btnReady.addEventListener('click', () => {
+            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (currentRoom.code && socket && socket.connected) {
+                socket.emit('room:toggle_ready', { roomId: currentRoom.code });
+            }
         });
     }
 
-    if (btnVolverLobby) {
-        btnVolverLobby.addEventListener('click', () => {
-            mostrarPantalla('pantalla-sala-espera');
+    // 6. BOTÓN "START GAME" PARA EL PROFESOR
+    if (btnStartGame) {
+        btnStartGame.addEventListener('click', () => {
+            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (currentRoom.code && socket && socket.connected) {
+                console.log('🚀 El profesor ha presionado "Start Game"...');
+                socket.emit('room:start', { roomId: currentRoom.code });
+            }
+        });
+    }
+
+    // 7. EVENTOS Y RESPUESTAS DEL SERVIDOR
+    if (socket) {
+        socket.on('connect', () => {
+            console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
+        });
+
+        socket.on('room:created', (data) => {
+            console.log('✅ Sala creada exitosamente en servidor y MariaDB:', data);
+            cambiarALobby(data.roomName, data.roomId);
+        });
+
+        socket.on('room:joined', (data) => {
+            console.log('✅ Unido a la sala exitosamente:', data);
+            cambiarALobby(data.roomName, data.roomId);
+        });
+
+        socket.on('room:error', (data) => {
+            alert(data.message || 'Error con la sala seleccionada.');
+        });
+
+        // 🔄 ACTUALIZACIÓN EN TIEMPO REAL DEL LOBBY
+        socket.on('room:update', (roomData) => {
+            if (!roomData) return;
+
+            console.log('📡 Actualización de sala recibida:', roomData);
+
+            // A. Nombre del Header
+            const headerTitle = document.getElementById('room-header-title');
+            if (headerTitle) {
+                headerTitle.innerText = `${roomData.name} (Code: ${roomData.roomId || JSON.parse(localStorage.getItem('currentRoom') || '{}').code})`;
+            }
+
+            const players = roomData.players || [];
+            const esProfesor = roomData.hostId === socket.id;
+
+            // B. Mostrar/Ocultar y renderizar únicamente los alumnos que han ingresado
+            for (let i = 1; i <= 4; i++) {
+                const card = document.getElementById(`card-player${i}`);
+                const playerLabel = document.getElementById(`label-player${i}-name`);
+                const statusLabel = document.getElementById(`status-player${i}`);
+
+                if (players[i - 1]) {
+                    const p = players[i - 1];
+                    
+                    if (card) card.classList.remove('oculto');
+                    if (playerLabel) playerLabel.innerText = p.name;
+                    
+                    if (statusLabel) {
+                        statusLabel.classList.remove('oculto');
+                        statusLabel.innerText = p.isReady ? 'Ready' : 'Not Ready';
+                        statusLabel.style.color = p.isReady ? '#2ed573' : '#ff4757';
+                    }
+                } else {
+                    // Si el espacio está libre, se oculta la tarjeta completa
+                    if (card) card.classList.add('oculto');
+                }
+            }
+
+            // C. Visibilidad de Controles según Rol
+            if (btnStartGame) {
+                // Solo el profesor ve "Start game"
+                btnStartGame.style.display = esProfesor ? 'block' : 'none';
+            }
+
+            if (btnReady) {
+                // El profesor NO necesita botón "Ready?", solo los alumnos
+                btnReady.style.display = esProfesor ? 'none' : 'block';
+            }
+        });
+
+        // 🎮 EVENTO: INICIO DE JUEGO PARA TODOS LOS INTEGRANTES DE LA SALA
+        socket.on('room:game_started', (data) => {
+            console.log('🏁 ¡Iniciando el juego!', data);
+            if (typeof window.mostrarPantalla === 'function') {
+                window.mostrarPantalla('pantalla-seleccion-escena');
+            } else {
+                document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+                document.getElementById('pantalla-seleccion-escena')?.classList.remove('oculto');
+            }
+        });
+
+        socket.on('connect_error', (err) => {
+            console.error('❌ Error de autenticación en Socket.io:', err.message);
+        });
+    }
+
+    // Cambiar a la vista del Lobby
+    function cambiarALobby(nombreSala, codigoSala) {
+        const headerTitle = document.getElementById('room-header-title');
+        if (headerTitle) {
+            headerTitle.innerText = `${nombreSala} (Code: ${codigoSala})`;
+        }
+
+        if (typeof window.mostrarPantalla === 'function') {
+            window.mostrarPantalla('pantalla-sala-espera');
+        } else {
+            document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+            document.getElementById('pantalla-sala-espera')?.classList.remove('oculto');
+        }
+    }
+
+    if (btnVolverProfesor) {
+        btnVolverProfesor.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof window.mostrarPantalla === 'function') {
+                window.mostrarPantalla('pantalla-rol');
+            }
         });
     }
 });

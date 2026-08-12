@@ -1,5 +1,9 @@
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken'); // 🔑 Importamos JWT
 const { Player, Teacher } = require('../models');
+
+// Clave secreta para firmar los tokens
+const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 
 // POST /api/auth/register
 const register = async (req, res) => {
@@ -19,11 +23,7 @@ const register = async (req, res) => {
 
     // 3. Guardar según el rol (player o teacher)
     if (role === 'teacher') {
-      if (!nombre) {
-        return res.status(400).json({ 
-          message: 'El nombre es obligatorio para registrar un maestro.' 
-        });
-      }
+      const teacherName = nombre || username;
 
       // Verificar disponibilidad de username
       const existingTeacher = await Teacher.findOne({ where: { username } });
@@ -32,14 +32,30 @@ const register = async (req, res) => {
       }
 
       const newTeacher = await Teacher.create({
-        nombre,
-        username,
-        password_hash,
+        name: teacherName,
+        username: username,
+        passwordHash: password_hash,
       });
+
+      const teacherId = newTeacher.id_maestro || newTeacher.id;
+
+      // 🔑 Generar Token para el Maestro
+      const token = jwt.sign(
+        { id: teacherId, username: newTeacher.username, role: 'teacher' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
       return res.status(201).json({
         message: 'Maestro registrado exitosamente.',
-        user: { id: newTeacher.id_maestro, username: newTeacher.username, role: 'teacher' },
+        token: token,
+        user: { 
+          id: teacherId, 
+          username: newTeacher.username, 
+          fullname: newTeacher.name,
+          role: 'teacher',
+          token: token 
+        },
       });
 
     } else if (role === 'player') {
@@ -50,13 +66,29 @@ const register = async (req, res) => {
       }
 
       const newPlayer = await Player.create({
-        username,
-        password_hash,
+        username: username,
+        name: nombre || username,      // Columna 'name' en el modelo Player
+        passwordHash: password_hash,   // Columna 'passwordHash' en el modelo Player
       });
+
+      // 🔑 Generar Token para el Estudiante / Jugador
+      const playerId = newPlayer.id_jugador || newPlayer.id;
+      const token = jwt.sign(
+        { id: playerId, username: newPlayer.username, role: 'player' },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
 
       return res.status(201).json({
         message: 'Jugador registrado exitosamente.',
-        user: { id: newPlayer.id_jugador, username: newPlayer.username, role: 'player' },
+        token: token,
+        user: { 
+          id: playerId, 
+          username: newPlayer.username, 
+          fullname: newPlayer.name,
+          role: 'player',
+          token: token 
+        },
       });
 
     } else {
@@ -72,6 +104,132 @@ const register = async (req, res) => {
   }
 };
 
+// POST /api/auth/login
+const login = async (req, res) => {
+  try {
+    const { username, password, role } = req.body;
+
+    if (!username || !password || !role) {
+      return res.status(400).json({ message: 'Proporciona username, password y role.' });
+    }
+
+    let userFound = null;
+    let userId = null;
+    let userFullname = '';
+    let hashToCompare = '';
+
+    if (role === 'teacher') {
+      userFound = await Teacher.findOne({ where: { username } });
+      if (userFound) {
+        userId = userFound.id_maestro || userFound.id;
+        userFullname = userFound.name || userFound.username;
+        hashToCompare = userFound.passwordHash;
+      }
+    } else if (role === 'player') {
+      userFound = await Player.findOne({ where: { username } });
+      if (userFound) {
+        userId = userFound.id_jugador || userFound.id;
+        userFullname = userFound.name || userFound.username;
+        hashToCompare = userFound.passwordHash;
+      }
+    }
+
+    if (!userFound) {
+      return res.status(404).json({ message: 'Usuario no encontrado.' });
+    }
+
+    // Validar contraseña
+    const isPasswordValid = await bcrypt.compare(password, hashToCompare);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Contraseña incorrecta.' });
+    }
+
+    // 🔑 Generar Token JWT
+    const token = jwt.sign(
+      { id: userId, username: userFound.username, role },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(200).json({
+      message: 'Inicio de sesión exitoso.',
+      token: token,
+      user: {
+        id: userId,
+        username: userFound.username,
+        fullname: userFullname,
+        role: role,
+        token: token
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en login:', error);
+    return res.status(500).json({ message: 'Error interno en el servidor.', error: error.message });
+  }
+};
+
+// POST /api/auth/teacher-login  <-- 🆕 NUEVA FUNCIÓN PARA REGISTRAR / AUTENTICAR DOCENTES CON LA CLAVE
+const teacherLogin = async (req, res) => {
+  try {
+    const { clave, username, fullname } = req.body;
+    const CLAVE_SECRETA_DOCENTE = process.env.CLAVE_DOCENTE || 'ADMIN123';
+
+    // 1. Validar la clave institucional
+    if (clave !== CLAVE_SECRETA_DOCENTE) {
+      return res.status(401).json({ message: 'Clave institucional incorrecta.' });
+    }
+
+    // 2. Definir valores por defecto si el usuario no ingresó sesión previa
+    const teacherUsername = username || `profe_${Date.now().toString().slice(-4)}`;
+    const teacherName = fullname || teacherUsername;
+
+    // 3. Buscar si el maestro ya existe en la BD o crearlo
+    let teacher = await Teacher.findOne({ where: { username: teacherUsername } });
+
+    if (!teacher) {
+      // Si no existe contraseña definida, generamos un hash por defecto
+      const defaultHash = await bcrypt.hash('123456', 10);
+      
+      teacher = await Teacher.create({
+        name: teacherName,
+        username: teacherUsername,
+        passwordHash: defaultHash
+      });
+    }
+
+    const teacherId = teacher.id_maestro || teacher.id;
+
+    // 4. Generar Token JWT con rol de teacher
+    const token = jwt.sign(
+      { id: teacherId, username: teacher.username, role: 'teacher' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    return res.status(200).json({
+      message: 'Acceso docente concedido.',
+      token: token,
+      user: {
+        id: teacherId,
+        username: teacher.username,
+        fullname: teacher.name,
+        role: 'teacher',
+        token: token
+      }
+    });
+
+  } catch (error) {
+    console.error('Error en teacherLogin:', error);
+    return res.status(500).json({ 
+      message: 'Error interno en el servidor al autenticar docente.',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   register,
+  login,
+  teacherLogin
 };

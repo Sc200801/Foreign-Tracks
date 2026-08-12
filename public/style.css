@@ -132,6 +132,56 @@ input:focus {
 }
 
 /* ===================================================
+   MOSTRAR / OCULTAR CONTRASEÑA (PASSWORD TOGGLE)
+   =================================================== */
+.password-container {
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+}
+
+/* Espacio interno a la derecha para no encimar el texto con el ojo */
+.password-container input {
+    padding-right: 45px !important;
+}
+
+.btn-toggle-password {
+    position: absolute;
+    right: 12px;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: opacity 0.2s ease, transform 0.15s ease;
+    user-select: none;
+    line-height: 1;
+}
+
+.btn-toggle-password:hover {
+    opacity: 1;
+    transform: scale(1.15);
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.btn-toggle-password:active {
+    transform: scale(0.95);
+    box-shadow: none !important;
+}
+
+.btn-toggle-password.active {
+    opacity: 1;
+    filter: drop-shadow(0 0 3px rgba(186, 83, 4, 0.5));
+}
+
+/* ===================================================
    BOTONES CON ARCADIA GRID
    =================================================== */
 button, .btn {
