@@ -4,11 +4,10 @@ const { Server } = require('socket.io');
 const { sequelize, connectDB } = require('./src-server/config/db');
 require('dotenv').config();
 
-// 1. Importar las rutas de autenticación (Login y Registro)
+// 1. Importar las rutas de autenticación
 const authRoutes = require('./src-server/routes/authRoutes');
 
-// 2. Importar el manejador de salas de la carpeta sockets
-// 1. Importar manejador de salas y middleware de sockets
+// 2. Importar el manejador de salas y middleware de sockets
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
 
@@ -33,13 +32,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 // === CONEXIÓN DE RUTAS API (LOGIN Y REGISTRO) ===
-app.use('/api', authRoutes);
-
-// Eventos base de WebSockets (Socket.io)
-// 3. Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 
-// Registrar middleware de autenticación en Socket.io (se ejecuta antes del 'connection')
+// Middleware de autenticación de WebSockets (Valida JWT en handshake)
 io.use(authSocketMiddleware);
 
 // Eventos base de WebSockets
@@ -55,19 +50,12 @@ io.on('connection', (socket) => {
   console.log(`   - Rol: ${role || 'desconocido'}`);
   console.log(`   - Identidad: ${activeId}`);
 
-  // Registrar los eventos de las salas para este jugador
-  // Registrar eventos de las salas
+  // Registrar los eventos de las salas para este socket
   registerRoomHandlers(io, socket);
 
-  // --- MANEJO DE DESCONEXIÓN Y LIMPIEZA DE RECURSOS ---
+  // Manejo de desconexión
   socket.on('disconnect', (reason) => {
-    console.log(`❌ Usuario desconectado (Socket: ${socket.id}, User ID: ${id}) - Razón: ${reason}`);
-
-    // Liberación explícita de listeners para prevenir fugas de memoria
-    socket.removeAllListeners();
-
-    // ⚡ PRUEBA RÁPIDA DE VERIFICACIÓN
-    console.log('✅ Eventos limpios:', socket.eventNames());
+    console.log(`❌ Usuario desconectado (Socket: ${socket.id}, User ID: ${id || 'Anon'}) - Razón: ${reason}`);
   });
 });
 
@@ -75,18 +63,22 @@ const PORT = process.env.PORT || 3000;
 
 // Función para arrancar la base de datos y el servidor HTTP/Sockets
 async function startServer() {
-  // 1. Probar la conexión a MariaDB
-  await connectDB();
+  try {
+    // 1. Probar la conexión a MariaDB
+    await connectDB();
 
-  // 2. Sincronizar modelos con MariaDB
-  await sequelize.sync({ alter: true });
-  console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
+    // 2. Sincronizar modelos con MariaDB
+    await sequelize.sync({ alter: true });
+    console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
 
-  // 3. Encender el servidor
-  server.listen(PORT, () => {
-    console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
-    console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);
-  });
+    // 3. Encender el servidor
+    server.listen(PORT, () => {
+      console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
+      console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);
+    });
+  } catch (error) {
+    console.error('❌ Error crítico al iniciar el servidor:', error);
+  }
 }
 
 startServer();

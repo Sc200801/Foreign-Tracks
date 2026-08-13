@@ -24,8 +24,8 @@ module.exports = (io, socket) => {
       if (token) {
         try {
           const decoded = jwt.verify(token, JWT_SECRET);
-          if (decoded.role === 'teacher') {
-            teacherId = decoded.id;
+          if (decoded.role === 'teacher' || decoded.role === 'docente') {
+            teacherId = decoded.id || decoded.userId;
           }
         } catch (tokenErr) {
           console.warn('⚠️ Token JWT no válido o expirado en room:create:', tokenErr.message);
@@ -41,12 +41,12 @@ module.exports = (io, socket) => {
 
       let nuevaSalaDB = null;
 
-      // 💾 GUARDAR EN MARIADB (GroupRooms) CON LOS NOMBRES EXACTOS DE TU TABLA
+      // 💾 GUARDAR EN MARIADB (GroupRooms)
       if (teacherId) {
         nuevaSalaDB = await GroupRoom.create({
-          groupName: roomName || `Sala ${roomId}`, // Columna: groupName
-          accessCode: roomId,                      // Columna: accessCode (código de 6 dígitos)
-          teacherId: teacherId                     // Columna: teacherId
+          groupName: roomName || `Sala ${roomId}`,
+          accessCode: roomId,
+          teacherId: teacherId
         });
         console.log(`💾 Sala registrada en MariaDB exitosamente (ID Registro: ${nuevaSalaDB.id})`);
       } else {
@@ -79,55 +79,111 @@ module.exports = (io, socket) => {
 
     } catch (error) {
       console.error('❌ Error al guardar la sala en MariaDB:', error);
-      
-      // Si falla la BD, permitimos que la sala funcione en memoria o enviamos alerta
-      socket.emit('room:error', {
-        message: 'Ocurrió un problema al registrar la sala en la base de datos.'
-      });
+      const errorMsg = 'Ocurrió un problema al registrar la sala en la base de datos.';
+      socket.emit('room:error', { message: errorMsg });
     }
   });
 
   // 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
-  socket.on('room:join', (data) => {
-    const { roomId, username } = data || {};
-    if (!roomId) return;
+  const handleJoinRoom = (data) => {
+    const targetRoomId = data?.roomId || data?.roomCode;
+    let username = data?.username;
+
+    if (!targetRoomId) {
+      const errorMsg = 'Debes proporcionar un código de sala.';
+      socket.emit('room:error', { message: errorMsg });
+      return;
+    }
 
     // Verificar si la sala existe
-    if (!rooms[roomId]) {
-      return socket.emit('room:error', {
-        message: 'La sala especificada no existe o fue cerrada.'
-      });
+    if (!rooms[targetRoomId]) {
+      const errorMsg = 'La sala especificada no existe o fue cerrada.';
+      socket.emit('room:error', { message: errorMsg });
+      return;
     }
 
-    // Límite de 4 jugadores por sala
-    if (rooms[roomId].players.length >= 4) {
-      return socket.emit('room:error', {
-        message: 'La sala ya está llena (máximo 4 jugadores).'
-      });
+    const room = rooms[targetRoomId];
+
+    // 🟢 BUSCAR NOMBRE EN MÚLTIPLES FUENTES (Paso seguro)
+    // 1ro: Verificar si el nombre recibido en el payload es válido
+    if (username && username !== 'Estudiante' && username !== 'Student') {
+      username = username.trim();
+    } else {
+      username = null; // Reiniciar si vino un texto por defecto
     }
 
-    socket.join(roomId);
-    console.log(`🎮 Jugador ${username || socket.id} se unió a la sala: ${roomId}`);
+    // 2do: Priorizar datos decodificados por el middleware si existen
+    if (!username && socket.user) {
+      username = socket.user.fullname || socket.user.username || socket.user.name;
+    }
 
-    // Verificar si el jugador ya está en la lista para evitar duplicados
-    const jugadorExiste = rooms[roomId].players.find(p => p.id === socket.id);
-    if (!jugadorExiste) {
-      rooms[roomId].players.push({
+    // 3ro: Intentar decodificar el token directo si aún no hay nombre
+    if (!username) {
+      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+      if (token) {
+        try {
+          const decoded = jwt.verify(token, JWT_SECRET);
+          const raw = decoded.user || decoded.data || decoded;
+          username = raw.fullname || raw.username || raw.name || raw.nombre;
+        } catch (e) {
+          console.warn('⚠️ No se pudo decodificar el token JWT al unirse a la sala:', e.message);
+        }
+      }
+    }
+
+    // Asignación final con respaldo garantizado
+    const finalUsername = (username && username.trim().length > 0) 
+      ? username.trim() 
+      : `Jugador-${socket.id.slice(0, 4)}`;
+
+    // 🔍 BUSCAR SI EL JUGADOR YA ESTABA EN LA SALA
+    let jugadorExistente = room.players.find(p => p.id === socket.id);
+    
+    if (!jugadorExistente && finalUsername && !finalUsername.startsWith('Jugador-')) {
+        // Solo busca por nombre exacto si no es un ID genérico generado
+        jugadorExistente = room.players.find(p => p.name.toLowerCase() === finalUsername.toLowerCase());
+    }
+
+    if (jugadorExistente) {
+      // Actualizar ID y Nombre en caso de reconexión o cambio de pestaña
+      console.log(`🔄 Reconectando/Actualizando jugador "${finalUsername}" (Socket ID: ${socket.id})`);
+      jugadorExistente.id = socket.id;
+      jugadorExistente.name = finalUsername;
+    } else {
+      // Validar límite de 4 integrantes
+      if (room.players.length >= 4) {
+        const errorMsg = 'La sala ya está llena (máximo 4 jugadores).';
+        socket.emit('room:error', { message: errorMsg });
+        return;
+      }
+
+      // Agregar nuevo jugador
+      room.players.push({
         id: socket.id,
-        name: username || 'Estudiante',
+        name: finalUsername,
         isReady: false
       });
     }
 
-    // Confirmarle al estudiante que ingresó correctamente
-    socket.emit('room:joined', {
-      roomId,
-      roomName: rooms[roomId].name
-    });
+    socket.join(targetRoomId);
+    console.log(`🎮 Jugador "${finalUsername}" (Total: ${room.players.length}/4) ingresó a la sala: ${targetRoomId}`);
 
-    // 🔄 Emitir la lista actualizada a TODOS en la sala
-    io.to(roomId).emit('room:update', rooms[roomId]);
-  });
+    const successPayload = {
+      roomId: targetRoomId,
+      roomCode: targetRoomId,
+      roomName: room.name
+    };
+
+    // Confirmación al cliente actual
+    socket.emit('room:joined', successPayload);
+
+    // 🔄 Emitir estado global actualizado a TODOS los navegadores conectados
+    io.to(targetRoomId).emit('room:update', room);
+  };
+
+  // Escuchadores del evento de unión
+  socket.on('room:join', handleJoinRoom);
+  socket.on('unirse-sala', handleJoinRoom);
 
   // 3. CAMBIAR ESTADO "READY / PREPARADO" (Estudiantes)
   socket.on('room:toggle_ready', (data) => {
@@ -171,7 +227,8 @@ module.exports = (io, socket) => {
 
     // Si el que se sale es el profesor, cerramos la sala
     if (room.hostId === socket.id) {
-      io.to(roomId).emit('room:error', { message: 'El profesor ha cerrado la sala.' });
+      const errorMsg = 'El profesor ha cerrado la sala.';
+      io.to(roomId).emit('room:error', { message: errorMsg });
       delete rooms[roomId];
     } else {
       // Si es un alumno, lo removemos de la lista de jugadores
@@ -188,7 +245,8 @@ module.exports = (io, socket) => {
       // Caso A: Si se desconecta el Profesor (Host)
       if (room.hostId === socket.id) {
         console.log(`⚠️ Profesor desconectado. Cerrando sala ${roomId}...`);
-        io.to(roomId).emit('room:error', { message: 'El profesor se ha desconectado. La sala fue cerrada.' });
+        const errorMsg = 'El profesor se ha desconectado. La sala fue cerrada.';
+        io.to(roomId).emit('room:error', { message: errorMsg });
         delete rooms[roomId];
         break;
       }
