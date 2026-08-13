@@ -2,11 +2,11 @@
 // 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN
 // ==========================================
 
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 const CONFIG = {
     API_URL: API_BASE_URL,
-    SOCKET_URL: API_BASE_URL
+    SOCKET_URL: 'http://localhost:3000'
 };
 
 function obtenerToken() {
@@ -14,10 +14,9 @@ function obtenerToken() {
     return usuarioGuardado.token || localStorage.getItem('token') || null;
 }
 
-// Clave secreta institucional
 const CLAVE_DOCENTE_SECRET = "ADMIN123";
 
-// Hacer disponibles en window para los demás scripts
+// Hacer disponibles globalmente en window
 window.API_BASE_URL = API_BASE_URL;
 window.CONFIG = CONFIG;
 window.obtenerToken = obtenerToken;
@@ -83,6 +82,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e) e.preventDefault();
         localStorage.removeItem('usuarioRegistrado');
         localStorage.removeItem('token');
+        sessionStorage.removeItem('tempUserData');
         mostrarPantalla('pantalla-registro-inicial');
     };
 
