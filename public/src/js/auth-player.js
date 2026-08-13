@@ -46,9 +46,49 @@ function getStorageSeguro(storageType, key) {
     }
 }
 
+// ===================================================
+// 🔍 FUNCIÓN AVANZADA PARA OBTENER LA IDENTIDAD REAL DEL USUARIO
+// ===================================================
+function obtenerNombreUsuarioGarantizado() {
+    let nombre = '';
+
+    // 1. Buscar objetos JSON en Storage
+    const posiblesClaves = ['usuarioRegistrado', 'userData', 'user', 'usuario', 'profile'];
+    for (const clave of posiblesClaves) {
+        const obj = getStorageSeguro(localStorage, clave) || getStorageSeguro(sessionStorage, clave);
+        if (obj) {
+            // Revisa si viene anidado (ej. obj.data o obj.user) o directo
+            const base = obj.user || obj.data || obj;
+            nombre = base.fullname || base.username || base.name || base.nombre || '';
+            if (nombre) break;
+        }
+    }
+
+    // 2. Buscar strings simples directos en Storage
+    if (!nombre) {
+        nombre = localStorage.getItem('username') || 
+                 localStorage.getItem('fullname') || 
+                 sessionStorage.getItem('username') || '';
+    }
+
+    // 3. Respaldo directo desde Inputs del DOM (Útil en Chrome si no se ha sincronizado Storage)
+    if (!nombre) {
+        const inputNombre = document.getElementById('reg-fullname') || 
+                            document.getElementById('reg-username') || 
+                            document.getElementById('input-username');
+        if (inputNombre && inputNombre.value.trim()) {
+            nombre = inputNombre.value.trim();
+        }
+    }
+
+    return nombre.trim();
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. VERIFICAR SESIÓN EN LOCALSTORAGE O SESSIONSTORAGE
-    const usuarioExistente = getStorageSeguro(localStorage, 'usuarioRegistrado') || getStorageSeguro(sessionStorage, 'userData');
+    const usuarioExistente = getStorageSeguro(localStorage, 'usuarioRegistrado') || 
+                             getStorageSeguro(sessionStorage, 'userData') ||
+                             getStorageSeguro(localStorage, 'user');
 
     if (usuarioExistente) {
         mostrarPantalla('pantalla-rol');
@@ -95,7 +135,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             sessionStorage.setItem('tempUserData', JSON.stringify(tempUserData));
 
-            console.log('📦 Datos del Paso 1 guardados temporalmente en sessionStorage');
+            console.log('📦 Datos del Paso 1 guardados temporalmente en sessionStorage:', tempUserData);
 
             // Redirección a la pantalla de Selección de Rol (Pantalla 2)
             mostrarPantalla('pantalla-rol');
@@ -165,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formUnirseSala.addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const codigoInput = document.getElementById('codigo-sala-input');
+            const codigoInput = document.getElementById('codigo-sala-input') || document.getElementById('input-join-code');
             const roomCode = codigoInput ? codigoInput.value.trim() : '';
 
             if (!roomCode) {
@@ -173,9 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Verificar si hay token activo o datos de usuario usando la función segura
+            // 1. Verificar si hay token activo
             let token = localStorage.getItem('token') || sessionStorage.getItem('token');
-            let user = getStorageSeguro(localStorage, 'usuarioRegistrado') || getStorageSeguro(sessionStorage, 'userData') || {};
+            let nombreJugador = obtenerNombreUsuarioGarantizado();
 
             // 2. Si no hay token, registramos al alumno en MariaDB
             if (!token) {
@@ -199,20 +239,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     const response = await window.apiService.register(registerPayload);
 
                     token = response.token;
-                    user = response.user || response.player || { fullname: tempUserData.fullname, username: tempUserData.username };
+                    
+                    // Extraer objeto usuario retornado
+                    const rawUser = response.user || response.player || response.data || {};
+                    const userFinal = {
+                        fullname: rawUser.fullname || rawUser.name || tempUserData.fullname,
+                        username: rawUser.username || tempUserData.username,
+                        role: rawUser.role || 'player',
+                        token: token
+                    };
 
-                    // Guardamos la sesión persistente
+                    // Guardamos la sesión con redundancia en storage
                     if (token) {
                         localStorage.setItem('token', token);
                         sessionStorage.setItem('token', token);
                     }
-                    localStorage.setItem('usuarioRegistrado', JSON.stringify(user));
-                    sessionStorage.setItem('userData', JSON.stringify(user));
+                    
+                    localStorage.setItem('usuarioRegistrado', JSON.stringify(userFinal));
+                    localStorage.setItem('username', userFinal.fullname || userFinal.username);
+                    sessionStorage.setItem('userData', JSON.stringify(userFinal));
 
-                    // 🔒 MEDIDA DE SEGURIDAD: Eliminar datos sensibles de la memoria temporal inmediatamente después del registro
+                    // Actualizar el nombre extraído
+                    nombreJugador = userFinal.fullname || userFinal.username;
+
+                    // Eliminar datos sensibles temporales
                     sessionStorage.removeItem('tempUserData');
 
-                    console.log('✅ Alumno registrado en MariaDB y datos temporales eliminados por seguridad');
+                    console.log('✅ Alumno registrado en MariaDB:', userFinal);
 
                 } catch (error) {
                     console.error('❌ Error al registrar alumno:', error);
@@ -221,25 +274,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // 3. Con la sesión confirmada, unirse a la sala
-            const nombreJugador = user.fullname || user.username || 'Estudiante';
+            // Si por alguna razón el nombre sigue sin existir, forzar re-evaluación
+            if (!nombreJugador || nombreJugador === 'Estudiante') {
+                nombreJugador = obtenerNombreUsuarioGarantizado() || 'Estudiante';
+            }
 
             localStorage.setItem('currentRoom', JSON.stringify({
                 code: roomCode,
                 isHost: false
             }));
 
-            // Emitir evento por Socket o Evento Personalizado
+            // Re-autenticar el Socket si ya existe
+            if (window.socket) {
+                window.socket.auth = { token: token };
+                if (!window.socket.connected) {
+                    window.socket.connect();
+                }
+            }
+
+            // Emitir evento con el nombre extraído
+            console.log(`🚀 Uniendo a sala ${roomCode} como: "${nombreJugador}"`);
+            
+            const payload = {
+                roomId: roomCode,
+                roomCode: roomCode,
+                username: nombreJugador
+            };
+
             if (window.socket && window.socket.connected) {
-                console.log('🚀 Emitiendo "room:join" desde auth-player.js...');
-                window.socket.emit('room:join', {
-                    roomId: roomCode,
-                    username: nombreJugador
-                });
+                window.socket.emit('room:join', payload);
             } else {
-                window.dispatchEvent(new CustomEvent('unirseSalaSocket', { 
-                    detail: { roomId: roomCode, username: nombreJugador } 
-                }));
+                window.dispatchEvent(new CustomEvent('unirseSalaSocket', { detail: payload }));
             }
         });
     }

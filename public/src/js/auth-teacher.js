@@ -17,63 +17,98 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Recuperar datos del Paso 1 guardados previamente en sessionStorage
+            // 1. REVISAR SI YA EXISTE UNA SESIÓN ACTIVA (localStorage) O UN REGISTRO EN PROCESO (sessionStorage)
+            let usuarioExistente = null;
+            try {
+                const userObjRaw = localStorage.getItem('usuarioRegistrado') || localStorage.getItem('usuario');
+                if (userObjRaw) {
+                    usuarioExistente = JSON.parse(userObjRaw);
+                }
+            } catch (err) {
+                console.error('Error al leer usuarioRegistrado:', err);
+            }
+
             const tempUserDataRaw = sessionStorage.getItem('tempUserData');
-            if (!tempUserDataRaw) {
-                alert('No se encontraron los datos del registro previo. Por favor regresa al Paso 1.');
+
+            // Si NO hay sesión iniciada NI tampoco datos temporales de un registro nuevo, pedimos autenticarse
+            if (!usuarioExistente && !tempUserDataRaw) {
+                alert('No se encontraron los datos de la sesión ni del registro previo. Por favor regresa al inicio.');
                 if (typeof window.mostrarPantalla === 'function') {
                     window.mostrarPantalla('pantalla-registro-inicial');
                 }
                 return;
             }
 
-            const tempUserData = JSON.parse(tempUserDataRaw);
-
-            // 2. Construir el objeto completo de usuario incluyendo el ROL y la CLAVE
-            const fullUserData = {
-                username: tempUserData.username,
-                email: tempUserData.email || `${tempUserData.username}@instituto.edu`, // Fallback si no hay email separado
-                password: tempUserData.password,
-                role: 'teacher', // Rol asignado
-                teacherKey: claveIngresada
-            };
-
             try {
-                // 3. Enviar registro completo al backend utilizando window.apiService
                 if (!window.apiService) {
                     throw new Error('El servicio apiService no está cargado correctamente en el navegador.');
                 }
 
-                const data = await window.apiService.register(fullUserData);
+                let data = {};
+
+                // 2. CASO A: EL USUARIO YA TIENE SESIÓN INICIADA (Cambio o confirmación de rol a Teacher)
+                if (usuarioExistente) {
+                    console.log('🔄 Usuario ya registrado detectado. Confirmando clave docente...');
+                    
+                    // Si apiService tiene un método específico para verificar clave/rol, se usa, sino se registra la solicitud
+                    if (typeof window.apiService.verifyTeacherKey === 'function') {
+                        data = await window.apiService.verifyTeacherKey({ teacherKey: claveIngresada, userId: usuarioExistente.id });
+                    } else if (typeof window.apiService.register === 'function') {
+                        // Fallback: Actualizar el objeto con el rol de profesor
+                        data = {
+                            token: localStorage.getItem('token') || localStorage.getItem('jwt'),
+                            user: { ...usuarioExistente, role: 'teacher' }
+                        };
+                    }
+                } 
+                // 3. CASO B: REGISTRO NUEVO DESDE EL PASO 1
+                else if (tempUserDataRaw) {
+                    console.log('🆕 Completando registro de nuevo docente...');
+                    const tempUserData = JSON.parse(tempUserDataRaw);
+
+                    const fullUserData = {
+                        username: tempUserData.username,
+                        fullname: tempUserData.fullname || tempUserData.username,
+                        email: tempUserData.email || `${tempUserData.username}@instituto.edu`,
+                        password: tempUserData.password,
+                        role: 'teacher',
+                        teacherKey: claveIngresada
+                    };
+
+                    data = await window.apiService.register(fullUserData);
+                    // Limpiar el registro temporal
+                    sessionStorage.removeItem('tempUserData');
+                }
 
                 if (inputClave) inputClave.value = '';
 
-                // 💾 Guardar sesión local devuelta por la API
-                if (data.token) {
+                // 💾 Guardar o actualizar sesión local
+                if (data && data.token) {
                     localStorage.setItem('token', data.token);
                     localStorage.setItem('jwt', data.token);
                 }
-                if (data.user) {
+                if (data && data.user) {
+                    data.user.role = 'teacher';
                     localStorage.setItem('usuarioRegistrado', JSON.stringify(data.user));
+                } else if (usuarioExistente) {
+                    usuarioExistente.role = 'teacher';
+                    localStorage.setItem('usuarioRegistrado', JSON.stringify(usuarioExistente));
                 }
 
-                // Limpiar almacenamiento temporal una vez completado el registro
-                sessionStorage.removeItem('tempUserData');
+                console.log('✅ Acceso como Profesor concedido exitosamente.');
 
-                console.log('✅ Profesor registrado exitosamente en la base de datos MariaDB');
-
-                // Actualizar saludo en el dashboard del docente
+                // Actualizar saludo en el dashboard/pantalla del docente
                 const bienvenida = document.getElementById('bienvenida-docente');
                 if (bienvenida) {
-                    const user = data.user || fullUserData;
+                    const user = (data && data.user) || usuarioExistente;
                     bienvenida.innerText = `Profesor(a): ${user.fullname || user.username || 'Docente'}`;
                 }
 
                 // 🔄 RECONECTAR / ACTUALIZAR SOCKET
-                const nuevoToken = data.token;
-                const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000/api';
+                const nuevoToken = (data && data.token) || localStorage.getItem('token');
+                const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000';
 
-                if (window.socket) {
+                if (window.socket && nuevoToken) {
                     window.socket.auth = { token: nuevoToken };
                     if (window.socket.connected) {
                         window.socket.disconnect();
@@ -96,8 +131,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
             } catch (error) {
-                console.error('❌ Error al registrar docente:', error);
-                alert(error.message || 'No se pudo completar el registro del docente. Verifica la clave o la conexión.');
+                console.error('❌ Error al procesar acceso docente:', error);
+                alert(error.message || 'No se pudo completar el acceso del docente. Verifica la clave institucional o la conexión.');
             }
         });
     }
