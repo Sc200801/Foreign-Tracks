@@ -273,6 +273,48 @@
         .scene-info p { margin: 4px 0 0 0; font-size: 1.1em; color: #444; }
         .btn-play-scene { padding: 10px 0; background-color: #fbc4ab; border: none; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-shadow: 0 2px 0 #e5a990; }
         .btn-play-scene:disabled { background-color: #e0e0e0; color: #888; box-shadow: none; cursor: not-allowed; }
+
+        /* --- ESTILOS DEL MODAL DE LOGIN --- */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            padding: 30px 25px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 12px;
+            right: 18px;
+            font-size: 28px;
+            font-weight: bold;
+            color: #666;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -314,6 +356,11 @@
         <h2 class="title-rol">CHOOSE YOUR ROL</h2>
         <div id="btn-rol-profesor" class="card-rol card-profesor"><h3>TEACHER</h3></div>
         <div id="btn-rol-student" class="card-rol card-student"><h3>STUDENT</h3></div>
+
+        <!-- ENLACE PARA ABRIR EL MODAL DE LOGIN -->
+        <a href="#" id="btn-open-login-modal" style="margin-top: 10px; color: #333; font-weight: bold; text-decoration: underline; font-size: 0.9em;">
+            ¡Ya tengo cuenta / Iniciar Sesión!
+        </a>
 
         <button type="button" id="btn-logout" class="btn-logout-link">
             ⬅️ Log out
@@ -452,6 +499,29 @@
         </div>
 
         <button type="button" id="btn-volver-lobby" class="btn-create" style="max-width: 250px; margin-top: 25px; background-color: #e0e0e0; box-shadow: 0 3px 0 #cccccc;">Volver al Lobby</button>
+    </div>
+
+    <!-- =================================================== -->
+    <!-- VENTANA EMERGENTE (MODAL) DE INICIAR SESIÓN -->
+    <!-- =================================================== -->
+    <div id="login-modal" class="modal oculto">
+        <div class="modal-content">
+            <span id="btn-close-login-modal" class="close-btn">&times;</span>
+            <h2 class="title-rol" style="font-size: 1.4em; margin-bottom: 15px;">Login</h2>
+
+            <form id="form-login-modal" style="width: 100%;">
+                <input type="text" id="login-username" class="input-custom" placeholder="Write your username" required>
+                
+                <div class="password-container" style="margin-bottom: 15px;">
+                    <input type="password" id="login-password" class="input-custom" placeholder="Write your password" required>
+                    <button type="button" class="btn-toggle-password" onclick="togglePassword('login-password', this)" title="Mostrar contraseña">
+                        👁️
+                    </button>
+                </div>
+
+                <button type="submit" class="btn-create">Login</button>
+            </form>
+        </div>
     </div>
 
     <!-- ========================================== -->
