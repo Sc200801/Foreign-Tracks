@@ -150,7 +150,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnVolverRolAlumno = document.getElementById('btn-volver-rol-alumno');
 
     if (btnStudent) {
-        btnStudent.addEventListener('click', () => {
+        btnStudent.addEventListener('click', async () => {
+            // Verificar si ya existe token o si vienen datos temporales del Paso 1
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const tempUserData = getStorageSeguro(sessionStorage, 'tempUserData');
+
+            // Si no hay sesión iniciada y existen datos del registro temporal, guardar en MariaDB
+            if (!token && tempUserData) {
+                try {
+                    console.log('🔄 Registrando alumno en la base de datos MariaDB...');
+                    const registerPayload = {
+                        fullname: tempUserData.fullname,
+                        username: tempUserData.username,
+                        password: tempUserData.password,
+                        role: 'player'
+                    };
+
+                    const response = await window.apiService.register(registerPayload);
+
+                    // Guardar JWT y usuario
+                    if (response.token) {
+                        localStorage.setItem('token', response.token);
+                        sessionStorage.setItem('token', response.token);
+                    }
+
+                    const rawUser = response.user || response.player || response.data || {};
+                    const userFinal = {
+                        fullname: rawUser.fullname || tempUserData.fullname,
+                        username: rawUser.username || tempUserData.username,
+                        role: 'player'
+                    };
+
+                    localStorage.setItem('usuarioRegistrado', JSON.stringify(userFinal));
+                    sessionStorage.setItem('userData', JSON.stringify(userFinal));
+
+                    // 🔒 MEDIDA DE SEGURIDAD: Limpiar contraseña en texto plano de sessionStorage
+                    sessionStorage.removeItem('tempUserData');
+
+                    console.log('✅ Alumno registrado exitosamente en MariaDB:', userFinal);
+
+                } catch (error) {
+                    console.error('❌ Error al registrar alumno:', error);
+                    alert(error.message || 'Ocurrió un error al registrar la cuenta de alumno.');
+                    return; // No avanzar de pantalla si falla la base de datos
+                }
+            }
+
+            // Cambiar a la pantalla de ingresar código de sala
             mostrarPantalla('pantalla-alumno');
         });
     }
@@ -308,4 +354,95 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ===================================================
+// CONTROL DEL MODAL DE INICIO DE SESIÓN (LOGIN)
+// ===================================================
+const loginModal = document.getElementById('login-modal');
+const btnOpenLoginModal = document.getElementById('btn-open-login-modal');
+const btnCloseLoginModal = document.getElementById('btn-close-login-modal');
+const formLoginModal = document.getElementById('form-login-modal');
+
+// 1. Abrir Modal
+if (btnOpenLoginModal && loginModal) {
+    btnOpenLoginModal.addEventListener('click', (e) => {
+        e.preventDefault();
+        loginModal.classList.remove('oculto', 'hidden');
+    });
+}
+
+// 2. Cerrar con la (X)
+if (btnCloseLoginModal && loginModal) {
+    btnCloseLoginModal.addEventListener('click', () => {
+        loginModal.classList.add('oculto');
+    });
+}
+
+// 3. Cerrar al hacer clic fuera del modal
+window.addEventListener('click', (e) => {
+    if (e.target === loginModal) {
+        loginModal.classList.add('oculto');
+    }
+});
+
+// 4. Procesar el formulario enviando las credenciales al backend
+if (formLoginModal) {
+    formLoginModal.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const usernameInput = document.getElementById('login-username');
+        const passwordInput = document.getElementById('login-password');
+
+        const username = usernameInput ? usernameInput.value.trim() : '';
+        const password = passwordInput ? passwordInput.value : '';
+
+        if (!username || !password) {
+            alert('Por favor ingresa tu usuario y contraseña.');
+            return;
+        }
+
+        try {
+            let data;
+            let currentRole = 'player';
+
+            // Intentar autenticar como 'player'
+            try {
+                data = await window.apiService.login({ username, password, role: 'player' });
+            } catch (errPlayer) {
+                // Si falla, intentar autenticar como 'teacher'
+                data = await window.apiService.login({ username, password, role: 'teacher' });
+                currentRole = 'teacher';
+            }
+
+            // 🔑 GUARDAR TOKEN JWT EN LOCALSTORAGE (Requisito clave de la tarea)
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                sessionStorage.setItem('token', data.token);
+            }
+
+            // Guardar objeto de usuario
+            const userObj = data.user || { username, role: currentRole };
+            localStorage.setItem('usuarioRegistrado', JSON.stringify(userObj));
+            sessionStorage.setItem('userData', JSON.stringify(userObj));
+
+            // Limpiar y cerrar modal
+            usernameInput.value = '';
+            passwordInput.value = '';
+            loginModal.classList.add('oculto');
+
+            console.log('✅ Token JWT guardado exitosamente en localStorage:', data.token);
+
+            // Redirección según rol
+            if (currentRole === 'teacher' || userObj.role === 'teacher') {
+                if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-profesor');
+            } else {
+                if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-alumno');
+            }
+
+        } catch (error) {
+            console.error('❌ Error de autenticación:', error);
+            alert('Usuario o contraseña incorrectos.');
+        }
+    });
+}
 });

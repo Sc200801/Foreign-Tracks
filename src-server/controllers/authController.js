@@ -8,7 +8,11 @@ const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
-    const { username, password, role, nombre } = req.body;
+    // 🔑 Capturamos todas las posibles variantes de nombre que envíe el cliente
+    const { username, password, role, nombre, fullname, name } = req.body;
+
+    // Detectar el nombre real (prioriza nombre, luego fullname, name y por último username)
+    const displayName = nombre || fullname || name || username;
 
     // 1. Validaciones básicas
     if (!username || !password || !role) {
@@ -23,7 +27,6 @@ const register = async (req, res) => {
 
     // 3. Guardar según el rol (player o teacher)
     if (role === 'teacher') {
-      const teacherName = nombre || username;
 
       // Verificar disponibilidad de username
       const existingTeacher = await Teacher.findOne({ where: { username } });
@@ -32,7 +35,7 @@ const register = async (req, res) => {
       }
 
       const newTeacher = await Teacher.create({
-        name: teacherName,
+        name: displayName, // 👈 Guarda el nombre real detectado
         username: username,
         passwordHash: password_hash,
       });
@@ -67,7 +70,7 @@ const register = async (req, res) => {
 
       const newPlayer = await Player.create({
         username: username,
-        name: nombre || username,      // Columna 'name' en el modelo Player
+        name: displayName,             // 👈 Guarda el nombre real detectado
         passwordHash: password_hash,   // Columna 'passwordHash' en el modelo Player
       });
 
