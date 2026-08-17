@@ -57,7 +57,6 @@ function obtenerNombreUsuarioGarantizado() {
     for (const clave of posiblesClaves) {
         const obj = getStorageSeguro(localStorage, clave) || getStorageSeguro(sessionStorage, clave);
         if (obj) {
-            // Revisa si viene anidado (ej. obj.data o obj.user) o directo
             const base = obj.user || obj.data || obj;
             nombre = base.fullname || base.username || base.name || base.nombre || '';
             if (nombre) break;
@@ -71,7 +70,7 @@ function obtenerNombreUsuarioGarantizado() {
                  sessionStorage.getItem('username') || '';
     }
 
-    // 3. Respaldo directo desde Inputs del DOM (Útil en Chrome si no se ha sincronizado Storage)
+    // 3. Respaldo directo desde Inputs del DOM
     if (!nombre) {
         const inputNombre = document.getElementById('reg-fullname') || 
                             document.getElementById('reg-username') || 
@@ -84,14 +83,34 @@ function obtenerNombreUsuarioGarantizado() {
     return nombre.trim();
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    // 1. VERIFICAR SESIÓN EN LOCALSTORAGE O SESSIONSTORAGE
-    const usuarioExistente = getStorageSeguro(localStorage, 'usuarioRegistrado') || 
-                             getStorageSeguro(sessionStorage, 'userData') ||
-                             getStorageSeguro(localStorage, 'user');
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. VERIFICACIÓN AUTOMÁTICA DE SESIÓN CON TOKEN EN BACKEND (checkAuth)
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-    if (usuarioExistente) {
-        mostrarPantalla('pantalla-rol');
+    if (token) {
+        console.log('🔍 Token detectado. Verificando vigencia con el backend...');
+        
+        const isValid = await window.apiService.verifyToken();
+
+        if (isValid) {
+            console.log('✅ Token válido. Omitiendo formularios...');
+            const usuarioData = getStorageSeguro(localStorage, 'usuarioRegistrado') || 
+                                getStorageSeguro(sessionStorage, 'userData') || {};
+
+            if (usuarioData.role === 'teacher') {
+                mostrarPantalla('pantalla-clave-docente');
+            } else {
+                mostrarPantalla('pantalla-alumno');
+            }
+        } else {
+            console.warn('❌ Token expirado o inválido.');
+            mostrarPantalla('pantalla-rol');
+            
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.remove('oculto', 'hidden');
+            }
+        }
     } else {
         mostrarPantalla('pantalla-bienvenida-inicial');
     }
@@ -120,13 +139,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const username = usernameInput ? usernameInput.value.trim() : '';
             const password = passwordInput ? passwordInput.value : '';
 
-            // Validación cliente: Campos requeridos
             if (!username || !password) {
                 alert('Por favor, completa todos los campos requeridos (usuario y contraseña).');
                 return;
             }
 
-            // Guardado temporal en sessionStorage para el paso 2
             const tempUserData = {
                 fullname: fullname || username,
                 username: username,
@@ -136,8 +153,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.setItem('tempUserData', JSON.stringify(tempUserData));
 
             console.log('📦 Datos del Paso 1 guardados temporalmente en sessionStorage:', tempUserData);
-
-            // Redirección a la pantalla de Selección de Rol (Pantalla 2)
             mostrarPantalla('pantalla-rol');
         });
     }
@@ -151,14 +166,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnStudent) {
         btnStudent.addEventListener('click', async () => {
-            // Verificar si ya existe token o si vienen datos temporales del Paso 1
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
             const tempUserData = getStorageSeguro(sessionStorage, 'tempUserData');
 
-            // Si no hay sesión iniciada y existen datos del registro temporal, guardar en MariaDB
-            if (!token && tempUserData) {
+            if (token) {
+                console.log('🔍 Verificando sesión con el backend antes de ingresar...');
+                const isTokenValid = await window.apiService.verifyToken();
+
+                if (!isTokenValid) {
+                    alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+                    mostrarPantalla('pantalla-rol');
+                    const loginModal = document.getElementById('login-modal');
+                    if (loginModal) {
+                        loginModal.classList.remove('oculto', 'hidden');
+                    }
+                    return;
+                }
+            } 
+            else if (tempUserData) {
                 try {
-                    console.log('🔄 Registrando alumno en la base de datos MariaDB...');
+                    console.log('🔄 Registrando nuevo alumno en MariaDB...');
                     const registerPayload = {
                         fullname: tempUserData.fullname,
                         username: tempUserData.username,
@@ -168,7 +195,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     const response = await window.apiService.register(registerPayload);
 
-                    // Guardar JWT y usuario
                     if (response.token) {
                         localStorage.setItem('token', response.token);
                         sessionStorage.setItem('token', response.token);
@@ -184,25 +210,51 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('usuarioRegistrado', JSON.stringify(userFinal));
                     sessionStorage.setItem('userData', JSON.stringify(userFinal));
 
-                    // 🔒 MEDIDA DE SEGURIDAD: Limpiar contraseña en texto plano de sessionStorage
                     sessionStorage.removeItem('tempUserData');
 
-                    console.log('✅ Alumno registrado exitosamente en MariaDB:', userFinal);
+                    console.log('✅ Alumno registrado exitosamente:', userFinal);
 
                 } catch (error) {
                     console.error('❌ Error al registrar alumno:', error);
-                    alert(error.message || 'Ocurrió un error al registrar la cuenta de alumno.');
-                    return; // No avanzar de pantalla si falla la base de datos
+                    alert(error.message || 'El nombre de usuario ya existe o hubo un error al registrarte.');
+                    mostrarPantalla('pantalla-rol');
+                    return;
                 }
+            } 
+            else {
+                alert('Debes iniciar sesión o registrarte primero para ingresar.');
+                mostrarPantalla('pantalla-rol');
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.remove('oculto', 'hidden');
+                }
+                return;
             }
 
-            // Cambiar a la pantalla de ingresar código de sala
             mostrarPantalla('pantalla-alumno');
         });
     }
 
     if (btnProfesor) {
-        btnProfesor.addEventListener('click', () => {
+        btnProfesor.addEventListener('click', async () => {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            // 🔍 Verificación previa de token al presionar el botón Docente
+            if (token) {
+                console.log('🔍 Verificando sesión docente con el backend...');
+                const isTokenValid = await window.apiService.verifyToken();
+
+                if (!isTokenValid) {
+                    alert('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+                    mostrarPantalla('pantalla-rol');
+                    const loginModal = document.getElementById('login-modal');
+                    if (loginModal) {
+                        loginModal.classList.remove('oculto', 'hidden');
+                    }
+                    return; // ⛔ Detiene el avance a la pantalla de clave
+                }
+            }
+
             mostrarPantalla('pantalla-clave-docente');
         });
     }
@@ -235,7 +287,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.socket.disconnect();
             }
 
-            // 🔒 MEDIDA DE SEGURIDAD: Limpieza absoluta de variables y sesiones almacenadas
             localStorage.clear();
             sessionStorage.clear();
 
@@ -259,17 +310,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Verificar si hay token activo
             let token = localStorage.getItem('token') || sessionStorage.getItem('token');
             let nombreJugador = obtenerNombreUsuarioGarantizado();
 
-            // 2. Si no hay token, registramos al alumno en MariaDB
             if (!token) {
                 const tempUserData = getStorageSeguro(sessionStorage, 'tempUserData');
                 
                 if (!tempUserData) {
                     alert('No se detectó una sesión activa. Por favor regístrate o inicia sesión primero.');
-                    mostrarPantalla('pantalla-bienvenida-inicial');
+                    mostrarPantalla('pantalla-rol');
+                    const loginModal = document.getElementById('login-modal');
+                    if (loginModal) {
+                        loginModal.classList.remove('oculto', 'hidden');
+                    }
                     return;
                 }
 
@@ -286,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     token = response.token;
                     
-                    // Extraer objeto usuario retornado
                     const rawUser = response.user || response.player || response.data || {};
                     const userFinal = {
                         fullname: rawUser.fullname || rawUser.name || tempUserData.fullname,
@@ -295,7 +347,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         token: token
                     };
 
-                    // Guardamos la sesión con redundancia en storage
                     if (token) {
                         localStorage.setItem('token', token);
                         sessionStorage.setItem('token', token);
@@ -305,10 +356,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('username', userFinal.fullname || userFinal.username);
                     sessionStorage.setItem('userData', JSON.stringify(userFinal));
 
-                    // Actualizar el nombre extraído
                     nombreJugador = userFinal.fullname || userFinal.username;
-
-                    // Eliminar datos sensibles temporales
                     sessionStorage.removeItem('tempUserData');
 
                     console.log('✅ Alumno registrado en MariaDB:', userFinal);
@@ -316,11 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) {
                     console.error('❌ Error al registrar alumno:', error);
                     alert(error.message || 'Error al intentar registrar la cuenta del alumno.');
+                    mostrarPantalla('pantalla-rol');
                     return;
                 }
             }
 
-            // Si por alguna razón el nombre sigue sin existir, forzar re-evaluación
+            if (!token) {
+                alert('No se pudo verificar tu sesión. Por favor inicia sesión nuevamente.');
+                mostrarPantalla('pantalla-rol');
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.remove('oculto', 'hidden');
+                }
+                return;
+            }
+
             if (!nombreJugador || nombreJugador === 'Estudiante') {
                 nombreJugador = obtenerNombreUsuarioGarantizado() || 'Estudiante';
             }
@@ -330,7 +388,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 isHost: false
             }));
 
-            // Re-autenticar el Socket si ya existe
             if (window.socket) {
                 window.socket.auth = { token: token };
                 if (!window.socket.connected) {
@@ -338,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Emitir evento con el nombre extraído
             console.log(`🚀 Uniendo a sala ${roomCode} como: "${nombreJugador}"`);
             
             const payload = {
@@ -356,93 +412,93 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ===================================================
-// CONTROL DEL MODAL DE INICIO DE SESIÓN (LOGIN)
-// ===================================================
-const loginModal = document.getElementById('login-modal');
-const btnOpenLoginModal = document.getElementById('btn-open-login-modal');
-const btnCloseLoginModal = document.getElementById('btn-close-login-modal');
-const formLoginModal = document.getElementById('form-login-modal');
+    // CONTROL DEL MODAL DE INICIO DE SESIÓN (LOGIN)
+    // ===================================================
+    const loginModal = document.getElementById('login-modal');
+    const btnOpenLoginModal = document.getElementById('btn-open-login-modal');
+    const btnCloseLoginModal = document.getElementById('btn-close-login-modal');
+    const formLoginModal = document.getElementById('form-login-modal');
 
-// 1. Abrir Modal
-if (btnOpenLoginModal && loginModal) {
-    btnOpenLoginModal.addEventListener('click', (e) => {
-        e.preventDefault();
-        loginModal.classList.remove('oculto', 'hidden');
-    });
-}
-
-// 2. Cerrar con la (X)
-if (btnCloseLoginModal && loginModal) {
-    btnCloseLoginModal.addEventListener('click', () => {
-        loginModal.classList.add('oculto');
-    });
-}
-
-// 3. Cerrar al hacer clic fuera del modal
-window.addEventListener('click', (e) => {
-    if (e.target === loginModal) {
-        loginModal.classList.add('oculto');
+    // 1. Abrir Modal
+    if (btnOpenLoginModal && loginModal) {
+        btnOpenLoginModal.addEventListener('click', (e) => {
+            e.preventDefault();
+            loginModal.classList.remove('oculto', 'hidden');
+        });
     }
-});
 
-// 4. Procesar el formulario enviando las credenciales al backend
-if (formLoginModal) {
-    formLoginModal.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const usernameInput = document.getElementById('login-username');
-        const passwordInput = document.getElementById('login-password');
-
-        const username = usernameInput ? usernameInput.value.trim() : '';
-        const password = passwordInput ? passwordInput.value : '';
-
-        if (!username || !password) {
-            alert('Por favor ingresa tu usuario y contraseña.');
-            return;
-        }
-
-        try {
-            let data;
-            let currentRole = 'player';
-
-            // Intentar autenticar como 'player'
-            try {
-                data = await window.apiService.login({ username, password, role: 'player' });
-            } catch (errPlayer) {
-                // Si falla, intentar autenticar como 'teacher'
-                data = await window.apiService.login({ username, password, role: 'teacher' });
-                currentRole = 'teacher';
-            }
-
-            // 🔑 GUARDAR TOKEN JWT EN LOCALSTORAGE (Requisito clave de la tarea)
-            if (data.token) {
-                localStorage.setItem('token', data.token);
-                sessionStorage.setItem('token', data.token);
-            }
-
-            // Guardar objeto de usuario
-            const userObj = data.user || { username, role: currentRole };
-            localStorage.setItem('usuarioRegistrado', JSON.stringify(userObj));
-            sessionStorage.setItem('userData', JSON.stringify(userObj));
-
-            // Limpiar y cerrar modal
-            usernameInput.value = '';
-            passwordInput.value = '';
+    // 2. Cerrar con la (X)
+    if (btnCloseLoginModal && loginModal) {
+        btnCloseLoginModal.addEventListener('click', () => {
             loginModal.classList.add('oculto');
+        });
+    }
 
-            console.log('✅ Token JWT guardado exitosamente en localStorage:', data.token);
-
-            // Redirección según rol
-            if (currentRole === 'teacher' || userObj.role === 'teacher') {
-                if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-profesor');
-            } else {
-                if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-alumno');
-            }
-
-        } catch (error) {
-            console.error('❌ Error de autenticación:', error);
-            alert('Usuario o contraseña incorrectos.');
+    // 3. Cerrar al hacer clic fuera del modal
+    window.addEventListener('click', (e) => {
+        if (e.target === loginModal) {
+            loginModal.classList.add('oculto');
         }
     });
-}
+
+    // 4. Procesar el formulario enviando las credenciales al backend
+    if (formLoginModal) {
+        formLoginModal.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const usernameInput = document.getElementById('login-username');
+            const passwordInput = document.getElementById('login-password');
+
+            const username = usernameInput ? usernameInput.value.trim() : '';
+            const password = passwordInput ? passwordInput.value : '';
+
+            if (!username || !password) {
+                alert('Por favor ingresa tu usuario y contraseña.');
+                return;
+            }
+
+            try {
+                let data;
+                let currentRole = 'player';
+
+                try {
+                    data = await window.apiService.login({ username, password, role: 'player' });
+                } catch (errPlayer) {
+                    data = await window.apiService.login({ username, password, role: 'teacher' });
+                    currentRole = 'teacher';
+                }
+
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    sessionStorage.setItem('token', data.token);
+                }
+
+                const userObj = data.user || { username, role: currentRole };
+                localStorage.setItem('usuarioRegistrado', JSON.stringify(userObj));
+                sessionStorage.setItem('userData', JSON.stringify(userObj));
+
+                usernameInput.value = '';
+                passwordInput.value = '';
+                loginModal.classList.add('oculto');
+
+                console.log('✅ Token JWT guardado exitosamente en localStorage:', data.token);
+
+                if (currentRole === 'teacher' || userObj.role === 'teacher') {
+                    if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-profesor');
+                } else {
+                    if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-alumno');
+                }
+
+            } catch (error) {
+                console.error('❌ Error de autenticación:', error);
+                alert('Usuario o contraseña incorrectos.');
+                
+                // 🔄 AJUSTE DE FLUJO: Enviar a selección de rol y mantener modal abierto al aceptar la alerta
+                mostrarPantalla('pantalla-rol');
+                if (loginModal) {
+                    loginModal.classList.remove('oculto', 'hidden');
+                }
+            }
+        });
+    }
 });

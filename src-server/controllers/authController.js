@@ -35,18 +35,18 @@ const register = async (req, res) => {
       }
 
       const newTeacher = await Teacher.create({
-        name: displayName, // 👈 Guarda el nombre real detectado
+        name: displayName,
         username: username,
         passwordHash: password_hash,
       });
 
       const teacherId = newTeacher.id_maestro || newTeacher.id;
 
-      // 🔑 Generar Token para el Maestro
+      // 🔑 Generar Token para el Maestro (7 días)
       const token = jwt.sign(
         { id: teacherId, username: newTeacher.username, role: 'teacher' },
         JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '7d' } // 👈 CAMBIADO A 7d
       );
 
       return res.status(201).json({
@@ -70,16 +70,16 @@ const register = async (req, res) => {
 
       const newPlayer = await Player.create({
         username: username,
-        name: displayName,             // 👈 Guarda el nombre real detectado
-        passwordHash: password_hash,   // Columna 'passwordHash' en el modelo Player
+        name: displayName,
+        passwordHash: password_hash,
       });
 
-      // 🔑 Generar Token para el Estudiante / Jugador
+      // 🔑 Generar Token para el Estudiante / Jugador (7 días)
       const playerId = newPlayer.id_jugador || newPlayer.id;
       const token = jwt.sign(
         { id: playerId, username: newPlayer.username, role: 'player' },
         JWT_SECRET,
-        { expiresIn: '24h' }
+        { expiresIn: '7d' } // 👈 CAMBIADO A 7d
       );
 
       return res.status(201).json({
@@ -147,11 +147,11 @@ const login = async (req, res) => {
       return res.status(401).json({ message: 'Contraseña incorrecta.' });
     }
 
-    // 🔑 Generar Token JWT
+    // 🔑 Generar Token JWT (7 días)
     const token = jwt.sign(
       { id: userId, username: userFound.username, role },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '7d' } // 👈 CAMBIADO A 7d
     );
 
     return res.status(200).json({
@@ -172,26 +172,22 @@ const login = async (req, res) => {
   }
 };
 
-// POST /api/auth/teacher-login  <-- 🆕 NUEVA FUNCIÓN PARA REGISTRAR / AUTENTICAR DOCENTES CON LA CLAVE
+// POST /api/auth/teacher-login
 const teacherLogin = async (req, res) => {
   try {
     const { clave, username, fullname } = req.body;
     const CLAVE_SECRETA_DOCENTE = process.env.CLAVE_DOCENTE || 'ADMIN123';
 
-    // 1. Validar la clave institucional
     if (clave !== CLAVE_SECRETA_DOCENTE) {
       return res.status(401).json({ message: 'Clave institucional incorrecta.' });
     }
 
-    // 2. Definir valores por defecto si el usuario no ingresó sesión previa
     const teacherUsername = username || `profe_${Date.now().toString().slice(-4)}`;
     const teacherName = fullname || teacherUsername;
 
-    // 3. Buscar si el maestro ya existe en la BD o crearlo
     let teacher = await Teacher.findOne({ where: { username: teacherUsername } });
 
     if (!teacher) {
-      // Si no existe contraseña definida, generamos un hash por defecto
       const defaultHash = await bcrypt.hash('123456', 10);
       
       teacher = await Teacher.create({
@@ -203,11 +199,11 @@ const teacherLogin = async (req, res) => {
 
     const teacherId = teacher.id_maestro || teacher.id;
 
-    // 4. Generar Token JWT con rol de teacher
+    // 🔑 Generar Token JWT (7 días)
     const token = jwt.sign(
       { id: teacherId, username: teacher.username, role: 'teacher' },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '7d' } // 👈 CAMBIADO A 7d
     );
 
     return res.status(200).json({
@@ -231,8 +227,27 @@ const teacherLogin = async (req, res) => {
   }
 };
 
+// 🆕 GET /api/auth/verify (Método para que el frontend valide el token)
+const verifyToken = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ valid: false, message: 'Token no proporcionado.' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    return res.status(200).json({ valid: true, user: decoded });
+  } catch (error) {
+    // Si el token expiró o es inválido, responde 401 Unauthorized
+    return res.status(401).json({ valid: false, message: 'Token expirado o inválido.' });
+  }
+};
+
 module.exports = {
   register,
   login,
-  teacherLogin
+  teacherLogin,
+  verifyToken // 👈 Exportamos el nuevo método de verificación
 };

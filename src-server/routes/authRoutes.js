@@ -17,6 +17,9 @@ router.post('/login', authController.login);
 // POST /api/auth/teacher-login (Validación de Clave Maestra e Inserción de Docente)
 router.post('/teacher-login', authController.teacherLogin);
 
+// 🔑 GET /api/auth/verify (Verificación del Token JWT para Auto-login / Expiración)
+router.get('/verify', authController.verifyToken);
+
 
 // ===================================================
 // RUTAS ESPECÍFICAS ADICIONALES
