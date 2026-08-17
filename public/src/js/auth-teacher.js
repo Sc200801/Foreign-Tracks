@@ -40,9 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Si NO hay sesión iniciada NI tampoco datos temporales de un registro nuevo, pedimos autenticarse
             if (!usuarioExistente && !tempUserDataRaw) {
-                alert('No se encontraron los datos de la sesión ni del registro previo. Por favor regresa al inicio.');
+                alert('No se encontraron los datos de la sesión ni del registro previo. Por favor inicia sesión o regístrate.');
+                
                 if (typeof window.mostrarPantalla === 'function') {
-                    window.mostrarPantalla('pantalla-registro-inicial');
+                    window.mostrarPantalla('pantalla-rol');
+                } else {
+                    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+                    document.getElementById('pantalla-rol')?.classList.remove('oculto');
+                }
+
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.remove('oculto', 'hidden');
                 }
                 return;
             }
@@ -91,13 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     data = await window.apiService.register(fullUserData);
 
-                    // 🔒 MEDIDA DE SEGURIDAD: Limpiar el registro temporal con contraseña tras guardar en MariaDB
+                    // 🔒 MEDIDA DE SEGURIDAD: Limpiar el registro temporal tras guardar en MariaDB
                     sessionStorage.removeItem('tempUserData');
                 }
 
                 if (inputClave) inputClave.value = '';
 
-                // 💾 Guardar o actualizar sesión local
+                // 💾 Guardar o actualizar sesión local y Token JWT
                 if (data && data.token) {
                     localStorage.setItem('token', data.token);
                     sessionStorage.setItem('token', data.token);
@@ -150,16 +159,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 console.error('❌ Error al procesar acceso docente:', error);
-                alert(error.message || 'No se pudo completar el acceso del docente. Verifica la clave institucional o la conexión.');
+                alert(error.message || 'No se pudo completar el acceso del docente. Verifica la clave institucional o inicia sesión.');
+
+                // 🔄 REDIRECCIÓN CORREGIDA: Enviar a Selección de Rol y mostrar modal de Login
+                if (typeof window.mostrarPantalla === 'function') {
+                    window.mostrarPantalla('pantalla-rol');
+                } else {
+                    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+                    document.getElementById('pantalla-rol')?.classList.remove('oculto');
+                }
+
+                const loginModal = document.getElementById('login-modal');
+                if (loginModal) {
+                    loginModal.classList.remove('oculto', 'hidden');
+                }
             }
         });
     }
 });
 
 // ===================================================
-// VERIFICACIÓN Y LECTURA DE TOKEN DE DOCENTE (MODAL/LOGIN)
+// 🔑 VERIFICACIÓN AUTOMÁTICA DE SESIÓN DOCENTE CON EL BACKEND (checkAuth)
 // ===================================================
-function checkTeacherSession() {
+async function checkTeacherSession() {
     const token = localStorage.getItem('token') || localStorage.getItem('jwt');
     const userRaw = localStorage.getItem('usuarioRegistrado');
     let userData = {};
@@ -171,19 +193,42 @@ function checkTeacherSession() {
     }
 
     if (token && userData.role === 'teacher') {
-        console.log('🔑 Sesión de docente activa con token en localStorage:', token);
-        
-        // Actualizar el saludo si el elemento existe en el DOM
-        const bienvenida = document.getElementById('bienvenida-docente');
-        if (bienvenida) {
-            bienvenida.innerText = `Profesor(a): ${userData.fullname || userData.username || 'Docente'}`;
+        console.log('🔍 Evaluando token de docente en el backend...');
+
+        // Validar vigencia del token con el backend
+        const isTokenValid = await window.apiService.verifyToken();
+
+        if (isTokenValid) {
+            console.log('✅ Token de docente activo y válido.');
+            const bienvenida = document.getElementById('bienvenida-docente');
+            if (bienvenida) {
+                bienvenida.innerText = `Profesor(a): ${userData.fullname || userData.username || 'Docente'}`;
+            }
+            return { token, user: userData };
+        } else {
+            console.warn('⚠️ El token del docente ha expirado o no es válido.');
+
+            // 1. Mostrar de fondo la pantalla de Selección de Rol
+            if (typeof window.mostrarPantalla === 'function') {
+                window.mostrarPantalla('pantalla-rol');
+            } else {
+                document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+                document.getElementById('pantalla-rol')?.classList.remove('oculto');
+            }
+
+            // 2. Abrir el modal de Login por encima
+            const loginModal = document.getElementById('login-modal');
+            if (loginModal) {
+                loginModal.classList.remove('oculto', 'hidden');
+            }
+
+            return null;
         }
-        return { token, user: userData };
     }
     return null;
 }
 
-// Ejecutar lectura del token cuando la página termine de cargar
-document.addEventListener('DOMContentLoaded', () => {
-    checkTeacherSession();
+// Ejecutar la verificación al cargar el DOM
+document.addEventListener('DOMContentLoaded', async () => {
+    await checkTeacherSession();
 });
