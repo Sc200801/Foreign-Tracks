@@ -15,6 +15,16 @@ const DialogueNode = sequelize.define('DialogueNode', {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  targetPlayer: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+  },
+  stepIndex: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+  },
 }, {
   timestamps: false,
 });
