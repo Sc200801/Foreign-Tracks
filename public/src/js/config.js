@@ -14,13 +14,10 @@ function obtenerToken() {
     return usuarioGuardado.token || localStorage.getItem('token') || null;
 }
 
-const CLAVE_DOCENTE_SECRET = "ADMIN123";
-
 // Hacer disponibles globalmente en window
 window.API_BASE_URL = API_BASE_URL;
 window.CONFIG = CONFIG;
 window.obtenerToken = obtenerToken;
-window.CLAVE_DOCENTE_SECRET = CLAVE_DOCENTE_SECRET;
 
 // ==========================================
 // 2. CONTROL DE NAVEGACIÓN ENTRE PANTALLAS

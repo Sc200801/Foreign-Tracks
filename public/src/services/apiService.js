@@ -1,5 +1,4 @@
 // js/apiService.js
-// Usamos la variable global window.API_BASE_URL en lugar de import
 const getApiUrl = () => window.API_BASE_URL || 'http://localhost:3000/api';
 
 window.apiService = {
@@ -17,10 +16,10 @@ window.apiService = {
                 body: JSON.stringify(fullUserData)
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al registrar usuario');
+                throw new Error(data.message || data.error || 'Error al registrar usuario');
             }
 
             return data;
@@ -44,15 +43,44 @@ window.apiService = {
                 body: JSON.stringify(credentials)
             });
 
-            const data = await response.json();
+            const data = await response.json().catch(() => ({}));
 
             if (!response.ok) {
-                throw new Error(data.message || 'Error al iniciar sesión');
+                throw new Error(data.message || data.error || 'Error al iniciar sesión');
             }
 
             return data;
         } catch (error) {
             console.error('Error en apiService.login:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Valida la clave institucional docente en el servidor
+     * @param {Object} payload - { teacherKey }
+     */
+    async verifyTeacherKey(payload) {
+        try {
+            const response = await fetch(`${getApiUrl()}/auth/teacher-login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    teacherKey: payload.teacherKey || payload.clave
+                })
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'Clave de docente incorrecta.');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en apiService.verifyTeacherKey:', error);
             throw error;
         }
     },
@@ -73,7 +101,6 @@ window.apiService = {
                 }
             });
 
-            // Si responde 401 (token expirado o inválido)
             if (response.status === 401) {
                 console.warn('⚠️ Token expirado o inválido.');
                 this.handleSessionExpired();
@@ -91,15 +118,12 @@ window.apiService = {
      * Manejador centralizado cuando expira la sesión
      */
     handleSessionExpired() {
-        // 1. Limpiar tokens y datos almacenados
         localStorage.removeItem('token');
         localStorage.removeItem('usuarioRegistrado');
         sessionStorage.clear();
 
-        // 2. Notificar al usuario
         alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
 
-        // 3. Abrir la ventana emergente Modal de Login
         const loginModal = document.getElementById('login-modal');
         if (loginModal) {
             loginModal.classList.remove('oculto', 'hidden');

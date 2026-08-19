@@ -139,8 +139,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             const username = usernameInput ? usernameInput.value.trim() : '';
             const password = passwordInput ? passwordInput.value : '';
 
+            // 🔍 Validaciones previas en el cliente
             if (!username || !password) {
-                alert('Por favor, completa todos los campos requeridos (usuario y contraseña).');
+                window.mostrarAlerta('registro-alert-msg', 'Por favor, completa todos los campos requeridos.');
+                return;
+            }
+
+            if (username.length < 3) {
+                window.mostrarAlerta('registro-alert-msg', 'El nombre de usuario debe tener al menos 3 caracteres.');
+                return;
+            }
+
+            if (password.length < 4) {
+                window.mostrarAlerta('registro-alert-msg', 'La contraseña debe tener al menos 4 caracteres.');
                 return;
             }
 
@@ -153,6 +164,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             sessionStorage.setItem('tempUserData', JSON.stringify(tempUserData));
 
             console.log('📦 Datos del Paso 1 guardados temporalmente en sessionStorage:', tempUserData);
+            
+            // Avanzar a la selección de rol
             mostrarPantalla('pantalla-rol');
         });
     }
@@ -216,8 +229,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 } catch (error) {
                     console.error('❌ Error al registrar alumno:', error);
-                    alert(error.message || 'El nombre de usuario ya existe o hubo un error al registrarte.');
-                    mostrarPantalla('pantalla-rol');
+                    window.mostrarAlerta('registro-alert-msg', error.message || 'El nombre de usuario ya existe o hubo un error al registrarte.');
+                    mostrarPantalla('pantalla-registro-inicial');
                     return;
                 }
             } 
@@ -239,7 +252,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnProfesor.addEventListener('click', async () => {
             const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-            // 🔍 Verificación previa de token al presionar el botón Docente
             if (token) {
                 console.log('🔍 Verificando sesión docente con el backend...');
                 const isTokenValid = await window.apiService.verifyToken();
@@ -251,7 +263,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (loginModal) {
                         loginModal.classList.remove('oculto', 'hidden');
                     }
-                    return; // ⛔ Detiene el avance a la pantalla de clave
+                    return;
                 }
             }
 
@@ -453,7 +465,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const password = passwordInput ? passwordInput.value : '';
 
             if (!username || !password) {
-                alert('Por favor ingresa tu usuario y contraseña.');
+                window.mostrarAlerta('login-alert-msg', 'Por favor ingresa tu usuario y contraseña.');
                 return;
             }
 
@@ -477,27 +489,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                 localStorage.setItem('usuarioRegistrado', JSON.stringify(userObj));
                 sessionStorage.setItem('userData', JSON.stringify(userObj));
 
-                usernameInput.value = '';
-                passwordInput.value = '';
-                loginModal.classList.add('oculto');
-
                 console.log('✅ Token JWT guardado exitosamente en localStorage:', data.token);
 
-                if (currentRole === 'teacher' || userObj.role === 'teacher') {
-                    if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-profesor');
-                } else {
-                    if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-alumno');
-                }
+                // 🟢 Alerta de éxito dentro del modal
+                window.mostrarAlerta('login-alert-msg', '¡Sesión iniciada con éxito!', false);
+
+                setTimeout(() => {
+                    usernameInput.value = '';
+                    passwordInput.value = '';
+                    loginModal.classList.add('oculto');
+
+                    if (currentRole === 'teacher' || userObj.role === 'teacher') {
+                        if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-profesor');
+                    } else {
+                        if (typeof mostrarPantalla === 'function') mostrarPantalla('pantalla-alumno');
+                    }
+                }, 1000);
 
             } catch (error) {
                 console.error('❌ Error de autenticación:', error);
-                alert('Usuario o contraseña incorrectos.');
-                
-                // 🔄 AJUSTE DE FLUJO: Enviar a selección de rol y mantener modal abierto al aceptar la alerta
-                mostrarPantalla('pantalla-rol');
-                if (loginModal) {
-                    loginModal.classList.remove('oculto', 'hidden');
-                }
+                // 🔴 Alerta de error dentro del modal
+                window.mostrarAlerta('login-alert-msg', error.message || 'Usuario o contraseña incorrectos.');
             }
         });
     }
