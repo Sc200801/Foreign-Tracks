@@ -1,6 +1,8 @@
 // js/apiService.js
-// Usamos la variable global window.API_BASE_URL en lugar de import
-const getApiUrl = () => window.API_BASE_URL || 'http://localhost:3000/api';
+// Lee dinámicamente la propiedad API_URL definida en config.js
+const getApiUrl = () => {
+    return window.CONFIG?.API_URL || window.API_BASE_URL;
+};
 
 window.apiService = {
     /**

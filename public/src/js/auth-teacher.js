@@ -131,9 +131,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     bienvenida.innerText = `Profesor(a): ${user.fullname || user.username || 'Docente'}`;
                 }
 
-                // 🔄 RECONECTAR / ACTUALIZAR SOCKET
+                // 🔄 RECONECTAR / ACTUALIZAR SOCKET USANDO LA CONFIGURACIÓN GLOBAL DE CONFIG.JS
                 const nuevoToken = (data && data.token) || localStorage.getItem('token');
-                const API_BASE_URL = window.API_BASE_URL || 'http://localhost:3000';
+                
+                // Lee el dominio del socket definido centralmente en config.js
+                const socketTargetUrl = window.CONFIG?.SOCKET_URL || window.API_BASE_URL || window.location.origin;
 
                 if (window.socket && nuevoToken) {
                     window.socket.auth = { token: nuevoToken };
@@ -142,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     window.socket.connect();
                 } else if (window.io && nuevoToken) {
-                    window.socket = window.io(API_BASE_URL, {
+                    window.socket = window.io(socketTargetUrl, {
                         auth: { token: nuevoToken },
                         extraHeaders: { Authorization: `Bearer ${nuevoToken}` },
                         transports: ['websocket', 'polling']
