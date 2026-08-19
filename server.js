@@ -17,11 +17,13 @@ require('./src-server/models');
 const app = express();
 const server = http.createServer(app);
 
-// Inicialización de Socket.io
+// Inicialización de Socket.io con mayor tolerancia a latencia (Ngrok / Red Escolar)
 const io = new Server(server, {
   cors: {
     origin: '*',
   },
+  pingTimeout: 30000,  // Tiempo de espera antes de declarar desconexión (30 seg)
+  pingInterval: 10000, // Intervalo entre pings de control (10 seg)
 });
 
 // Middlewares HTTP para procesar JSON y datos de formularios

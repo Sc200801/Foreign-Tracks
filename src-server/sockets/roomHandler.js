@@ -4,8 +4,11 @@ const { GroupRoom } = require('../models'); // Importamos el modelo de Sequelize
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 
 // Almacén en memoria para guardar el estado de las salas activas en tiempo real
-// Estructura: { roomId: { name, hostId, dbRoomId, players: [ { id, name, isReady } ] } }
+// Estructura: { roomId: { name, hostId, dbRoomId, players: [ { id, name, isReady, userId } ] } }
 const rooms = {};
+
+// Almacén para gestionar temporizadores de desconexión temporal (Grace Period)
+const disconnectTimers = {};
 
 module.exports = (io, socket) => {
 
@@ -53,11 +56,18 @@ module.exports = (io, socket) => {
         console.warn('⚠️ No se pudo obtener el ID del docente desde el JWT. La sala funcionará solo en memoria.');
       }
 
+      // Cancelar posible temporizador de desconexión del host si es una reconexión
+      if (disconnectTimers[`host_${roomId}`]) {
+        clearTimeout(disconnectTimers[`host_${roomId}`]);
+        delete disconnectTimers[`host_${roomId}`];
+        console.log(`🟢 Profesor reconectado. Se canceló la destrucción de la sala ${roomId}.`);
+      }
+
       // Unir el socket del profesor a la sala de Socket.io
       socket.join(roomId);
 
-      // Guardar la sala en la memoria en tiempo real
-      rooms[roomId] = {
+      // Guardar o actualizar la sala en la memoria en tiempo real
+      rooms[roomId] = rooms[roomId] || {
         name: roomName,
         roomId: roomId,
         dbRoomId: nuevaSalaDB ? nuevaSalaDB.id : null,
@@ -65,6 +75,8 @@ module.exports = (io, socket) => {
         teacherId: teacherId,
         players: []
       };
+
+      rooms[roomId].hostId = socket.id;
 
       // Confirmar al profesor que la sala fue creada
       socket.emit('room:created', {
@@ -104,20 +116,17 @@ module.exports = (io, socket) => {
 
     const room = rooms[targetRoomId];
 
-    // 🟢 BUSCAR NOMBRE EN MÚLTIPLES FUENTES (Paso seguro)
-    // 1ro: Verificar si el nombre recibido en el payload es válido
+    // 🟢 BUSCAR NOMBRE EN MÚLTIPLES FUENTES
     if (username && username !== 'Estudiante' && username !== 'Student') {
       username = username.trim();
     } else {
-      username = null; // Reiniciar si vino un texto por defecto
+      username = null;
     }
 
-    // 2do: Priorizar datos decodificados por el middleware si existen
     if (!username && socket.user) {
       username = socket.user.fullname || socket.user.username || socket.user.name;
     }
 
-    // 3ro: Intentar decodificar el token directo si aún no hay nombre
     if (!username) {
       const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
       if (token) {
@@ -131,22 +140,29 @@ module.exports = (io, socket) => {
       }
     }
 
-    // Asignación final con respaldo garantizado
     const finalUsername = (username && username.trim().length > 0) 
       ? username.trim() 
       : `Jugador-${socket.id.slice(0, 4)}`;
 
-    // 🔍 BUSCAR SI EL JUGADOR YA ESTABA EN LA SALA
+    // 🔍 BUSCAR SI EL JUGADOR YA ESTABA EN LA SALA (POR NOMBRE O POR SOCKET ID ANTERIOR)
     let jugadorExistente = room.players.find(p => p.id === socket.id);
     
     if (!jugadorExistente && finalUsername && !finalUsername.startsWith('Jugador-')) {
-        // Solo busca por nombre exacto si no es un ID genérico generado
         jugadorExistente = room.players.find(p => p.name.toLowerCase() === finalUsername.toLowerCase());
     }
 
     if (jugadorExistente) {
-      // Actualizar ID y Nombre en caso de reconexión o cambio de pestaña
-      console.log(`🔄 Reconectando/Actualizando jugador "${finalUsername}" (Socket ID: ${socket.id})`);
+      // 🔄 CANCELAR TIMEOUT DE ELIMINACIÓN SI ESTABA EN PERÍODO DE GRACIA
+      const timerKey = `player_${targetRoomId}_${jugadorExistente.name}`;
+      if (disconnectTimers[timerKey]) {
+        clearTimeout(disconnectTimers[timerKey]);
+        delete disconnectTimers[timerKey];
+        console.log(`🟢 Reconexión exitosa dentro del tiempo de gracia: "${finalUsername}" conservó su lugar.`);
+      } else {
+        console.log(`🔄 Actualizando datos de conexión para "${finalUsername}" (Nuevo Socket ID: ${socket.id})`);
+      }
+
+      // Actualizar socket ID activo
       jugadorExistente.id = socket.id;
       jugadorExistente.name = finalUsername;
     } else {
@@ -166,7 +182,7 @@ module.exports = (io, socket) => {
     }
 
     socket.join(targetRoomId);
-    console.log(`🎮 Jugador "${finalUsername}" (Total: ${room.players.length}/4) ingresó a la sala: ${targetRoomId}`);
+    console.log(`🎮 Jugador "${finalUsername}" (Total: ${room.players.length}/4) activo en sala: ${targetRoomId}`);
 
     const successPayload = {
       roomId: targetRoomId,
@@ -174,10 +190,7 @@ module.exports = (io, socket) => {
       roomName: room.name
     };
 
-    // Confirmación al cliente actual
     socket.emit('room:joined', successPayload);
-
-    // 🔄 Emitir estado global actualizado a TODOS los navegadores conectados
     io.to(targetRoomId).emit('room:update', room);
   };
 
@@ -194,7 +207,6 @@ module.exports = (io, socket) => {
       const player = room.players.find(p => p.id === socket.id);
       if (player) {
         player.isReady = !player.isReady;
-        // Transmitir la actualización en tiempo real
         io.to(roomId).emit('room:update', room);
       }
     }
@@ -215,48 +227,71 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 5. SALIR DE UNA SALA DE JUEGO
+  // 5. SALIR DE UNA SALA DE JUEGO (Salida Voluntaria)
   socket.on('room:leave', (data) => {
     const { roomId } = data || {};
     if (!roomId || !rooms[roomId]) return;
 
     socket.leave(roomId);
-    console.log(`🚪 Usuario ${socket.id} salió de la sala: ${roomId}`);
+    console.log(`🚪 Usuario ${socket.id} salió voluntariamente de la sala: ${roomId}`);
 
     const room = rooms[roomId];
 
-    // Si el que se sale es el profesor, cerramos la sala
     if (room.hostId === socket.id) {
       const errorMsg = 'El profesor ha cerrado la sala.';
       io.to(roomId).emit('room:error', { message: errorMsg });
       delete rooms[roomId];
     } else {
-      // Si es un alumno, lo removemos de la lista de jugadores
       room.players = room.players.filter(p => p.id !== socket.id);
       io.to(roomId).emit('room:update', room);
     }
   });
 
-  // 6. MANEJO DE DESCONEXIÓN INVOLUNTARIA
+  // 6. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
 
       // Caso A: Si se desconecta el Profesor (Host)
       if (room.hostId === socket.id) {
-        console.log(`⚠️ Profesor desconectado. Cerrando sala ${roomId}...`);
-        const errorMsg = 'El profesor se ha desconectado. La sala fue cerrada.';
-        io.to(roomId).emit('room:error', { message: errorMsg });
-        delete rooms[roomId];
+        console.log(`⚠️ Profesor desconectado temporalmente (Socket: ${socket.id}). Esperando 10s antes de cerrar sala...`);
+        
+        const hostTimerKey = `host_${roomId}`;
+        if (disconnectTimers[hostTimerKey]) clearTimeout(disconnectTimers[hostTimerKey]);
+
+        disconnectTimers[hostTimerKey] = setTimeout(() => {
+          if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
+            console.log(`❌ El profesor no regresó. Cerrando sala ${roomId}...`);
+            io.to(roomId).emit('room:error', { message: 'El profesor se ha desconectado. La sala fue cerrada.' });
+            delete rooms[roomId];
+          }
+          delete disconnectTimers[hostTimerKey];
+        }, 10000); // 10 segundos de espera
+
         break;
       }
 
       // Caso B: Si se desconecta un Estudiante
-      const index = room.players.findIndex(p => p.id === socket.id);
-      if (index !== -1) {
-        console.log(`⚠️ Estudiante desconectado (${socket.id}). Removiendo de la sala ${roomId}...`);
-        room.players.splice(index, 1);
-        io.to(roomId).emit('room:update', room);
+      const player = room.players.find(p => p.id === socket.id);
+      if (player) {
+        console.log(`⚠️ Estudiante "${player.name}" desconectado por micro-corte. Dando 10s para reconectarse...`);
+        
+        const playerTimerKey = `player_${roomId}_${player.name}`;
+        if (disconnectTimers[playerTimerKey]) clearTimeout(disconnectTimers[playerTimerKey]);
+
+        // Guardar temporizador de eliminación diferida
+        disconnectTimers[playerTimerKey] = setTimeout(() => {
+          if (rooms[roomId]) {
+            const index = rooms[roomId].players.findIndex(p => p.name === player.name && p.id === socket.id);
+            if (index !== -1) {
+              console.log(`❌ Estudiante "${player.name}" no se reconectó a tiempo. Removiendo de la sala ${roomId}.`);
+              rooms[roomId].players.splice(index, 1);
+              io.to(roomId).emit('room:update', rooms[roomId]);
+            }
+          }
+          delete disconnectTimers[playerTimerKey];
+        }, 10000); // 10 segundos de margen de reconexión
+
         break;
       }
     }
