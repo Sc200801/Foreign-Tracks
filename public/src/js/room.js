@@ -79,31 +79,32 @@ document.addEventListener('DOMContentLoaded', () => {
     let token = obtenerTokenSeguro();
     console.log('🔑 Token detectado para Socket:', token ? ' [TOKEN ENCONTRADO]' : '❌ [SIN TOKEN]');
 
-    const serverUrl = (window.CONFIG && window.CONFIG.SOCKET_URL) ? window.CONFIG.SOCKET_URL : 'http://localhost:3000';
+    // 🔗 LECTURA CENTRALIZADA DE LA URL DE SOCKETS DESDE CONFIG.JS
+    const serverUrl = window.CONFIG?.SOCKET_URL || window.API_BASE_URL || window.location.origin;
+
+    // Configuración centralizada del cliente Socket.io con reconexión automática
+    const socketOptions = {
+        auth: { 
+            token: token
+        },
+        extraHeaders: {
+            Authorization: `Bearer ${token}`
+        },
+        transports: ['websocket', 'polling'],
+        // 🔄 OPCIONES DE RECONEXIÓN AUTOMÁTICA
+        reconnection: true,
+        reconnectionAttempts: 10,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000
+    };
 
     // 2. CONECTAR CON SOCKET.IO Y EXPONERLO GLOBALMENTE
     let socket = null;
 
     if (typeof io !== 'undefined') {
-        socket = io(serverUrl, {
-            auth: { 
-                token: token
-            },
-            extraHeaders: {
-                Authorization: `Bearer ${token}`
-            },
-            transports: ['websocket', 'polling']
-        });
+        socket = io(serverUrl, socketOptions);
     } else if (window.io) {
-        socket = window.io(serverUrl, {
-            auth: { 
-                token: token
-            },
-            extraHeaders: {
-                Authorization: `Bearer ${token}`
-            },
-            transports: ['websocket', 'polling']
-        });
+        socket = window.io(serverUrl, socketOptions);
     }
 
     // Guardar referencia en el objeto window
@@ -335,6 +336,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (socket) {
         socket.on('connect', () => {
             console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
+        });
+
+        // ⚠️ MANEJO DE DESCONEXIONES EN TIEMPO DE EJECUCIÓN
+        socket.on('disconnect', (reason) => {
+            console.warn('⚠️ Se perdió la conexión con el servidor Socket.io. Razón:', reason);
+            if (reason === 'io server disconnect') {
+                // Si el servidor desconectó explícitamente el socket, forzar reconexión manual
+                socket.connect();
+            }
+        });
+
+        // 🔄 RE-UNIRSE AUTOMÁTICAMENTE A LA SALA TRAS PERDER CONEXIÓN (NGROK / MICRO-CORTES)
+        socket.on('reconnect', (attemptNumber) => {
+            console.log(`🟢 Reconectado con éxito tras ${attemptNumber} intento(s).`);
+            
+            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (currentRoom.code) {
+                const studentName = actualizarSaludoEstudiante() || 'Estudiante';
+                
+                if (currentRoom.isHost) {
+                    socket.emit('room:create', {
+                        roomId: currentRoom.code,
+                        roomName: currentRoom.name || 'Sala de Juego',
+                        username: studentName
+                    });
+                } else {
+                    const payload = {
+                        roomId: currentRoom.code,
+                        roomCode: currentRoom.code,
+                        username: studentName
+                    };
+                    socket.emit('room:join', payload);
+                    socket.emit('unirse-sala', payload);
+                }
+            }
         });
 
         socket.on('room:created', (data) => {

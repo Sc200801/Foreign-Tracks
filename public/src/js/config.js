@@ -1,12 +1,13 @@
 // ==========================================
-// 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN
+// 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN (RED LOCAL)
 // ==========================================
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const IP_LOCAL = '192.168.1.172';
+const PUERTO = '3000';
 
 const CONFIG = {
-    API_URL: API_BASE_URL,
-    SOCKET_URL: 'http://localhost:3000'
+    API_URL: `http://${IP_LOCAL}:${PUERTO}/api`,
+    SOCKET_URL: `http://${IP_LOCAL}:${PUERTO}`
 };
 
 function obtenerToken() {
@@ -14,8 +15,10 @@ function obtenerToken() {
     return usuarioGuardado.token || localStorage.getItem('token') || null;
 }
 
-// Hacer disponibles globalmente en window
-window.API_BASE_URL = API_BASE_URL;
+const CLAVE_DOCENTE_SECRET = "ADMIN123";
+
+// Exportar globalmente a window
+window.API_BASE_URL = CONFIG.API_URL;
 window.CONFIG = CONFIG;
 window.obtenerToken = obtenerToken;
 
@@ -24,23 +27,19 @@ window.obtenerToken = obtenerToken;
 // ==========================================
 
 function mostrarPantalla(idPantalla) {
-    // Ocultar todas las pantallas y pantallas de bienvenida
     document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(div => {
         div.classList.add('oculto');
     });
 
-    // Mostrar la pantalla objetivo
     const pantallaTarget = document.getElementById(idPantalla);
     if (pantallaTarget) {
         pantallaTarget.classList.remove('oculto');
     }
 }
 
-// Hacer global la función para que auth-teacher.js y room.js la usen directamente
 window.mostrarPantalla = mostrarPantalla;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. EVALUAR REGISTRO PREVIO
     const usuarioGuardado = localStorage.getItem('usuarioRegistrado');
 
     if (usuarioGuardado) {
@@ -49,13 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarPantalla('pantalla-bienvenida-inicial');
     }
 
-    // 2. BOTÓN BIENVENIDA -> REGISTRO
     document.getElementById('btn-ir-registro')?.addEventListener('click', (e) => {
         e.preventDefault();
         mostrarPantalla('pantalla-registro-inicial');
     });
 
-    // 3. NAVEGACIÓN EN LA SELECCIÓN DE ROL
     document.getElementById('btn-rol-profesor')?.addEventListener('click', (e) => {
         e.preventDefault();
         mostrarPantalla('pantalla-clave-docente');
@@ -74,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
         mostrarPantalla('pantalla-rol');
     });
 
-    // 4. CERRAR SESIÓN
     const resetSesion = (e) => {
         if (e) e.preventDefault();
         localStorage.removeItem('usuarioRegistrado');
