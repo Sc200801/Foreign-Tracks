@@ -4,12 +4,14 @@ const bcrypt = require('bcryptjs');
 const { Teacher, Player } = require('../models');
 const authController = require('../controllers/authController');
 
-// ===================================================
-// RUTAS PRINCIPALES DEL API DE AUTENTICACIÓN
-// ===================================================
-
-// POST /api/auth/register (Registro de Alumnos / Maestros desde el formulario)
+// Rutas de autenticación
 router.post('/register', authController.register);
+router.post('/login', authController.login);
+router.post('/verify-teacher-key', authController.verifyTeacherKey);
+
+// Endpoint de verificación de sesión activa
+router.get('/session', authController.checkSession);
+router.post('/verify-teacher-key', authController.verifyTeacherKey); // NUEVA RUTA
 
 // POST /api/auth/login (Inicio de sesión estándar)
 router.post('/login', authController.login);
