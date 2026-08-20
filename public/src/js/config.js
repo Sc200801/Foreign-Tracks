@@ -21,7 +21,6 @@ const CLAVE_DOCENTE_SECRET = "ADMIN123";
 window.API_BASE_URL = CONFIG.API_URL;
 window.CONFIG = CONFIG;
 window.obtenerToken = obtenerToken;
-window.CLAVE_DOCENTE_SECRET = CLAVE_DOCENTE_SECRET;
 
 // ==========================================
 // 2. CONTROL DE NAVEGACIÓN ENTRE PANTALLAS

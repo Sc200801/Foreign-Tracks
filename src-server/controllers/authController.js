@@ -172,55 +172,28 @@ const login = async (req, res) => {
   }
 };
 
-// POST /api/auth/teacher-login
+// 🔒 POST /api/auth/teacher-login (VERIFICACIÓN SEGURA DE CLAVE INSTITUCIONAL)
 const teacherLogin = async (req, res) => {
   try {
-    const { clave, username, fullname } = req.body;
-    const CLAVE_SECRETA_DOCENTE = process.env.CLAVE_DOCENTE || 'ADMIN123';
+    const { teacherKey } = req.body;
 
-    if (clave !== CLAVE_SECRETA_DOCENTE) {
-      return res.status(401).json({ message: 'Clave institucional incorrecta.' });
-    }
-
-    const teacherUsername = username || `profe_${Date.now().toString().slice(-4)}`;
-    const teacherName = fullname || teacherUsername;
-
-    let teacher = await Teacher.findOne({ where: { username: teacherUsername } });
-
-    if (!teacher) {
-      const defaultHash = await bcrypt.hash('123456', 10);
-      
-      teacher = await Teacher.create({
-        name: teacherName,
-        username: teacherUsername,
-        passwordHash: defaultHash
+    // Compara directamente con TEACHER_KEY del .env (ADMIN123)
+    if (!teacherKey || teacherKey !== process.env.TEACHER_KEY) {
+      return res.status(401).json({ 
+        success: false, 
+        message: 'La clave de docente ingresada es incorrecta.' 
       });
     }
 
-    const teacherId = teacher.id_maestro || teacher.id;
-
-    // 🔑 Generar Token JWT (7 días)
-    const token = jwt.sign(
-      { id: teacherId, username: teacher.username, role: 'teacher' },
-      JWT_SECRET,
-      { expiresIn: '7d' } // 👈 CAMBIADO A 7d
-    );
-
-    return res.status(200).json({
-      message: 'Acceso docente concedido.',
-      token: token,
-      user: {
-        id: teacherId,
-        username: teacher.username,
-        fullname: teacher.name,
-        role: 'teacher',
-        token: token
-      }
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Acceso concedido como docente' 
     });
 
   } catch (error) {
     console.error('Error en teacherLogin:', error);
     return res.status(500).json({ 
+      success: false, 
       message: 'Error interno en el servidor al autenticar docente.',
       error: error.message 
     });

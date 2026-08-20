@@ -315,6 +315,64 @@
         .close-btn:hover {
             color: #000;
         }
+
+        /* ===================================================
+           TARJETAS DE ALERTA AUTOMÁTICAS (SÓLO ESTILOS)
+           =================================================== */
+
+        /* Detecta cuando la alerta es visible y la convierte en tarjeta */
+        .alert-msg:not(.oculto):not(.hidden) {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 10px 14px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.88rem;
+            text-align: center;
+            box-sizing: border-box;
+            animation: fadeInSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes fadeInSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px) scale(0.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        /* Estilo automático para errores (Rojo) */
+        .alert-msg.error-text:not(.oculto):not(.hidden) {
+            color: #d63031 !important;
+            background-color: #ffebeb !important;
+            border: 1px solid #ff7675 !important;
+            box-shadow: 0 3px 8px rgba(214, 48, 49, 0.12);
+        }
+
+        .alert-msg.error-text:not(.oculto):not(.hidden)::before {
+            content: '⚠️';
+            font-size: 1rem;
+        }
+
+        /* Estilo automático para éxitos (Verde) */
+        .alert-msg.success-text:not(.oculto):not(.hidden) {
+            color: #27ae60 !important;
+            background-color: #eafaf1 !important;
+            border: 1px solid #2ecc71 !important;
+            box-shadow: 0 3px 8px rgba(39, 174, 96, 0.12);
+        }
+
+        .alert-msg.success-text:not(.oculto):not(.hidden)::before {
+            content: '✅';
+            font-size: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -347,6 +405,9 @@
                 </button>
             </div>
 
+            <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL REGISTRO -->
+            <p id="registro-alert-msg" class="alert-msg error-text oculto"></p>
+
             <button type="submit" class="btn-create">Create account</button>
         </form>
     </div>
@@ -367,7 +428,7 @@
         </button>
     </div>
 
-    <!-- 3. PANTALLA CLAVE DOCENTE (INSTITUCIONAL) -->
+   <!-- 3. PANTALLA CLAVE DOCENTE (INSTITUCIONAL) -->
     <div id="pantalla-clave-docente" class="pantalla oculto">
         <h2 class="title-rol">Teacher Access</h2>
         <form id="form-clave-docente" style="width: 100%;">
@@ -378,6 +439,9 @@
                     👁️
                 </button>
             </div>
+
+            <!-- ⚠️ CONTENEDOR DE ALERTA PARA LA CLAVE DOCENTE -->
+            <p id="teacher-key-alert-msg" class="alert-msg error-text oculto"></p>
 
             <button type="submit" class="btn-create">Check code</button>
         </form>
@@ -512,12 +576,15 @@
             <form id="form-login-modal" style="width: 100%;">
                 <input type="text" id="login-username" class="input-custom" placeholder="Write your username" required>
                 
-                <div class="password-container" style="margin-bottom: 15px;">
+                <div class="password-container" style="margin-bottom: 5px;">
                     <input type="password" id="login-password" class="input-custom" placeholder="Write your password" required>
                     <button type="button" class="btn-toggle-password" onclick="togglePassword('login-password', this)" title="Mostrar contraseña">
                         👁️
                     </button>
                 </div>
+
+                <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL LOGIN -->
+                <p id="login-alert-msg" class="alert-msg error-text oculto"></p>
 
                 <button type="submit" class="btn-create">Login</button>
             </form>
@@ -552,11 +619,32 @@
     <!-- 2. Scripts tradicionales del proyecto -->
     <script src="src/js/config.js"></script>
     <script src="src/services/apiService.js"></script>
+    <script src="src/js/auth-utils.js"></script>
     <script src="src/js/auth-player.js"></script>
     <script src="src/js/auth-teacher.js"></script>
 
     <!-- 3. Cargar room.js como script clásico -->
     <script src="src/js/room.js"></script>
 
+    <!-- 4. Tu código para conectar enviando el token -->
+    <script>
+    // Recuperar el token guardado en el navegador (se guardó al iniciar sesión)
+    const token = localStorage.getItem('token');
+
+    // Conectar a Socket.io enviando el token en la propiedad auth
+    const socket = io({
+      auth: {
+        token: token
+      }
+    });
+
+    socket.on('connect', () => {
+      console.log('✅ Conectado a Socket.io exitosamente:', socket.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.error('❌ Error de autenticación en Socket.io:', err.message);
+    });
+    </script>
 </body>
 </html>

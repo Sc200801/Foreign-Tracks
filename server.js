@@ -11,6 +11,10 @@ const authRoutes = require('./src-server/routes/authRoutes');
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
 const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddleware');
 
+// 3. Importar el Seeder de datos iniciales (Hotel y Ending)
+const seedInitialData = require('./src-server/seeders/seedData'); // <-- AQUÍ (NÚMERO 1): Importar el seeder
+
+
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
 
@@ -33,7 +37,8 @@ app.use(express.urlencoded({ extended: true }));
 // Servir la carpeta pública del cliente (index.html, Phaser, assets)
 app.use(express.static('public'));
 
-// === CONEXIÓN DE RUTAS API (LOGIN Y REGISTRO) ===
+// Integración de Rutas de la API REST
+// 3. Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 
 // Middleware de autenticación de WebSockets (Valida JWT en handshake)
@@ -41,6 +46,7 @@ io.use(authSocketMiddleware);
 
 // Eventos base de WebSockets
 io.on('connection', (socket) => {
+  const { id, role, name, playerId, teacherId } = socket.user || {};
   // Extraemos la identidad vinculada por el middleware de socket
   const { id, role, name, playerId, teacherId } = socket.user || {};
   
@@ -72,8 +78,11 @@ async function startServer() {
     // 2. Sincronizar modelos con MariaDB
     await sequelize.sync({ alter: true });
     console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
+    
+    // 3. Cargar datos iniciales en la BD (Hotel y Ending)
+    await seedInitialData(); // <-- AQUÍ (NÚMERO 2): Ejecutar la función justo después de sincronizar
 
-    // 3. Encender el servidor
+    // 4. Encender el servidor
     server.listen(PORT, () => {
       console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
       console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);

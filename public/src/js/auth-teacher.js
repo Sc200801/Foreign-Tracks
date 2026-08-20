@@ -1,5 +1,19 @@
 // js/auth-teacher.js
 
+// ===================================================
+// 📢 FUNCIÓN AUXILIAR DE ALERTAS VISUALES
+// ===================================================
+window.mostrarAlerta = window.mostrarAlerta || function(elementId, mensaje, esError = true) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.textContent = mensaje;
+        el.style.color = esError ? '#ff4d4d' : '#2ecc71';
+        el.classList.remove('oculto', 'hidden');
+    } else {
+        alert(mensaje);
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     const formClaveDocente = document.getElementById('form-clave-docente');
 
@@ -13,7 +27,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const claveIngresada = inputClave ? inputClave.value.trim() : '';
 
             if (!claveIngresada) {
-                alert('Por favor ingresa la clave institucional.');
+                window.mostrarAlerta('teacher-key-alert-msg', 'Por favor ingresa la clave institucional.');
                 return;
             }
 
@@ -40,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Si NO hay sesión iniciada NI tampoco datos temporales de un registro nuevo, pedimos autenticarse
             if (!usuarioExistente && !tempUserDataRaw) {
-                alert('No se encontraron los datos de la sesión ni del registro previo. Por favor inicia sesión o regístrate.');
+                window.mostrarAlerta('teacher-key-alert-msg', 'No se encontraron los datos de la sesión ni del registro previo. Por favor inicia sesión o regístrate.');
                 
                 if (typeof window.mostrarPantalla === 'function') {
                     window.mostrarPantalla('pantalla-rol');
@@ -63,23 +77,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let data = {};
 
-                // 2. CASO A: EL USUARIO YA TIENE SESIÓN INICIADA (Cambio o confirmación de rol a Teacher)
+                // 2. CASO A: EL USUARIO YA TIENE SESIÓN INICIADA (Confirmando clave docente contra el backend)
                 if (usuarioExistente) {
                     console.log('🔄 Usuario ya registrado detectado. Confirmando clave docente...');
                     
                     if (typeof window.apiService.verifyTeacherKey === 'function') {
                         data = await window.apiService.verifyTeacherKey({ teacherKey: claveIngresada, userId: usuarioExistente.id });
-                    } else if (typeof window.apiService.register === 'function') {
-                        // Fallback: Actualizar el objeto con el rol de profesor
-                        data = {
-                            token: localStorage.getItem('token') || localStorage.getItem('jwt'),
-                            user: { ...usuarioExistente, role: 'teacher' }
-                        };
+                    } else {
+                        throw new Error('No se encuentra la función verifyTeacherKey en apiService.');
                     }
                 } 
-                // 3. CASO B: REGISTRO NUEVO DESDE EL PASO 1 (Mandar datos a MariaDB)
+                // 3. CASO B: REGISTRO NUEVO DESDE EL PASO 1 (Verificar la clave PRIMERO y luego mandar datos a MariaDB)
                 else if (tempUserDataRaw) {
-                    console.log('🆕 Completando registro de nuevo docente...');
+                    console.log('🆕 Verificando clave e iniciando registro de nuevo docente...');
                     let tempUserData = {};
                     
                     try {
@@ -87,6 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     } catch (parseErr) {
                         sessionStorage.removeItem('tempUserData');
                         throw new Error('Los datos temporales de registro están corruptos. Por favor intenta registrarte de nuevo.');
+                    }
+
+                    // 🛠️ FIX CRÍTICO: Validar la clave ANTES de completar el registro
+                    if (typeof window.apiService.verifyTeacherKey === 'function') {
+                        const checkKey = await window.apiService.verifyTeacherKey({ teacherKey: claveIngresada });
+                        if (checkKey && checkKey.success === false) {
+                            throw new Error(checkKey.message || 'La clave institucional ingresada es incorrecta.');
+                        }
                     }
 
                     const fullUserData = {
@@ -124,6 +142,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 console.log('✅ Acceso como Profesor concedido exitosamente.');
 
+                // Alerta de éxito en verde antes de redirigir a la pantalla del profesor
+                window.mostrarAlerta('teacher-key-alert-msg', '¡Clave validada correctamente!', false);
+
                 // Actualizar saludo en el dashboard/pantalla del docente
                 const bienvenida = document.getElementById('bienvenida-docente');
                 if (bienvenida) {
@@ -151,29 +172,26 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // 4. MOSTRAR PANTALLA PROFESOR
-                if (typeof window.mostrarPantalla === 'function') {
-                    window.mostrarPantalla('pantalla-profesor');
-                } else {
-                    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-                    document.getElementById('pantalla-profesor')?.classList.remove('oculto');
-                }
+                // 4. MOSTRAR PANTALLA PROFESOR CON RETARDILLO DE 1 SEGUNDO
+                setTimeout(() => {
+                    if (typeof window.mostrarPantalla === 'function') {
+                        window.mostrarPantalla('pantalla-profesor');
+                    } else {
+                        document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
+                        document.getElementById('pantalla-profesor')?.classList.remove('oculto');
+                    }
+                }, 1000);
 
             } catch (error) {
                 console.error('❌ Error al procesar acceso docente:', error);
-                alert(error.message || 'No se pudo completar el acceso del docente. Verifica la clave institucional o inicia sesión.');
+                
+                // Muestra el mensaje de error directamente en el párrafo de alerta
+                window.mostrarAlerta('teacher-key-alert-msg', error.message || 'La clave institucional es incorrecta. Por favor, verifica e intenta de nuevo.');
 
-                // 🔄 REDIRECCIÓN CORREGIDA: Enviar a Selección de Rol y mostrar modal de Login
-                if (typeof window.mostrarPantalla === 'function') {
-                    window.mostrarPantalla('pantalla-rol');
-                } else {
-                    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-                    document.getElementById('pantalla-rol')?.classList.remove('oculto');
-                }
-
-                const loginModal = document.getElementById('login-modal');
-                if (loginModal) {
-                    loginModal.classList.remove('oculto', 'hidden');
+                // Limpia el campo e instala el foco para que vuelva a intentar de inmediato
+                if (inputClave) {
+                    inputClave.value = '';
+                    inputClave.focus();
                 }
             }
         });
@@ -197,7 +215,6 @@ async function checkTeacherSession() {
     if (token && userData.role === 'teacher') {
         console.log('🔍 Evaluando token de docente en el backend...');
 
-        // Validar vigencia del token con el backend
         const isTokenValid = await window.apiService.verifyToken();
 
         if (isTokenValid) {
@@ -210,7 +227,6 @@ async function checkTeacherSession() {
         } else {
             console.warn('⚠️ El token del docente ha expirado o no es válido.');
 
-            // 1. Mostrar de fondo la pantalla de Selección de Rol
             if (typeof window.mostrarPantalla === 'function') {
                 window.mostrarPantalla('pantalla-rol');
             } else {
@@ -218,7 +234,6 @@ async function checkTeacherSession() {
                 document.getElementById('pantalla-rol')?.classList.remove('oculto');
             }
 
-            // 2. Abrir el modal de Login por encima
             const loginModal = document.getElementById('login-modal');
             if (loginModal) {
                 loginModal.classList.remove('oculto', 'hidden');
@@ -230,7 +245,6 @@ async function checkTeacherSession() {
     return null;
 }
 
-// Ejecutar la verificación al cargar el DOM
 document.addEventListener('DOMContentLoaded', async () => {
     await checkTeacherSession();
 });
