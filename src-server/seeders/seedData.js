@@ -34,7 +34,7 @@ const seedInitialData = async () => {
       where: { name: 'Hotel' },
       defaults: {
         name: 'Hotel',
-        description: 'Escenario de interacción e inglés conversacional en la recepción de un hotel.',
+        description: 'Primer escenario: Los 4 jugadores colaboran como un grupo de viajeros para interactuar con la recepcionista, responder preguntas sobre pasaportes, equipaje y tiempo de estadía para lograr hacer el registro correctamente.',
       },
     });
 
