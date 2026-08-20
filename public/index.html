@@ -626,12 +626,12 @@
     <!-- 3. Cargar room.js como script clásico -->
     <script src="src/js/room.js"></script>
 
-    <!-- 4. Tu código para conectar enviando el token -->
+    <!-- 4. Inicialización de Socket.io y listener para el botón PLAY de Escena 1 -->
     <script>
-    // Recuperar el token guardado en el navegador (se guardó al iniciar sesión)
-    const token = localStorage.getItem('token');
+    // Recuperar el token guardado en el navegador
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
 
-    // Conectar a Socket.io enviando el token en la propiedad auth
+    // Conectar a Socket.io enviando el token
     const socket = io({
       auth: {
         token: token
@@ -644,6 +644,16 @@
 
     socket.on('connect_error', (err) => {
       console.error('❌ Error de autenticación en Socket.io:', err.message);
+    });
+
+    // Cargar el escenario Hotel haciendo uso de window.apiService
+    document.getElementById('btn-play-scene1')?.addEventListener('click', async () => {
+      try {
+        const scenarioData = await window.apiService.getHotelScenario();
+        console.log('🏨 Datos del Escenario Hotel cargados correctamente:', scenarioData);
+      } catch (err) {
+        console.error('❌ Error al obtener el escenario Hotel:', err);
+      }
     });
     </script>
 </body>

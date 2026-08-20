@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. REVISAR SI YA EXISTE UNA SESIÓN ACTIVA (localStorage) O UN REGISTRO EN PROCESO (sessionStorage)
+            // 1. REVISAR SI YA EXISTE UNA SESIÓN ACTIVA O REGISTRO EN PROCESO
             let usuarioExistente = null;
             try {
                 const userObjRaw = localStorage.getItem('usuarioRegistrado') || localStorage.getItem('usuario');
@@ -43,31 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.removeItem('usuarioRegistrado');
             }
 
-            // 🔒 LECTURA SEGURA DE SESSIONSTORAGE
             let tempUserDataRaw = null;
             try {
                 tempUserDataRaw = sessionStorage.getItem('tempUserData');
             } catch (err) {
                 console.error('🔒 Error al acceder a sessionStorage:', err);
                 sessionStorage.removeItem('tempUserData');
-            }
-
-            // Si NO hay sesión iniciada NI tampoco datos temporales de un registro nuevo, pedimos autenticarse
-            if (!usuarioExistente && !tempUserDataRaw) {
-                window.mostrarAlerta('teacher-key-alert-msg', 'No se encontraron los datos de la sesión ni del registro previo. Por favor inicia sesión o regístrate.');
-                
-                if (typeof window.mostrarPantalla === 'function') {
-                    window.mostrarPantalla('pantalla-rol');
-                } else {
-                    document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-                    document.getElementById('pantalla-rol')?.classList.remove('oculto');
-                }
-
-                const loginModal = document.getElementById('login-modal');
-                if (loginModal) {
-                    loginModal.classList.remove('oculto', 'hidden');
-                }
-                return;
             }
 
             try {
@@ -77,17 +58,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 let data = {};
 
-                // 2. CASO A: EL USUARIO YA TIENE SESIÓN INICIADA (Confirmando clave docente contra el backend)
+                // Determinar el método de verificación en apiService
+                const verifyFn = window.apiService.teacherLogin || window.apiService.verifyTeacherKey;
+
+                if (typeof verifyFn !== 'function') {
+                    throw new Error('No se encuentra el método para verificar la clave de docente en apiService.');
+                }
+
+                // 2. CASO A: EL USUARIO YA TIENE SESIÓN INICIADA
                 if (usuarioExistente) {
                     console.log('🔄 Usuario ya registrado detectado. Confirmando clave docente...');
-                    
-                    if (typeof window.apiService.verifyTeacherKey === 'function') {
-                        data = await window.apiService.verifyTeacherKey({ teacherKey: claveIngresada, userId: usuarioExistente.id });
-                    } else {
-                        throw new Error('No se encuentra la función verifyTeacherKey en apiService.');
-                    }
+                    data = await verifyFn({ teacherKey: claveIngresada, userId: usuarioExistente.id });
                 } 
-                // 3. CASO B: REGISTRO NUEVO DESDE EL PASO 1 (Verificar la clave PRIMERO y luego mandar datos a MariaDB)
+                // 3. CASO B: REGISTRO NUEVO DESDE TEMPORAL
                 else if (tempUserDataRaw) {
                     console.log('🆕 Verificando clave e iniciando registro de nuevo docente...');
                     let tempUserData = {};
@@ -96,15 +79,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         tempUserData = JSON.parse(tempUserDataRaw);
                     } catch (parseErr) {
                         sessionStorage.removeItem('tempUserData');
-                        throw new Error('Los datos temporales de registro están corruptos. Por favor intenta registrarte de nuevo.');
+                        throw new Error('Los datos temporales de registro están corruptos. Intenta registrarte de nuevo.');
                     }
 
-                    // 🛠️ FIX CRÍTICO: Validar la clave ANTES de completar el registro
-                    if (typeof window.apiService.verifyTeacherKey === 'function') {
-                        const checkKey = await window.apiService.verifyTeacherKey({ teacherKey: claveIngresada });
-                        if (checkKey && checkKey.success === false) {
-                            throw new Error(checkKey.message || 'La clave institucional ingresada es incorrecta.');
-                        }
+                    // Validar clave institucional
+                    const checkKey = await verifyFn({ teacherKey: claveIngresada });
+                    if (checkKey && checkKey.success === false) {
+                        throw new Error(checkKey.message || 'La clave institucional ingresada es incorrecta.');
                     }
 
                     const fullUserData = {
@@ -117,9 +98,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
 
                     data = await window.apiService.register(fullUserData);
-
-                    // 🔒 MEDIDA DE SEGURIDAD: Limpiar el registro temporal tras guardar en MariaDB
                     sessionStorage.removeItem('tempUserData');
+                } 
+                // 4. CASO C: INGRESO DIRECTO CON CLAVE DOCENTE (SIN REGISTRO O SESIÓN EN MEMORIA)
+                else {
+                    console.log('🔑 Validando clave institucional de docente directamente...');
+                    data = await verifyFn({ teacherKey: claveIngresada });
+
+                    if (data && data.success === false) {
+                        throw new Error(data.message || 'La clave institucional es incorrecta.');
+                    }
                 }
 
                 if (inputClave) inputClave.value = '';
@@ -130,32 +118,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     sessionStorage.setItem('token', data.token);
                     localStorage.setItem('jwt', data.token);
                 }
-                if (data && data.user) {
-                    data.user.role = 'teacher';
-                    localStorage.setItem('usuarioRegistrado', JSON.stringify(data.user));
-                    sessionStorage.setItem('userData', JSON.stringify(data.user));
-                } else if (usuarioExistente) {
-                    usuarioExistente.role = 'teacher';
-                    localStorage.setItem('usuarioRegistrado', JSON.stringify(usuarioExistente));
-                    sessionStorage.setItem('userData', JSON.stringify(usuarioExistente));
-                }
+                
+                const userSession = (data && data.user) || usuarioExistente || { username: 'Docente', role: 'teacher' };
+                userSession.role = 'teacher';
+
+                localStorage.setItem('usuarioRegistrado', JSON.stringify(userSession));
+                sessionStorage.setItem('userData', JSON.stringify(userSession));
 
                 console.log('✅ Acceso como Profesor concedido exitosamente.');
 
-                // Alerta de éxito en verde antes de redirigir a la pantalla del profesor
                 window.mostrarAlerta('teacher-key-alert-msg', '¡Clave validada correctamente!', false);
 
-                // Actualizar saludo en el dashboard/pantalla del docente
                 const bienvenida = document.getElementById('bienvenida-docente');
                 if (bienvenida) {
-                    const user = (data && data.user) || usuarioExistente;
-                    bienvenida.innerText = `Profesor(a): ${user.fullname || user.username || 'Docente'}`;
+                    bienvenida.innerText = `Profesor(a): ${userSession.fullname || userSession.username || 'Docente'}`;
                 }
 
-                // 🔄 RECONECTAR / ACTUALIZAR SOCKET USANDO LA CONFIGURACIÓN GLOBAL DE CONFIG.JS
+                // RECONECTAR / ACTUALIZAR SOCKET
                 const nuevoToken = (data && data.token) || localStorage.getItem('token');
-                
-                // Lee el dominio del socket definido centralmente en config.js
                 const socketTargetUrl = window.CONFIG?.SOCKET_URL || window.API_BASE_URL || window.location.origin;
 
                 if (window.socket && nuevoToken) {
@@ -172,7 +152,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // 4. MOSTRAR PANTALLA PROFESOR CON RETARDILLO DE 1 SEGUNDO
+                // MOSTRAR PANTALLA PROFESOR
                 setTimeout(() => {
                     if (typeof window.mostrarPantalla === 'function') {
                         window.mostrarPantalla('pantalla-profesor');
@@ -185,10 +165,13 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('❌ Error al procesar acceso docente:', error);
                 
-                // Muestra el mensaje de error directamente en el párrafo de alerta
-                window.mostrarAlerta('teacher-key-alert-msg', error.message || 'La clave institucional es incorrecta. Por favor, verifica e intenta de nuevo.');
+                let errorMsg = error.message || 'Error de conexión con el servidor.';
+                if (errorMsg.includes('Failed to fetch')) {
+                    errorMsg = 'No se pudo conectar con el servidor backend. Revisa que el servidor esté activo.';
+                }
 
-                // Limpia el campo e instala el foco para que vuelva a intentar de inmediato
+                window.mostrarAlerta('teacher-key-alert-msg', errorMsg);
+
                 if (inputClave) {
                     inputClave.value = '';
                     inputClave.focus();
@@ -199,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ===================================================
-// 🔑 VERIFICACIÓN AUTOMÁTICA DE SESIÓN DOCENTE CON EL BACKEND (checkAuth)
+// 🔑 VERIFICACIÓN AUTOMÁTICA DE SESIÓN DOCENTE CON EL BACKEND
 // ===================================================
 async function checkTeacherSession() {
     const token = localStorage.getItem('token') || localStorage.getItem('jwt');
@@ -215,7 +198,10 @@ async function checkTeacherSession() {
     if (token && userData.role === 'teacher') {
         console.log('🔍 Evaluando token de docente en el backend...');
 
-        const isTokenValid = await window.apiService.verifyToken();
+        let isTokenValid = false;
+        if (window.apiService && typeof window.apiService.verifyToken === 'function') {
+            isTokenValid = await window.apiService.verifyToken();
+        }
 
         if (isTokenValid) {
             console.log('✅ Token de docente activo y válido.');

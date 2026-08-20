@@ -4,16 +4,8 @@ const bcrypt = require('bcryptjs');
 const { Teacher, Player } = require('../models');
 const authController = require('../controllers/authController');
 
-// Rutas de autenticación
+// Rutas de autenticación unificadas (vía Controller)
 router.post('/register', authController.register);
-router.post('/login', authController.login);
-router.post('/verify-teacher-key', authController.verifyTeacherKey);
-
-// Endpoint de verificación de sesión activa
-router.get('/session', authController.checkSession);
-router.post('/verify-teacher-key', authController.verifyTeacherKey); // NUEVA RUTA
-
-// POST /api/auth/login (Inicio de sesión estándar)
 router.post('/login', authController.login);
 
 // POST /api/auth/teacher-login (Validación de Clave Maestra e Inserción de Docente)

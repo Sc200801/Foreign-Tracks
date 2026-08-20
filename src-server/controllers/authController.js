@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken'); // 🔑 Importamos JWT
+const jwt = require('jsonwebtoken');
 const { Player, Teacher } = require('../models');
 
 // Clave secreta para firmar los tokens
@@ -8,27 +8,19 @@ const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 // POST /api/auth/register
 const register = async (req, res) => {
   try {
-    // 🔑 Capturamos todas las posibles variantes de nombre que envíe el cliente
     const { username, password, role, nombre, fullname, name } = req.body;
-
-    // Detectar el nombre real (prioriza nombre, luego fullname, name y por último username)
     const displayName = nombre || fullname || name || username;
 
-    // 1. Validaciones básicas
     if (!username || !password || !role) {
       return res.status(400).json({ 
         message: 'Por favor proporciona username, password y role.' 
       });
     }
 
-    // 2. Encriptar contraseña
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
-    // 3. Guardar según el rol (player o teacher)
     if (role === 'teacher') {
-
-      // Verificar disponibilidad de username
       const existingTeacher = await Teacher.findOne({ where: { username } });
       if (existingTeacher) {
         return res.status(400).json({ message: 'El username ya está en uso.' });
@@ -42,11 +34,10 @@ const register = async (req, res) => {
 
       const teacherId = newTeacher.id_maestro || newTeacher.id;
 
-      // 🔑 Generar Token para el Maestro (7 días)
       const token = jwt.sign(
         { id: teacherId, username: newTeacher.username, role: 'teacher' },
         JWT_SECRET,
-        { expiresIn: '7d' } // 👈 CAMBIADO A 7d
+        { expiresIn: '7d' }
       );
 
       return res.status(201).json({
@@ -62,7 +53,6 @@ const register = async (req, res) => {
       });
 
     } else if (role === 'player') {
-      // Verificar disponibilidad de username
       const existingPlayer = await Player.findOne({ where: { username } });
       if (existingPlayer) {
         return res.status(400).json({ message: 'El username ya está en uso.' });
@@ -74,12 +64,11 @@ const register = async (req, res) => {
         passwordHash: password_hash,
       });
 
-      // 🔑 Generar Token para el Estudiante / Jugador (7 días)
       const playerId = newPlayer.id_jugador || newPlayer.id;
       const token = jwt.sign(
         { id: playerId, username: newPlayer.username, role: 'player' },
         JWT_SECRET,
-        { expiresIn: '7d' } // 👈 CAMBIADO A 7d
+        { expiresIn: '7d' }
       );
 
       return res.status(201).json({
@@ -141,17 +130,15 @@ const login = async (req, res) => {
       return res.status(404).json({ message: 'Usuario no encontrado.' });
     }
 
-    // Validar contraseña
     const isPasswordValid = await bcrypt.compare(password, hashToCompare);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Contraseña incorrecta.' });
     }
 
-    // 🔑 Generar Token JWT (7 días)
     const token = jwt.sign(
       { id: userId, username: userFound.username, role },
       JWT_SECRET,
-      { expiresIn: '7d' } // 👈 CAMBIADO A 7d
+      { expiresIn: '7d' }
     );
 
     return res.status(200).json({
@@ -172,13 +159,14 @@ const login = async (req, res) => {
   }
 };
 
-// 🔒 POST /api/auth/teacher-login (VERIFICACIÓN SEGURA DE CLAVE INSTITUCIONAL)
+// 🔒 POST /api/auth/teacher-login
 const teacherLogin = async (req, res) => {
   try {
     const { teacherKey } = req.body;
+    const expectedKey = process.env.TEACHER_KEY;
 
-    // Compara directamente con TEACHER_KEY del .env (ADMIN123)
-    if (!teacherKey || teacherKey !== process.env.TEACHER_KEY) {
+    // Validación segura para evitar bypassed con valores undefined o vacíos
+    if (!expectedKey || !teacherKey || teacherKey !== expectedKey) {
       return res.status(401).json({ 
         success: false, 
         message: 'La clave de docente ingresada es incorrecta.' 
@@ -200,7 +188,7 @@ const teacherLogin = async (req, res) => {
   }
 };
 
-// 🆕 GET /api/auth/verify (Método para que el frontend valide el token)
+// GET /api/auth/verify
 const verifyToken = async (req, res) => {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -213,7 +201,6 @@ const verifyToken = async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     return res.status(200).json({ valid: true, user: decoded });
   } catch (error) {
-    // Si el token expiró o es inválido, responde 401 Unauthorized
     return res.status(401).json({ valid: false, message: 'Token expirado o inválido.' });
   }
 };
@@ -222,5 +209,5 @@ module.exports = {
   register,
   login,
   teacherLogin,
-  verifyToken // 👈 Exportamos el nuevo método de verificación
+  verifyToken
 };

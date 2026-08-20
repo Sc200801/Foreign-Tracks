@@ -1,7 +1,12 @@
 // js/apiService.js
-// Lee dinámicamente la propiedad API_URL definida en config.js
+
+// Usa la URL configurada en config.js o toma automáticamente el origen actual (http://localhost:3000/api)
 const getApiUrl = () => {
-    return window.CONFIG?.API_URL || window.API_BASE_URL;
+    const baseUrl = window.CONFIG?.API_URL || window.API_BASE_URL;
+    if (baseUrl) return baseUrl;
+
+    // Si está en el mismo puerto o no hay URL global definida
+    return `${window.location.origin}/api`;
 };
 
 window.apiService = {
@@ -89,6 +94,47 @@ window.apiService = {
     },
 
     /**
+     * Alias de soporte usando referencia explícita a window.apiService para evitar pérdida de contexto (this)
+     */
+    async teacherLogin(payload) {
+        return window.apiService.verifyTeacherKey(payload);
+    },
+
+    /**
+     * Obtiene los datos del escenario "Hotel" junto con sus nodos de diálogo
+     */
+    async getHotelScenario() {
+        try {
+            const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+            const response = await fetch(`${getApiUrl()}/scenarios/hotel`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
+                }
+            });
+
+            if (response.status === 401) {
+                console.warn('⚠️ Sesión expirada al intentar cargar el escenario.');
+                window.apiService.handleSessionExpired();
+                throw new Error('Sesión expirada.');
+            }
+
+            const data = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                throw new Error(data.message || data.error || 'Error al obtener el escenario Hotel.');
+            }
+
+            return data;
+        } catch (error) {
+            console.error('Error en apiService.getHotelScenario:', error);
+            throw error;
+        }
+    },
+
+    /**
      * Verifica si el Token JWT almacenado sigue activo en el servidor
      */
     async verifyToken() {
@@ -106,7 +152,7 @@ window.apiService = {
 
             if (response.status === 401) {
                 console.warn('⚠️ Token expirado o inválido.');
-                this.handleSessionExpired();
+                window.apiService.handleSessionExpired();
                 return false;
             }
 
