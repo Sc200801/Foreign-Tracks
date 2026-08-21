@@ -1,376 +1,374 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foreign Tracks</title>
-    
-    <!-- Fuente Pixel Art -->
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
-    
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foreign Tracks</title>
+  
+  <!-- Fuentes Pixel Art -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-        /* --- FONDO GENERADO POR CSS (SINS IMÁGENES EXTERNAS) --- */
-        body {
-            position: relative;
-            background: 
-                /* Círculo difuminado superior izquierdo */
-                radial-gradient(circle at 8% 8%, rgba(225, 126, 68, 0.6) 0%, rgba(225, 126, 68, 0) 28%),
-                /* Círculo difuminado inferior derecho */
-                radial-gradient(circle at 92% 92%, rgba(220, 118, 62, 0.65) 0%, rgba(220, 118, 62, 0) 30%),
-                /* Luz brillante centro-derecha */
-                radial-gradient(circle at 75% 20%, rgba(255, 230, 160, 0.45) 0%, rgba(255, 230, 160, 0) 45%),
-                /* Luz suave inferior-izquierda */
-                radial-gradient(circle at 20% 85%, rgba(246, 150, 95, 0.5) 0%, rgba(246, 150, 95, 0) 50%),
-                /* Degradado base de tonos anaranjados y cálidos */
-                radial-gradient(circle at 50% 50%, #f1b378 0%, #e89e60 50%, #de8a49 100%);
-            background-color: #e89e60;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* Capa con efecto de textura/grano pixel-art */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: radial-gradient(#000 1px, transparent 1px);
-            background-size: 4px 4px;
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        /* Oculta de manera estricta las pantallas inactivas */
-        .oculto {
-            display: none !important;
-        }
-
-        /* --- PANTALLA 0: BIENVENIDA (PORTADA) --- */
-        .pantalla-bienvenida {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            background: inherit; /* Hereda exactamente el mismo fondo */
-        }
-
-        .pixel-title {
-            font-family: 'Press Start 2P', cursive;
-            font-size: clamp(2em, 5vw, 3.8em);
-            color: #ffffff;
-            text-align: center;
-            text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
-            margin-bottom: 40px;
-            letter-spacing: 2px;
-            z-index: 2;
-        }
-
-        .btn-pixel-welcome {
-            font-family: 'Press Start 2P', cursive;
-            font-size: clamp(0.75em, 1.5vw, 1em);
-            background-color: #e08353;
-            color: #ffffff;
-            padding: 18px 40px;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s ease, background-color 0.2s ease;
-            z-index: 2;
-        }
-
-        .btn-pixel-welcome:hover {
-            transform: scale(1.05);
-            background-color: #d17240;
-        }
-
-        /* Elementos flotantes animados */
-        .floating-element {
-            position: absolute;
-            opacity: 0.85;
-            pointer-events: none;
-            animation: floatAnimation 5s ease-in-out infinite;
-            z-index: 2;
-        }
-
-        .floating-1 { top: 22%; left: 18%; animation-duration: 6s; font-size: 2.2em; }
-        .floating-2 { top: 68%; right: 20%; animation-duration: 4.5s; animation-delay: 1s; font-size: 1.8em; }
-        .floating-3 { top: 28%; right: 15%; animation-duration: 7s; animation-delay: 1.5s; font-size: 2.5em; }
-
-        @keyframes floatAnimation {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(4deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
-        }
-
-        /* --- ESTILOS GENERALES DE PANTALLAS --- */
-        .pantalla {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            max-width: 480px;
-            padding: 30px 20px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            margin: 20px;
-        }
-
-        .pantalla-ancha { 
-            max-width: 800px !important; 
-        }
-
-        .title-rol {
-            font-size: 1.8em;
-            font-weight: 800;
-            margin-bottom: 25px;
-            color: #1a1a1a;
-            text-align: center;
-        }
-
-        .input-custom {
-            width: 100%;
-            padding: 14px 16px;
-            margin-bottom: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 0.95em;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        .btn-create {
-            width: 100%;
-            padding: 14px;
-            background-color: #fbc4ab;
-            color: #000;
-            font-weight: bold;
-            font-size: 1em;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 3px 0 #e5a990;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-        }
-
-        .btn-create:active {
-            transform: translateY(2px);
-            box-shadow: none;
-        }
-
-        .card-rol {
-            width: 100%;
-            border: 2px solid #000;
-            border-radius: 16px;
-            padding: 20px 10px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-        .card-profesor { background-color: #dcd6ff; }
-        .card-student { background-color: #c4f9ff; }
-
-        .tutorial-box { 
-            width: 100%; 
-            border: 3px solid #000; 
-            background-color: #fff; 
-            padding: 24px 20px; 
-            box-sizing: border-box; 
-            margin-bottom: 20px; 
-            border-radius: 12px;
-        }
-
-        /* Lobby y Niveles */
-        .lobby-grid { display: grid; grid-template-columns: 240px 1fr; gap: 30px; width: 100%; }
-        .character-box { background-color: #dcd6ff; border: 3px solid #000; border-radius: 20px; height: 340px; padding: 15px; text-align: center; }
-        .players-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        .players-avatars { display: flex; justify-content: space-around; width: 100%; margin-bottom: 25px; }
-        .player-card { display: flex; flex-direction: column; align-items: center; }
-        .avatar-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .bg-p1 { background-color: #dcd6ff; } .bg-p2 { background-color: #fbc4ab; } .bg-p3 { background-color: #c4f9ff; } .bg-p4 { background-color: #f8c2f0; }
-        .status-ready { color: #2ed573; font-weight: bold; font-size: 0.8em; margin-top: 3px; }
-        .lobby-actions { display: flex; gap: 15px; width: 100%; max-width: 400px; margin-top: 15px; }
-        .btn-ready-active { background-color: #2ed573 !important; color: white !important; box-shadow: 0 3px 0 #26af5f !important; }
-
-        .scenes-container { width: 100%; max-width: 650px; border: 3px solid #000; background-color: #fff; padding: 25px 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; border-radius: 12px; }
-        .scene-item { display: grid; grid-template-columns: 80px 1fr 140px; align-items: center; gap: 15px; }
-        .scene-icon-box { position: relative; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; }
-        .scene-icon { font-size: 3em; }
-        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; font-size: 2em; }
-        .scene-info h3 { margin: 0; font-size: 1.3em; font-weight: 800; }
-        .scene-info p { margin: 4px 0 0 0; font-size: 1.1em; color: #444; }
-        .btn-play-scene { padding: 10px 0; background-color: #fbc4ab; border: none; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-shadow: 0 2px 0 #e5a990; }
-        .btn-play-scene:disabled { background-color: #e0e0e0; color: #888; box-shadow: none; cursor: not-allowed; }
-    </style>
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Estilos auxiliares para la clase oculto si no están en tu style.css -->
+  <style>
+    .oculto { display: none !important; }
+  </style>
 </head>
 <body>
 
-    <!-- 0. PANTALLA DE BIENVENIDA -->
-    <div id="pantalla-bienvenida-inicial" class="pantalla-bienvenida oculto">
-        <div class="floating-element floating-1">☁️</div>
-        <div class="floating-element floating-2">☁️</div>
-        <div class="floating-element floating-3">✨</div>
+<!-- 1. PANTALLA PRINCIPAL / PORTADA (FOREIGN TRACKS) -->
+  <div id="pantalla-rol" class="pantalla main-container" style="position: relative; width: 100%; min-height: 100vh; overflow: hidden; display: flex; flex-direction: column;">
+    
+    <!-- BARRA DE NAVEGACIÓN FLOTANTE -->
+    <nav class="navbar-pixel" style="position: absolute; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 3rem; z-index: 20; box-sizing: border-box;">
+      
+      <!-- Logo con tamaño aumentado -->
+      <div class="nav-logo" style="font-family: 'Press Start 2P', monospace; font-size: 1.2rem; color: #fff; text-shadow: 2px 2px #000;">
+        FOREIGN TRACKS
+      </div>
+      
+      <!-- Enlaces con tamaño aumentado -->
+      <ul class="nav-links" style="list-style: none; display: flex; gap: 2rem; margin: 0; padding: 0;">
+        <li><a href="#" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 0.9rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">HOME</a></li>
+        <li><a href="#" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 0.9rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
+      </ul>
+    </nav>
 
-        <h1 class="pixel-title">FOREIGN TRACKS</h1>
+    <!-- IMAGEN DE FONDO PRINCIPAL -->
+    <div class="hero-section" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;">
+      <img src="src/assets/pixel-hero.jpeg" alt="Foreign Tracks Banner" class="hero-img" style="width: 100%; height: 100%; object-fit: cover;" />
+    </div>
 
-        <button type="button" id="btn-ir-registro" class="btn-pixel-welcome">
-            REGISTRATE AQUI
+    <!-- CONTENEDOR CENTRAL CON EL BOTÓN PLAY MÁS A LA DERECHA -->
+    <div class="hero-content" style="position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; text-align: center; pointer-events: none; margin-top: -100px;">
+      <div style="position: relative; width: 100%; max-width: 1200px; height: 100%; display: flex; align-items: center; justify-content: center;">
+        
+        <!-- BOTÓN PLAY (Movido más a la derecha: left: 72%) -->
+        <button id="btn-play-game" style="pointer-events: auto; position: absolute; left: 72%; top: 62%; font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 3px solid #000; padding: 0.8rem 2rem; font-size: 0.8rem; cursor: pointer; text-shadow: 1px 1px #000; box-shadow: 3px 3px #000; transition: transform 0.1s ease; width: 160px;">
+          ▶️ PLAY
         </button>
+        
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. PANTALLA DINÁMICA DE ACCESO (LOGIN O ROLES) -->
+  <div id="pantalla-acceso" class="pantalla oculto" style="position: relative; width: 100%; min-height: 100vh; background-color: #1c2d37; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; box-sizing: border-box;">
+    
+    <!-- VISTA DE LOGIN (Se muestra si es primera vez) -->
+    <div id-view="vista-login" class="auth-view" style="display: none; text-align: center; background: rgba(0,0,0,0.6); padding: 3rem; border: 4px solid #fff; border-radius: 8px; max-width: 400px; width: 100%;">
+      <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 1rem; margin-bottom: 1.5rem;">FIRST TIME? LOGIN</h2>
+      <form id="form-login" style="display: flex; flex-direction: column; gap: 1rem;">
+        <input type="text" id="login-user" placeholder="Username" required style="font-family: monospace; padding: 0.8rem; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000;" />
+        <input type="password" id="login-pass" placeholder="Password" required style="font-family: monospace; padding: 0.8rem; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000;" />
+        <button type="submit" style="font-family: 'Press Start 2P', monospace; background-color: #2c3f4b; color: #fff; border: 2px solid #fff; padding: 0.8rem; cursor: pointer; margin-top: 1rem;">REGISTER / LOGIN</button>
+      </form>
     </div>
 
-    <!-- 1. PANTALLA REGISTRO INICIAL -->
-    <div id="pantalla-registro-inicial" class="pantalla oculto">
-        <h2 class="title-rol">Create Account</h2>
-        <form id="form-registro-inicial" style="width: 100%;">
-            <input type="text" id="reg-fullname" class="input-custom" placeholder="Write your full name" required>
-            <input type="text" id="reg-username" class="input-custom" placeholder="Write your Username" required>
-            <input type="password" id="reg-password" class="input-custom" placeholder="Write your Password" required>
-            <button type="submit" class="btn-create">Create account</button>
-        </form>
+    <!-- VISTA DE SELECCIÓN DE ROL (Se muestra tras login o en visitas posteriores) -->
+    <div id-view="vista-rol" class="auth-view" style="display: none; text-align: center; background: rgba(0,0,0,0.6); padding: 3rem; border: 4px solid #fff; border-radius: 8px; max-width: 500px; width: 100%;">
+      <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 1.1rem; margin-bottom: 1.5rem;">SELECT YOUR ROLE</h2>
+      <div style="display: flex; gap: 1.5rem; justify-content: center;">
+        <button id="btn-rol-student" class="role-card" style="font-family: 'Press Start 2P', monospace; background: #2c3f4b; color: #fff; border: 3px solid #fff; padding: 1rem; cursor: pointer; font-size: 0.7rem;">STUDENT</button>
+        <button id="btn-rol-profesor" class="role-card" style="font-family: 'Press Start 2P', monospace; background: #a54f4c; color: #fff; border: 3px solid #fff; padding: 1rem; cursor: pointer; font-size: 0.7rem;">PROFESSOR</button>
+      </div>
     </div>
+  </div>
 
-    <!-- 2. PANTALLA ELECCIÓN DE ROL -->
-    <div id="pantalla-rol" class="pantalla oculto">
-        <h2 class="title-rol">CHOOSE YOUR ROL</h2>
-        <div id="btn-rol-profesor" class="card-rol card-profesor"><h3>PROFESOR</h3></div>
-        <div id="btn-rol-student" class="card-rol card-student"><h3>STUDENT</h3></div>
-    </div>
-
-    <!-- 3. PANTALLA CLAVE DOCENTE (INSTITUCIONAL) -->
-    <div id="pantalla-clave-docente" class="pantalla oculto">
-        <h2 class="title-rol">Teacher Access</h2>
-        <form id="form-clave-docente" style="width: 100%;">
-            <input type="password" id="clave-maestra-input" class="input-custom" placeholder="Clave institucional" required>
-            <button type="submit" class="btn-create">Validar Clave</button>
-        </form>
-        <button type="button" id="btn-volver-rol" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Volver</button>
-    </div>
-
-    <!-- 4. PANTALLA PROFESOR (CREAR SALA Y GENERAR CÓDIGO) -->
-    <div id="pantalla-profesor" class="pantalla oculto">
-        <h2 class="title-rol">Create room</h2>
-        <form id="form-crear-sala" style="width: 100%;">
-            <input type="text" id="room-name-input" class="input-custom" placeholder="Write the room's name" required>
-            <button type="button" id="btn-crear-sala" class="btn-create">Create room code</button>
-            <input type="text" id="room-code-display" class="input-custom" placeholder="Room code" readonly style="text-align: center; font-weight: bold; font-size: 1.1em; background-color: #fff;">
-            <button type="submit" class="btn-create">Create room</button>
-        </form>
-        <button type="button" id="btn-volver-rol-profesor" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Volver</button>
-    </div>
-
-    <!-- 5. PANTALLA ALUMNO (UNIRSE A SALA) -->
-    <div id="pantalla-alumno" class="pantalla oculto">
-        <h2 id="bienvenida-alumno" class="title-rol">LOBBY ALUMNO</h2>
-        <form id="form-unirse-sala" style="width: 100%;">
-            <input type="text" id="codigo-sala-input" class="input-custom" placeholder="Ingresa código de sala" required>
-            <button type="submit" class="btn-create">Unirme a la Sala</button>
-        </form>
-        <button type="button" id="btn-volver-rol-alumno" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Volver</button>
-    </div>
-
-    <!-- 6. PANTALLA MENÚ DE JUEGO -->
-    <div id="pantalla-menu-juego" class="pantalla oculto">
-        <h2 class="title-rol">MAIN MENU</h2>
-        <button type="button" id="btn-game-play" class="btn-create">Play</button>
-        <button type="button" id="btn-game-tutorial" class="btn-create">Tutorial</button>
-        <button type="button" id="btn-game-exit" class="btn-create">Exit</button>
-    </div>
-
-    <!-- 7. PANTALLA TUTORIAL -->
-    <div id="pantalla-tutorial" class="pantalla oculto">
-        <h2 class="title-rol">TUTORIAL</h2>
-        <div class="tutorial-box">
-            <ul style="padding-left: 20px; line-height: 1.6; color: #333; font-size: 0.95em;">
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 1:</strong> Lee detenidamente las preguntas en inglés y selecciona la respuesta correcta.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 2:</strong> Usa las flechas del teclado o los controles en pantalla para mover a tu personaje por el mapa.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 3:</strong> Completa los desafíos de cada escena (Hotel, Hospital, Restaurante) para desbloquear el siguiente nivel.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 4:</strong> Asegúrate de que todos los jugadores de tu sala presionen <em>"Ready?"</em> en el Lobby para iniciar la partida.
-                </li>
-            </ul>
+  <!-- =========================================================
+       3. PASO 1 ALUMNO: INGRESO DE CÓDIGO DE SALA
+       ========================================================= -->
+  <div id="pantalla-alumno" class="pantalla oculto">
+    <div class="pixel-card-box">
+      <div class="icon-top">📖</div>
+      <h2 class="pixel-title">ENTER ROOM CODE</h2>
+      
+      <form id="form-unirse-sala">
+        <div class="input-group">
+          <label for="input-room-code">ROOM CODE (e.g. AB1234):</label>
+          <input type="text" id="input-room-code" placeholder="XXXXXX" required autocomplete="off">
         </div>
-        <button type="button" id="btn-volver-menu" class="btn-create">Volver al Menú</button>
+        <button type="submit" class="btn-pixel btn-main">▶️ JOIN GAME</button>
+      </form>
+
+      <button id="btn-volver-rol-alumno" class="btn-pixel btn-sub" style="margin-top: 0.5rem;">BACK TO ROLES</button>
     </div>
+  </div>
 
-    <!-- 8. PANTALLA SALA DE ESPERA (LOBBY) -->
-    <div id="pantalla-sala-espera" class="pantalla pantalla-ancha oculto">
-        <h2 id="room-header-title" class="title-rol">Room A (Code: 123)</h2>
-        <div class="lobby-grid">
-            <div class="character-box"><h3>Select Character</h3></div>
-            <div class="players-container">
-                <div class="players-avatars">
-                    <div class="player-card"><div class="avatar-circle bg-p1"></div><span id="label-player1-name">Player 1</span><span id="status-player1" class="status-ready oculto">Ready</span></div>
-                    <div class="player-card"><div class="avatar-circle bg-p2"></div><span>Player 2</span></div>
-                    <div class="player-card"><div class="avatar-circle bg-p3"></div><span>Player 3</span><span class="status-ready">Ready</span></div>
-                    <div class="player-card"><div class="avatar-circle bg-p4"></div><span>Player 4</span><span class="status-ready">Ready</span></div>
-                </div>
-                <input type="text" id="active-player-display" class="input-custom" style="text-align: center; font-weight: bold; max-width: 280px;" readonly>
-                <div class="lobby-actions">
-                    <button type="button" id="btn-ready" class="btn-create">Ready?</button>
-                    <button type="button" id="btn-start-game" class="btn-create">Start game</button>
-                </div>
-            </div>
-        </div>
+  <!-- =========================================================
+       4. PASO 2 ALUMNO: MENÚ DEL JUEGO
+       ========================================================= -->
+  <div id="pantalla-menu-juego" class="pantalla oculto">
+    <div class="pixel-card-box">
+      <h2 class="pixel-title">GAME MENU</h2>
+      <div class="menu-vertical">
+        <button id="btn-game-play" class="btn-pixel btn-main">🎮 PLAY</button>
+        <button id="btn-game-tutorial" class="btn-pixel btn-accent">📜 INSTRUCCIONES</button>
+        <button id="btn-game-exit" class="btn-pixel btn-danger">❌ EXIT</button>
+      </div>
     </div>
+  </div>
 
-    <!-- 9. PANTALLA SELECCIÓN DE ESCENA / NIVELES -->
-    <div id="pantalla-seleccion-escena" class="pantalla pantalla-ancha oculto">
-        <h2 class="title-rol" style="font-size: 2.2em; margin-bottom: 25px;">Choose your adventure!</h2>
+  <!-- =========================================================
+       5. PANTALLA INSTRUCCIONES (TUTORIAL)
+       ========================================================= -->
+  <div id="pantalla-tutorial" class="pantalla oculto">
+    <div class="pixel-card-box wide-box">
+      <p class="section-tag">INSTRUCCIONES (TUTORIAL)</p>
+      <h2 class="pixel-title">How to play?</h2>
+      
+      <div class="instructions-content">
+        <p><strong>Instrucción 1:</strong> Lee las preguntas en inglés y selecciona la respuesta adecuada.</p>
+        <p><strong>Instrucción 2:</strong> En cada escena cada jugador desempeñará un papel diferente, pero al final recuerda que tienen un objetivo en común.</p>
+        <p><strong>Instrucción 3:</strong> Cada respuesta incorrecta tiene un efecto negativo (ej. baja la barra de salud, la barra de puntos como equipo, etc).</p>
+        <p><strong>Instrucción 4:</strong> Puedes usar el chat integrado en la escena para comunicarte con tu equipo.</p>
+      </div>
 
-        <div class="scenes-container">
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏨</span></div>
-                <div class="scene-info"><h3>Scene 1:</h3><p>Hotel</p></div>
-                <div><button type="button" id="btn-play-scene1" class="btn-play-scene">PLAY</button></div>
-            </div>
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏥</span><div id="lock-scene2" class="lock-overlay">🔒</div></div>
-                <div class="scene-info"><h3>Scene 2:</h3><p>Hospital</p></div>
-                <div><button type="button" id="btn-play-scene2" class="btn-play-scene" disabled>PLAY</button></div>
-            </div>
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏪</span><div id="lock-scene3" class="lock-overlay">🔒</div></div>
-                <div class="scene-info"><h3>Scene 3:</h3><p>Restaurant</p></div>
-                <div><button type="button" id="btn-play-scene3" class="btn-play-scene" disabled>PLAY</button></div>
-            </div>
+      <button id="btn-volver-menu" class="btn-pixel btn-main" style="margin-top: 1.5rem;">VOLVER AL MENÚ</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       6. PANTALLA SELECCIÓN DE ESCENA + INTRODUCCIÓN
+       ========================================================= -->
+  <div id="pantalla-seleccion-escena" class="pantalla oculto">
+    <div class="pixel-card-box wide-box">
+      <p class="section-tag">SELECCIÓN DE ESCENA + INTRODUCCIÓN</p>
+      <h2 class="pixel-title">Choose your adventure!</h2>
+
+      <div class="scenes-list">
+        <div class="scene-item">
+          <div class="scene-icon">🏨</div>
+          <div class="scene-info">
+            <h3>Scene 1:</h3>
+            <p>Hotel</p>
+          </div>
+          <button id="btn-play-scene1" class="btn-pixel btn-main" style="width: auto; padding: 0.6rem 1.2rem;">PLAY</button>
         </div>
 
-        <button type="button" id="btn-volver-lobby" class="btn-create" style="max-width: 250px; margin-top: 25px; background-color: #e0e0e0; box-shadow: 0 3px 0 #cccccc;">Volver al Lobby</button>
-    </div>
+        <div class="scene-item locked">
+          <div class="scene-icon">🏥 🔒</div>
+          <div class="scene-info">
+            <h3>Scene 2:</h3>
+            <p>Hospital</p>
+          </div>
+        </div>
 
-    <!-- MÓDULOS JAVASCRIPT DEL PROYECTO -->
-    <script src="src/js/config.js"></script>
-    <script src="src/js/auth-player.js"></script>
-    <script src="src/js/auth-teacher.js"></script>
-    <script src="src/js/room.js"></script>
+        <div class="scene-item locked">
+          <div class="scene-icon">🏪 🔒</div>
+          <div class="scene-info">
+            <h3>Scene 3:</h3>
+            <p>Restaurant</p>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-volver-lobby" class="btn-pixel btn-sub" style="margin-top: 1rem;">BACK TO LOBBY</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       7. ACCESO Y PANEL DEL PROFESOR
+       ========================================================= -->
+  <div id="pantalla-clave-docente" class="pantalla oculto">
+    <div class="pixel-card-box">
+      <div class="icon-top">📜</div>
+      <h2 class="pixel-title">ACCESO DOCENTE</h2>
+      
+      <form id="form-clave-docente">
+        <div class="input-group">
+          <label for="clave-maestra-input">CLAVE INSTITUCIONAL:</label>
+          <input type="password" id="clave-maestra-input" placeholder="Ingresa clave..." required autocomplete="off">
+        </div>
+        <p id="msg-clave-docente" style="font-size: 0.65rem; margin: -0.5rem 0 1rem 0; min-height: 1rem;"></p>
+        <button type="submit" class="btn-pixel btn-main">INGRESAR</button>
+      </form>
+
+      <button id="btn-volver-rol" class="btn-pixel btn-sub" style="margin-top: 0.5rem;">VOLVER</button>
+    </div>
+  </div>
+
+  <div id="pantalla-profesor" class="pantalla oculto">
+    <div class="pixel-card-box">
+      <p class="section-tag">CREAR SALA (VISTA DEL PROFESOR)</p>
+      <h2 class="pixel-title">Create room</h2>
+      <p id="bienvenida-docente" style="font-size: 0.7rem; color: #3b5055; margin-bottom: 1rem; font-weight: bold;"></p>
+
+      <form id="form-crear-sala">
+        <input type="text" id="room-name-input" placeholder="Write the room's name" required autocomplete="off">
+        <button type="button" id="btn-crear-codigo" class="btn-pixel btn-accent">Create room code</button>
+        <input type="text" id="room-code-display" placeholder="Room code" readonly style="background-color: #e5e0d8; cursor: not-allowed; margin-top: 0.5rem;">
+        <button type="submit" id="btn-submit-crear-sala" class="btn-pixel btn-main" style="margin-top: 0.5rem;">Create room</button>
+      </form>
+
+      <button id="btn-volver-rol-profesor" class="btn-pixel btn-sub" style="margin-top: 1rem;">BACK TO ROLES</button>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SCRIPTS DE CONTROL Y NAVEGACIÓN UNIFICADOS
+       ========================================================= -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="src/js/auth-player.js"></script>
+  <script src="src/js/auth-teacher.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Elementos principales de la portada y acceso
+      const btnPlay = document.getElementById("btn-play-game");
+      const pantallaRol = document.getElementById('pantalla-rol'); // Portada principal
+      const pantallaAcceso = document.getElementById("pantalla-acceso");
+      const vistaLogin = document.querySelector("[id-view='vista-login']");
+      const vistaRol = document.querySelector("[id-view='vista-rol']");
+      const formLogin = document.getElementById("form-login");
+
+      // 2. Elementos de navegación interna
+      const btnStudent = document.getElementById('btn-rol-student');
+      const btnProfesor = document.getElementById('btn-rol-profesor');
+      
+      const pantallaAlumno = document.getElementById('pantalla-alumno');
+      const pantallaClaveDocente = document.getElementById('pantalla-clave-docente');
+      const pantallaProfesor = document.getElementById('pantalla-profesor');
+      const pantallaMenuJuego = document.getElementById('pantalla-menu-juego');
+      const pantallaTutorial = document.getElementById('pantalla-tutorial');
+      const pantallaSeleccionEscena = document.getElementById('pantalla-seleccion-escena');
+
+      // Botones del Menú del Juego
+      const btnGamePlay = document.getElementById('btn-game-play');
+      const btnGameTutorial = document.getElementById('btn-game-tutorial');
+      const btnGameExit = document.getElementById('btn-game-exit');
+      const btnVolverMenu = document.getElementById('btn-volver-menu');
+
+      // Formularios y botones de retorno
+      const formUnirseSala = document.getElementById('form-unirse-sala');
+      const formClaveDocente = document.getElementById('form-clave-docente');
+      const btnVolverRolAlumno = document.getElementById('btn-volver-rol-alumno');
+      const btnVolverRolDocente = document.getElementById('btn-volver-rol');
+      const btnVolverRolProfesor = document.getElementById('btn-volver-rol-profesor');
+
+      // Función auxiliar global para mostrar una pantalla y ocultar el resto
+      function mostrarPantalla(pantallaActiva) {
+        // Ocultar portada principal y pantalla de acceso general
+        if (pantallaRol) pantallaRol.classList.add('oculto');
+        if (pantallaAcceso) pantallaAcceso.classList.add('oculto');
+        
+        // Ocultar vistas internas de acceso
+        if (vistaLogin) vistaLogin.style.display = "none";
+        if (vistaRol) vistaRol.style.display = "none";
+
+        // Ocultar todas las demás pantallas con la clase .pantalla
+        document.querySelectorAll('.pantalla').forEach(p => {
+          if (p !== pantallaRol && p !== pantallaAcceso) {
+            p.classList.add('oculto');
+          }
+        });
+
+        // Mostrar la pantalla solicitada
+        if (pantallaActiva) {
+          pantallaActiva.classList.remove('oculto');
+        }
+      }
+
+      // 3. EVENTO DEL BOTÓN PLAY (Portada -> Login o Roles)
+      if (btnPlay) {
+        btnPlay.addEventListener("click", () => {
+          if (pantallaRol) pantallaRol.classList.add('oculto');
+          if (pantallaAcceso) pantallaAcceso.classList.remove('oculto');
+
+          const hasLoggedInBefore = localStorage.getItem("ft_logged_in");
+          if (!hasLoggedInBefore) {
+            if (vistaLogin) vistaLogin.style.display = "block";
+            if (vistaRol) vistaRol.style.display = "none";
+          } else {
+            if (vistaLogin) vistaLogin.style.display = "none";
+            if (vistaRol) vistaRol.style.display = "block";
+          }
+        });
+      }
+
+      // Manejar el submit del login por primera vez
+      if (formLogin) {
+        formLogin.addEventListener("submit", (e) => {
+          e.preventDefault();
+          localStorage.setItem("ft_logged_in", "true");
+          if (vistaLogin) vistaLogin.style.display = "none";
+          if (vistaRol) vistaRol.style.display = "block";
+        });
+      }
+
+      // 4. SELECCIÓN DE ROL (Student / Professor)
+      if (btnStudent) {
+        btnStudent.addEventListener('click', () => { 
+          mostrarPantalla(pantallaAlumno); 
+        });
+      }
+
+      if (btnProfesor) {
+        btnProfesor.addEventListener('click', () => { 
+          mostrarPantalla(pantallaClaveDocente); 
+        });
+      }
+
+      // 5. FLUJO DE ALUMNO (Código de sala -> Menú)
+      if (formUnirseSala) {
+        formUnirseSala.addEventListener('submit', (e) => {
+          e.preventDefault();
+          mostrarPantalla(pantallaMenuJuego);
+        });
+      }
+
+      // 6. MENÚ DEL JUEGO
+      if (btnGamePlay) {
+        btnGamePlay.addEventListener('click', () => {
+          mostrarPantalla(pantallaSeleccionEscena);
+        });
+      }
+
+      if (btnGameTutorial) {
+        btnGameTutorial.addEventListener('click', () => {
+          mostrarPantalla(pantallaTutorial);
+        });
+      }
+
+      if (btnGameExit) {
+        btnGameExit.addEventListener('click', () => {
+          mostrarPantalla(pantallaAlumno);
+        });
+      }
+
+      if (btnVolverMenu) {
+        btnVolverMenu.addEventListener('click', () => {
+          mostrarPantalla(pantallaMenuJuego);
+        });
+      }
+
+      // 7. FLUJO DOCENTE (Clave -> Panel profesor)
+      if (formClaveDocente) {
+        formClaveDocente.addEventListener('submit', (e) => {
+          e.preventDefault();
+          mostrarPantalla(pantallaProfesor);
+        });
+      }
+
+      // 8. BOTONES DE RETORNO A ROLES (BACK TO ROLES)
+      const regresarARoles = () => {
+        if (pantallaAcceso) pantallaAcceso.classList.remove('oculto');
+        if (vistaLogin) vistaLogin.style.display = "none";
+        if (vistaRol) vistaRol.style.display = "block";
+        document.querySelectorAll('.pantalla').forEach(p => {
+          if (p !== pantallaRol && p !== pantallaAcceso) {
+            p.classList.add('oculto');
+          }
+        });
+      };
+
+      if (btnVolverRolAlumno) btnVolverRolAlumno.addEventListener('click', regresarARoles);
+      if (btnVolverRolDocente) btnVolverRolDocente.addEventListener('click', regresarARoles);
+      if (btnVolverRolProfesor) btnVolverRolProfesor.addEventListener('click', regresarARoles);
+    });
+  </script>
 </body>
 </html>
