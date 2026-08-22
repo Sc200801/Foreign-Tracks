@@ -15,7 +15,6 @@
             padding: 0;
         }
 
-        /* --- FONDO GENERADO POR CSS (SIN IMÁGENES EXTERNAS) --- */
         body {
             position: relative;
             background:
@@ -33,7 +32,6 @@
             overflow-x: hidden;
         }
 
-        /* Capa con efecto de textura/grano pixel-art */
         body::before {
             content: "";
             position: fixed;
@@ -45,12 +43,10 @@
             z-index: 1;
         }
 
-        /* Oculta de manera estricta las pantallas e elementos inactivos */
         .oculto {
             display: none !important;
         }
 
-        /* --- PANTALLA 0: BIENVENIDA (PORTADA) --- */
         .pantalla-bienvenida {
             position: fixed;
             top: 0;
@@ -95,7 +91,6 @@
             background-color: #d17240;
         }
 
-        /* Elementos flotantes animados */
         .floating-element {
             position: absolute;
             opacity: 0.85;
@@ -114,7 +109,6 @@
             100% { transform: translateY(0px) rotate(0deg); }
         }
 
-        /* --- ESTILOS GENERALES DE PANTALLAS --- */
         .pantalla {
             position: relative;
             z-index: 2;
@@ -154,7 +148,6 @@
             box-sizing: border-box;
         }
 
-        /* --- ESTILOS ESTÉTICOS PARA MOSTRAR / OCULTAR CONTRASEÑA --- */
         .password-container {
             position: relative;
             width: 100%;
@@ -253,7 +246,6 @@
             border-radius: 12px;
         }
 
-        /* Lobby y Niveles */
         .lobby-grid { display: grid; grid-template-columns: 240px 1fr; gap: 30px; width: 100%; }
         .character-box { background-color: #dcd6ff; border: 3px solid #000; border-radius: 20px; height: 340px; padding: 15px; text-align: center; }
         .players-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
@@ -274,7 +266,6 @@
         .btn-play-scene { padding: 10px 0; background-color: #fbc4ab; border: none; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-shadow: 0 2px 0 #e5a990; }
         .btn-play-scene:disabled { background-color: #e0e0e0; color: #888; box-shadow: none; cursor: not-allowed; }
 
-        /* --- ESTILOS DEL MODAL DE LOGIN --- */
         .modal {
             position: fixed;
             top: 0;
@@ -316,11 +307,6 @@
             color: #000;
         }
 
-        /* ===================================================
-           TARJETAS DE ALERTA AUTOMÁTICAS (SÓLO ESTILOS)
-           =================================================== */
-
-        /* Detecta cuando la alerta es visible y la convierte en tarjeta */
         .alert-msg:not(.oculto):not(.hidden) {
             display: flex !important;
             align-items: center;
@@ -348,7 +334,6 @@
             }
         }
 
-        /* Estilo automático para errores (Rojo) */
         .alert-msg.error-text:not(.oculto):not(.hidden) {
             color: #d63031 !important;
             background-color: #ffebeb !important;
@@ -361,7 +346,6 @@
             font-size: 1rem;
         }
 
-        /* Estilo automático para éxitos (Verde) */
         .alert-msg.success-text:not(.oculto):not(.hidden) {
             color: #27ae60 !important;
             background-color: #eafaf1 !important;
@@ -378,7 +362,7 @@
 <body>
 
     <!-- 0. PANTALLA DE BIENVENIDA -->
-    <div id="pantalla-bienvenida-inicial" class="pantalla-bienvenida oculto">
+    <div id="pantalla-bienvenida-inicial" class="pantalla-bienvenida">
         <div class="floating-element floating-1">☁️</div>
         <div class="floating-element floating-2">☁️</div>
         <div class="floating-element floating-3">✨</div>
@@ -393,11 +377,10 @@
     <!-- 1. PANTALLA REGISTRO INICIAL -->
     <div id="pantalla-registro-inicial" class="pantalla oculto">
         <h2 class="title-rol">Create Account</h2>
-        <form id="form-registro-inicial" style="width: 100%;">
+        <form id="form-registro-inicial" style="width: 100%;" onsubmit="event.preventDefault();">
             <input type="text" id="reg-fullname" class="input-custom" placeholder="Write your full name" required>
             <input type="text" id="reg-username" class="input-custom" placeholder="Write your Username" required>
 
-            <!-- Campo de Contraseña con Ojito Estético -->
             <div class="password-container">
                 <input type="password" id="reg-password" class="input-custom" placeholder="Write your Password" required>
                 <button type="button" class="btn-toggle-password" onclick="togglePassword('reg-password', this)" title="Mostrar contraseña">
@@ -405,7 +388,6 @@
                 </button>
             </div>
 
-            <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL REGISTRO -->
             <p id="registro-alert-msg" class="alert-msg error-text oculto"></p>
 
             <button type="submit" class="btn-create">Create account</button>
@@ -418,7 +400,6 @@
         <div id="btn-rol-profesor" class="card-rol card-profesor"><h3>TEACHER</h3></div>
         <div id="btn-rol-student" class="card-rol card-student"><h3>STUDENT</h3></div>
 
-        <!-- ENLACE PARA ABRIR EL MODAL DE LOGIN -->
         <a href="#" id="btn-open-login-modal" style="margin-top: 10px; color: #333; font-weight: bold; text-decoration: underline; font-size: 0.9em;">
             ¡Ya tengo cuenta / Iniciar Sesión!
         </a>
@@ -428,30 +409,28 @@
         </button>
     </div>
 
-   <!-- 3. PANTALLA CLAVE DOCENTE (INSTITUCIONAL) -->
+   <!-- 3. PANTALLA CLAVE DOCENTE -->
     <div id="pantalla-clave-docente" class="pantalla oculto">
         <h2 class="title-rol">Teacher Access</h2>
-        <form id="form-clave-docente" style="width: 100%;">
-            <!-- Campo de Clave Docente con Ojito Estético -->
+        <form id="form-clave-docente" style="width: 100%;" onsubmit="event.preventDefault();">
             <div class="password-container">
-                <input type="password" id="clave-maestra-input" class="input-custom" placeholder="Clave institucional" required>
+                <input type="password" id="clave-maestra-input" class="input-custom" placeholder="Clave institucional" required autocomplete="current-password">
                 <button type="button" class="btn-toggle-password" onclick="togglePassword('clave-maestra-input', this)" title="Mostrar contraseña">
                     👁️
                 </button>
             </div>
 
-            <!-- ⚠️ CONTENEDOR DE ALERTA PARA LA CLAVE DOCENTE -->
             <p id="teacher-key-alert-msg" class="alert-msg error-text oculto"></p>
 
-            <button type="submit" class="btn-create">Check code</button>
+            <button type="submit" id="btn-check-code" class="btn-create">Check code</button>
         </form>
         <button type="button" id="btn-volver-rol" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
     </div>
 
-    <!-- 4. PANTALLA PROFESOR (CREAR SALA Y GENERAR CÓDIGO) -->
+    <!-- 4. PANTALLA PROFESOR -->
     <div id="pantalla-profesor" class="pantalla oculto">
         <h2 class="title-rol">Create room</h2>
-        <form id="form-crear-sala" style="width: 100%;">
+        <form id="form-crear-sala" style="width: 100%;" onsubmit="event.preventDefault();">
             <input type="text" id="room-name-input" class="input-custom" placeholder="Write the room's name" required>
             <button type="button" id="btn-crear-sala" class="btn-create">Create room code</button>
             <input type="text" id="room-code-display" class="input-custom" placeholder="Room code" readonly style="text-align: center; font-weight: bold; font-size: 1.1em; background-color: #fff;">
@@ -460,12 +439,12 @@
         <button type="button" id="btn-volver-rol-profesor" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
     </div>
 
-    <!-- 5. PANTALLA ALUMNO (UNIRSE A SALA - CORREGIDA Y OPTIMIZADA) -->
+    <!-- 5. PANTALLA ALUMNO -->
     <div id="pantalla-alumno" class="pantalla oculto">
         <h2 id="welcome-student-title" class="title-rol">Hello, Student</h2>
-        <form id="form-unirse-sala" style="width: 100%;">
+        <form id="form-unirse-sala" style="width: 100%;" onsubmit="event.preventDefault();">
             <input type="text" id="input-join-code" class="input-custom" placeholder="Enter 6-digit room code" maxlength="6" required>
-            <button type="button" id="btn-join-room" class="btn-create">Join room</button>
+            <button type="submit" id="btn-join-room" class="btn-create">Join room</button>
         </form>
         <button type="button" id="btn-volver-rol-alumno" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
     </div>
@@ -483,31 +462,22 @@
         <h2 class="title-rol">TUTORIAL</h2>
         <div class="tutorial-box">
             <ul style="padding-left: 20px; line-height: 1.6; color: #333; font-size: 0.95em;">
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 1:</strong> Lee detenidamente las preguntas en inglés y selecciona la respuesta correcta.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 2:</strong> Usa las flechas del teclado o los controles en pantalla para mover a tu personaje por el mapa.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 3:</strong> Completa los desafíos de cada escena (Hotel, Hospital, Restaurante) para desbloquear el siguiente nivel.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 4:</strong> Asegúrate de que todos los jugadores de tu sala presionen <em>"Ready?"</em> en el Lobby para iniciar la partida.
-                </li>
+                <li style="margin-bottom: 10px;"><strong>Instrucción 1:</strong> Lee detenidamente las preguntas en inglés y selecciona la respuesta correcta.</li>
+                <li style="margin-bottom: 10px;"><strong>Instrucción 2:</strong> Usa las flechas del teclado o los controles en pantalla para mover a tu personaje por el mapa.</li>
+                <li style="margin-bottom: 10px;"><strong>Instrucción 3:</strong> Completa los desafíos de cada escena (Hotel, Hospital, Restaurante) para desbloquear el siguiente nivel.</li>
+                <li style="margin-bottom: 10px;"><strong>Instrucción 4:</strong> Asegúrate de que todos los jugadores de tu sala presionen <em>"Ready?"</em> en el Lobby para iniciar la partida.</li>
             </ul>
         </div>
         <button type="button" id="btn-volver-menu" class="btn-create">Volver al Menú</button>
     </div>
 
-    <!-- 8. PANTALLA SALA DE ESPERA (LOBBY RESTRUCTURADO) -->
+    <!-- 8. PANTALLA SALA DE ESPERA -->
     <div id="pantalla-sala-espera" class="pantalla pantalla-ancha oculto">
         <h2 id="room-header-title" class="title-rol">Room (Code: ---)</h2>
         <div class="lobby-grid">
             <div class="character-box"><h3>Select Character</h3></div>
             <div class="players-container">
                 <div class="players-avatars">
-                    <!-- Tarjetas ocultas por defecto (se muestran dinámicamente según se conecten) -->
                     <div class="player-card oculto" id="card-player1">
                         <div class="avatar-circle bg-p1"></div>
                         <span id="label-player1-name"></span>
@@ -540,7 +510,7 @@
         </div>
     </div>
 
-    <!-- 9. PANTALLA SELECCIÓN DE ESCENA / NIVELES -->
+    <!-- 9. PANTALLA SELECCIÓN DE ESCENA -->
     <div id="pantalla-seleccion-escena" class="pantalla pantalla-ancha oculto">
         <h2 class="title-rol" style="font-size: 2.2em; margin-bottom: 25px;">Choose your adventure!</h2>
 
@@ -565,25 +535,22 @@
         <button type="button" id="btn-volver-lobby" class="btn-create" style="max-width: 250px; margin-top: 25px; background-color: #e0e0e0; box-shadow: 0 3px 0 #cccccc;">Volver al Lobby</button>
     </div>
 
-    <!-- =================================================== -->
-    <!-- VENTANA EMERGENTE (MODAL) DE INICIAR SESIÓN -->
-    <!-- =================================================== -->
+    <!-- MODAL LOGIN -->
     <div id="login-modal" class="modal oculto">
         <div class="modal-content">
             <span id="btn-close-login-modal" class="close-btn">&times;</span>
             <h2 class="title-rol" style="font-size: 1.4em; margin-bottom: 15px;">Login</h2>
 
-            <form id="form-login-modal" style="width: 100%;">
+            <form id="form-login-modal" style="width: 100%;" onsubmit="event.preventDefault();">
                 <input type="text" id="login-username" class="input-custom" placeholder="Write your username" required>
                 
                 <div class="password-container" style="margin-bottom: 5px;">
-                    <input type="password" id="login-password" class="input-custom" placeholder="Write your password" required>
+                    <input type="password" id="login-password" class="input-custom" placeholder="Write your password" required autocomplete="current-password">
                     <button type="button" class="btn-toggle-password" onclick="togglePassword('login-password', this)" title="Mostrar contraseña">
                         👁️
                     </button>
                 </div>
 
-                <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL LOGIN -->
                 <p id="login-alert-msg" class="alert-msg error-text oculto"></p>
 
                 <button type="submit" class="btn-create">Login</button>
@@ -591,11 +558,7 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- MÓDULOS Y SCRIPTS JAVASCRIPT DEL PROYECTO -->
-    <!-- ========================================== -->
-
-    <!-- Función JS global para ocultar/mostrar contraseña manteniendo solo el ojo -->
+    <!-- SCRIPTS -->
     <script>
         function togglePassword(inputId, btn) {
             const input = document.getElementById(inputId);
@@ -613,47 +576,32 @@
         }
     </script>
 
-    <!-- 1. Librería cliente de Socket.io provista por el servidor -->
+    <!-- 1. Librería del Socket -->
     <script src="/socket.io/socket.io.js"></script>
 
-    <!-- 2. Scripts tradicionales del proyecto -->
+    <!-- 2. Carga de scripts -->
     <script src="src/js/config.js"></script>
     <script src="src/services/apiService.js"></script>
     <script src="src/js/auth-utils.js"></script>
     <script src="src/js/auth-player.js"></script>
     <script src="src/js/auth-teacher.js"></script>
-
-    <!-- 3. Cargar room.js como script clásico -->
     <script src="src/js/room.js"></script>
 
-    <!-- 4. Inicialización de Socket.io y listener para el botón PLAY de Escena 1 -->
+    <!-- 3. Integración de evento PLAY de Escena 1 con redirección -->
     <script>
-    // Recuperar el token guardado en el navegador
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-    // Conectar a Socket.io enviando el token
-    const socket = io({
-      auth: {
-        token: token
-      }
-    });
-
-    socket.on('connect', () => {
-      console.log('✅ Conectado a Socket.io exitosamente:', socket.id);
-    });
-
-    socket.on('connect_error', (err) => {
-      console.error('❌ Error de autenticación en Socket.io:', err.message);
-    });
-
-    // Cargar el escenario Hotel haciendo uso de window.apiService
-    document.getElementById('btn-play-scene1')?.addEventListener('click', async () => {
-      try {
-        const scenarioData = await window.apiService.getHotelScenario();
-        console.log('🏨 Datos del Escenario Hotel cargados correctamente:', scenarioData);
-      } catch (err) {
-        console.error('❌ Error al obtener el escenario Hotel:', err);
-      }
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('btn-play-scene1')?.addEventListener('click', async () => {
+            try {
+                if (window.apiService && typeof window.apiService.getHotelScenario === 'function') {
+                    const scenarioData = await window.apiService.getHotelScenario();
+                    console.log('🏨 Escenario Hotel cargado:', scenarioData);
+                }
+            } catch (err) {
+                console.error('❌ Error al obtener el escenario Hotel:', err);
+            } finally {
+                window.location.href = '/hotel.html'; 
+            }
+        });
     });
     </script>
 </body>

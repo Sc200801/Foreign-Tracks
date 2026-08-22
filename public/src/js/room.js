@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let studentName = '';
 
         try {
-            // Revisa todas las posibles claves en localStorage y sessionStorage
             const userObj = JSON.parse(
                 localStorage.getItem('usuarioRegistrado') || 
                 sessionStorage.getItem('userData') ||
@@ -19,14 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('Error al leer datos del usuario en Storage:', e);
         }
 
-        // Respaldo por si el nombre está guardado como un string directo
         if (!studentName) {
             studentName = localStorage.getItem('username') || 
                           localStorage.getItem('fullname') || 
                           localStorage.getItem('nombre') || '';
         }
 
-        // Busca el título principal o cualquier elemento con el saludo
         const studentTitle = document.getElementById('welcome-student-title') || 
                              document.querySelector('.card h2') || 
                              document.querySelector('.pantalla-estudiante h2') ||
@@ -39,19 +36,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return studentName;
     };
 
-    // Ejecutar inmediatamente al cargar el DOM
     actualizarSaludoEstudiante();
 
     // 1. OBTENER TOKEN BUSCANDO EN TODAS LAS UBICACIONES POSIBLES
     const obtenerTokenSeguro = () => {
         let token = '';
 
-        // Intento 1: De la función global de config.js
         if (typeof window.obtenerToken === 'function') {
             token = window.obtenerToken();
         }
 
-        // Intento 2: Directo del objeto usuarioRegistrado o sessionStorage
         if (!token) {
             try {
                 const userObj = JSON.parse(
@@ -66,7 +60,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Intento 3: Directo de la clave 'token' en localStorage o sessionStorage
         if (!token) {
             token = localStorage.getItem('token') || 
                     sessionStorage.getItem('token') || 
@@ -79,23 +72,18 @@ document.addEventListener('DOMContentLoaded', () => {
     let token = obtenerTokenSeguro();
     console.log('🔑 Token detectado para Socket:', token ? ' [TOKEN ENCONTRADO]' : '❌ [SIN TOKEN]');
 
-    // 🔗 LECTURA CENTRALIZADA DE LA URL DE SOCKETS DESDE CONFIG.JS
-    const serverUrl = window.CONFIG?.SOCKET_URL || window.API_BASE_URL || window.location.origin;
+    const serverUrl = window.location.origin;
 
-    // Configuración centralizada del cliente Socket.io con reconexión automática
     const socketOptions = {
-        auth: { 
-            token: token
-        },
-        extraHeaders: {
-            Authorization: `Bearer ${token}`
-        },
-        transports: ['websocket', 'polling'],
-        // 🔄 OPCIONES DE RECONEXIÓN AUTOMÁTICA
+        autoConnect: true,
+        auth: { token: token },
+        extraHeaders: { Authorization: `Bearer ${token}` },
+        transports: ['polling', 'websocket'],
         reconnection: true,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: 15,
         reconnectionDelay: 1000,
-        reconnectionDelayMax: 5000
+        reconnectionDelayMax: 5000,
+        timeout: 10000
     };
 
     // 2. CONECTAR CON SOCKET.IO Y EXPONERLO GLOBALMENTE
@@ -107,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
         socket = window.io(serverUrl, socketOptions);
     }
 
-    // Guardar referencia en el objeto window
     window.socket = socket;
 
     // Elementos del DOM
@@ -119,7 +106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnReady = document.getElementById('btn-ready');
     const btnStartGame = document.getElementById('btn-start-game');
 
-    // Elementos del DOM para la Pantalla de Estudiante (Entrar a Sala)
     const inputJoinCode = document.getElementById('input-join-code') || 
                           document.getElementById('room-code-input') || 
                           document.querySelector('.card input[type="text"]');
@@ -128,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         document.getElementById('btn-unirse-sala') || 
                         document.querySelector('.card .btn');
 
-    // Limpiar el campo de texto si contenía una URL por defecto
     if (inputJoinCode) {
         if (inputJoinCode.value.includes('http') || inputJoinCode.value.includes('localhost')) {
             inputJoinCode.value = '';
@@ -137,7 +122,6 @@ document.addEventListener('DOMContentLoaded', () => {
         inputJoinCode.maxLength = 6;
     }
 
-    // Escuchar el evento que envía auth-player.js cuando el alumno intenta unirse a una sala
     window.addEventListener('unirseSalaSocket', (e) => {
         if (socket && socket.connected) {
             socket.emit('room:join', e.detail);
@@ -212,7 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 4.B. UNIRSE A SALA (ESTUDIANTE) - ¡GARANTIZANDO EL NOMBRE REAL DE USUARIO!
+    // 4.B. UNIRSE A SALA (ESTUDIANTE)
     if (btnJoinRoom) {
         btnJoinRoom.addEventListener('click', (e) => {
             e.preventDefault();
@@ -222,17 +206,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Extraer el valor y limpiar espacios
             const cleanCode = inputJoinCode.value.trim();
 
-            // 2. Validar que cumpla exactamente con el formato de 6 dígitos
             const regex6Digits = /^\d{6}$/;
             if (!regex6Digits.test(cleanCode)) {
                 alert('Please enter a valid 6-digit room code.');
                 return;
             }
 
-            // 🟢 EXTRACCIÓN ROBUSTA DE NOMBRE DESDE TODAS LAS FUENTES POSIBLES
             let studentName = actualizarSaludoEstudiante();
 
             if (!studentName || studentName === 'Student' || studentName === 'Estudiante') {
@@ -251,14 +232,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Asignar fallback sólo si es absolutamente imposible recuperar el nombre
             const nombreFinalAsegurado = (studentName && studentName !== 'Student' && studentName !== 'Estudiante') 
                 ? studentName 
                 : 'Estudiante';
 
             const tokenFresca = obtenerTokenSeguro();
 
-            // 🔄 ACTUALIZAR AUTENTICACIÓN DEL SOCKET
             if (socket) {
                 socket.auth = { token: tokenFresca };
                 if (socket.io && socket.io.opts) {
@@ -274,23 +253,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const payload = {
                 roomId: cleanCode,
                 roomCode: cleanCode,
-                username: nombreFinalAsegurado // 👈 ¡Garantizado no undefined!
+                username: nombreFinalAsegurado
             };
 
-            // Guardar contexto localmente
             localStorage.setItem('currentRoom', JSON.stringify({ 
                 code: cleanCode,
                 isHost: false 
             }));
 
-            // Función para emitir la solicitud
             const ejecutarUnion = () => {
                 console.log('🚀 Joining room con payload:', payload);
                 socket.emit('room:join', payload);
                 socket.emit('unirse-sala', payload);
             };
 
-            // 3. Manejo de emisión dependiente del estado del Socket
             if (socket && socket.connected) {
                 ejecutarUnion();
             } else if (socket) {
@@ -306,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         socket.off('connect', onConnectOnce);
                         alert('No connection to the server. Please check if the backend is running.');
                     }
-                }, 2500);
+                }, 3000);
             }
         });
     }
@@ -338,16 +314,13 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
         });
 
-        // ⚠️ MANEJO DE DESCONEXIONES EN TIEMPO DE EJECUCIÓN
         socket.on('disconnect', (reason) => {
             console.warn('⚠️ Se perdió la conexión con el servidor Socket.io. Razón:', reason);
             if (reason === 'io server disconnect') {
-                // Si el servidor desconectó explícitamente el socket, forzar reconexión manual
                 socket.connect();
             }
         });
 
-        // 🔄 RE-UNIRSE AUTOMÁTICAMENTE A LA SALA TRAS PERDER CONEXIÓN (NGROK / MICRO-CORTES)
         socket.on('reconnect', (attemptNumber) => {
             console.log(`🟢 Reconectado con éxito tras ${attemptNumber} intento(s).`);
             
@@ -395,13 +368,17 @@ document.addEventListener('DOMContentLoaded', () => {
         socket.on('room:error', handleRoomError);
         socket.on('error-sala', handleRoomError);
 
-        // 🔄 ACTUALIZACIÓN EN TIEMPO REAL DEL LOBBY (BLINDADO HASTA 4 JUGADORES)
         socket.on('room:update', (roomData) => {
             if (!roomData) return;
 
             console.log('📡 Actualización de sala recibida:', roomData);
 
-            // A. Nombre del Header y Código de Sala
+            // GARANTIZAR QUE LA PANTALLA SEA VISIBLE AL RECIBIR LA ACTUALIZACIÓN
+            const pSalaEspera = document.getElementById('pantalla-sala-espera');
+            if (pSalaEspera && pSalaEspera.classList.contains('oculto')) {
+                cambiarALobby(roomData.name || 'Sala de Juego', roomData.roomId || roomData.code);
+            }
+
             const headerTitle = document.getElementById('room-header-title') || document.querySelector('.pantalla-sala-espera h2');
             const roomCode = roomData.roomId || roomData.code || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
             if (headerTitle) {
@@ -411,19 +388,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const players = roomData.players || [];
             const esProfesor = roomData.hostId === socket.id;
 
-            // B. Renderizar cada uno de los 4 slots de jugadores
             for (let i = 1; i <= 4; i++) {
                 const card = document.getElementById(`card-player${i}`);
                 const playerLabel = document.getElementById(`label-player${i}-name`);
                 const statusLabel = document.getElementById(`status-player${i}`);
 
-                const player = players[i - 1]; // Datos del jugador en esta posición
+                const player = players[i - 1];
 
                 if (player) {
-                    // Si hay jugador, MOSTRAR tarjeta y actualizar información
                     if (card) {
                         card.classList.remove('oculto');
-                        card.style.display = 'flex'; // Asegura visibilidad en layout
+                        card.style.display = 'flex';
                     }
                     if (playerLabel) {
                         playerLabel.innerText = player.name || player.username || 'Student';
@@ -435,7 +410,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         statusLabel.style.color = player.isReady ? '#2ed573' : '#ff4757';
                     }
                 } else {
-                    // Si no hay jugador en este espacio, ocultar el slot
                     if (card) {
                         card.classList.add('oculto');
                         card.style.display = 'none';
@@ -443,7 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // C. Visibilidad de Controles según Rol
             if (btnStartGame) {
                 btnStartGame.style.display = esProfesor ? 'block' : 'none';
             }
@@ -453,42 +426,74 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 🎮 EVENTO: INICIO DE JUEGO PARA TODOS LOS INTEGRANTES DE LA SALA
         socket.on('room:game_started', (data) => {
             console.log('🏁 ¡Iniciando el juego!', data);
+            document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => {
+                d.classList.add('oculto');
+                d.style.display = 'none';
+            });
+
+            const pSeleccion = document.getElementById('pantalla-seleccion-escena');
+            if (pSeleccion) {
+                pSeleccion.classList.remove('oculto');
+                pSeleccion.style.display = 'flex';
+            }
+
             if (typeof window.mostrarPantalla === 'function') {
                 window.mostrarPantalla('pantalla-seleccion-escena');
-            } else {
-                document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-                document.getElementById('pantalla-seleccion-escena')?.classList.remove('oculto');
             }
         });
 
         socket.on('connect_error', (err) => {
-            console.error('❌ Error de autenticación en Socket.io:', err.message);
+            console.warn('⚠️ Advertencia de conexión en Socket.io:', err.message);
+            if (socket.io && socket.io.opts) {
+                socket.io.opts.transports = ['polling', 'websocket'];
+            }
         });
     }
 
-    // Cambiar a la vista del Lobby
+    // FUNCIÓN DE TRANSICIÓN ULTRA GARANTIZADA AL LOBBY
     function cambiarALobby(nombreSala, codigoSala) {
         const headerTitle = document.getElementById('room-header-title');
         if (headerTitle) {
             headerTitle.innerText = `${nombreSala} (Code: ${codigoSala})`;
         }
 
+        // 1. Ocultar todas las vistas activas
+        document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => {
+            d.classList.add('oculto');
+            d.style.display = 'none';
+        });
+
+        // 2. Forzar visibilidad directa en la sala de espera
+        const salaEspera = document.getElementById('pantalla-sala-espera');
+        if (salaEspera) {
+            salaEspera.classList.remove('oculto');
+            salaEspera.style.display = 'flex';
+        }
+
+        // 3. Ejecutar función auxiliar si existe
         if (typeof window.mostrarPantalla === 'function') {
             window.mostrarPantalla('pantalla-sala-espera');
-        } else {
-            document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-            document.getElementById('pantalla-sala-espera')?.classList.remove('oculto');
         }
     }
 
     if (btnVolverProfesor) {
         btnVolverProfesor.addEventListener('click', (e) => {
             e.preventDefault();
+            document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => {
+                d.classList.add('oculto');
+                d.style.display = 'none';
+            });
+
+            const pProfesor = document.getElementById('pantalla-profesor');
+            if (pProfesor) {
+                pProfesor.classList.remove('oculto');
+                pProfesor.style.display = 'flex';
+            }
+
             if (typeof window.mostrarPantalla === 'function') {
-                window.mostrarPantalla('pantalla-rol');
+                window.mostrarPantalla('pantalla-profesor');
             }
         });
     }

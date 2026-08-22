@@ -4,25 +4,28 @@ const jwt = require('jsonwebtoken');
  * Middleware para validar el token JWT y vincular la identidad real del usuario al socket.
  */
 const authSocketMiddleware = (socket, next) => {
-  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-
-  // 1. SI NO HAY TOKEN: Permitir conexión limpia en lugar de tumbar el WebSockets
-  if (!token) {
-    console.warn('⚠️ Conexión Socket sin token inicial. Permitido como invitado temporal.');
-    socket.user = {
-      id: 'guest-' + socket.id,
-      role: 'player',
-      playerId: null,
-      teacherId: null,
-      name: 'Student'
-    };
-    return next(); // 🟢 Dejar pasar sin error
-  }
-
   try {
-    const cleanToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+    // 1. EXTRAER TOKEN DE DIVERSAS FUENTES
+    const rawToken = socket.handshake.auth?.token || 
+                     socket.handshake.headers?.authorization || 
+                     socket.handshake.query?.token;
 
-    // 🟢 COMPATIBILIDAD EN DESARROLLO (Si el token es un demo-token generado en frontend)
+    // SI NO HAY TOKEN: Permitir conexión limpia como invitado
+    if (!rawToken) {
+      console.warn(`⚠️ Conexión Socket sin token inicial (Socket ID: ${socket.id}). Asignado como invitado.`);
+      socket.user = {
+        id: 'guest-' + socket.id,
+        role: 'player',
+        playerId: null,
+        teacherId: null,
+        name: 'Student'
+      };
+      return next(); // 🟢 Conexión exitosa
+    }
+
+    const cleanToken = rawToken.startsWith('Bearer ') ? rawToken.slice(7).trim() : rawToken.trim();
+
+    // 2. COMPATIBILIDAD EN DESARROLLO (demo-token)
     if (typeof cleanToken === 'string' && cleanToken.startsWith('demo-token')) {
       socket.user = {
         id: 'demo-user-123',
@@ -31,28 +34,35 @@ const authSocketMiddleware = (socket, next) => {
         teacherId: 'demo-user-123',
         name: 'Usuario Demo'
       };
-      return next();
+      return next(); // 🟢 Conexión exitosa
     }
-    
-    // Desciframos la información que viene dentro del JWT real
-    const decoded = jwt.verify(cleanToken, process.env.JWT_SECRET || 'mi_clave_secreta_super_segura');
 
-    // Extraer el nombre probando todas las propiedades habituales de la BD/Registro
-    const nombreUsuario = decoded.fullname || decoded.username || decoded.name || decoded.nombre || 'Student';
+    // 3. VERIFICACIÓN Y DECODIFICACIÓN DEL JWT
+    const secretKey = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
+    const decoded = jwt.verify(cleanToken, secretKey);
 
-    // 🔗 VINCULACIÓN: Guardamos los datos de identidad en la propiedad del socket
+    // Compatibilidad con objetos anidados dentro de la payload del JWT (ej. { user: {...} })
+    const payload = decoded.user || decoded.data || decoded;
+
+    const nombreUsuario = payload.fullname || payload.username || payload.name || payload.nombre || 'Student';
+    const userRole = payload.role || 'player';
+
+    // 🔗 VINCULACIÓN DE IDENTIDAD AL SOCKET
     socket.user = {
-      id: decoded.id || decoded.userId,
-      role: decoded.role || 'player',
-      playerId: decoded.playerId || (decoded.role === 'player' ? decoded.id : null),
-      teacherId: decoded.teacherId || (decoded.role === 'teacher' ? decoded.id : null),
+      id: payload.id || payload.userId || socket.id,
+      role: userRole,
+      playerId: payload.playerId || (userRole === 'player' || userRole === 'estudiante' ? (payload.id || payload.userId) : null),
+      teacherId: payload.teacherId || (userRole === 'teacher' || userRole === 'docente' ? (payload.id || payload.userId) : null),
       name: nombreUsuario
     };
 
-    next(); // Permite la conexión autenticada
+    console.log(`🔑 Socket ${socket.id} autenticado con éxito (${socket.user.name} - ${socket.user.role})`);
+    return next(); // 🟢 Conexión exitosa
+
   } catch (error) {
-    console.warn('⚠️ Token inválido/expirado en Socket.io. Permitido como invitado:', error.message);
-    // En caso de token inválido, tampoco cancelamos la conexión para no congelar la UI
+    console.warn(`⚠️ Token inválido/expirado en Socket.io (${error.message}). Permitiendo como invitado.`);
+    
+    // En caso de fallo de token, garantizamos que el socket no quede en limbo y no dispare timeout
     socket.user = {
       id: 'guest-' + socket.id,
       role: 'player',
@@ -60,7 +70,8 @@ const authSocketMiddleware = (socket, next) => {
       teacherId: null,
       name: 'Student'
     };
-    next();
+    
+    return next(); // 🟢 Conexión exitosa (modo degradado a invitado)
   }
 };
 
