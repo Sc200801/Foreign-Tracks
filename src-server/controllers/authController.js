@@ -17,15 +17,21 @@ const register = async (req, res) => {
       });
     }
 
+    // 🔍 VERIFICACIÓN CRUZADA: Consultar en ambas tablas antes de crear
+    const existingTeacher = await Teacher.findOne({ where: { username } });
+    const existingPlayer = await Player.findOne({ where: { username } });
+
+    if (existingTeacher || existingPlayer) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'El username ya está en uso.' 
+      });
+    }
+
     const saltRounds = 10;
     const password_hash = await bcrypt.hash(password, saltRounds);
 
     if (role === 'teacher') {
-      const existingTeacher = await Teacher.findOne({ where: { username } });
-      if (existingTeacher) {
-        return res.status(400).json({ message: 'El username ya está en uso.' });
-      }
-
       const newTeacher = await Teacher.create({
         name: displayName,
         username: username,
@@ -34,8 +40,9 @@ const register = async (req, res) => {
 
       const teacherId = newTeacher.id_maestro || newTeacher.id;
 
+      // 🔍 Incluimos tanto 'id' como 'userId' para máxima compatibilidad con roomHandler.js
       const token = jwt.sign(
-        { id: teacherId, username: newTeacher.username, role: 'teacher' },
+        { id: teacherId, userId: teacherId, username: newTeacher.username, role: 'teacher' },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -45,6 +52,7 @@ const register = async (req, res) => {
         token: token,
         user: { 
           id: teacherId, 
+          userId: teacherId,
           username: newTeacher.username, 
           fullname: newTeacher.name,
           role: 'teacher',
@@ -53,11 +61,6 @@ const register = async (req, res) => {
       });
 
     } else if (role === 'player') {
-      const existingPlayer = await Player.findOne({ where: { username } });
-      if (existingPlayer) {
-        return res.status(400).json({ message: 'El username ya está en uso.' });
-      }
-
       const newPlayer = await Player.create({
         username: username,
         name: displayName,
@@ -65,8 +68,9 @@ const register = async (req, res) => {
       });
 
       const playerId = newPlayer.id_jugador || newPlayer.id;
+
       const token = jwt.sign(
-        { id: playerId, username: newPlayer.username, role: 'player' },
+        { id: playerId, userId: playerId, username: newPlayer.username, role: 'player' },
         JWT_SECRET,
         { expiresIn: '7d' }
       );
@@ -76,6 +80,7 @@ const register = async (req, res) => {
         token: token,
         user: { 
           id: playerId, 
+          userId: playerId,
           username: newPlayer.username, 
           fullname: newPlayer.name,
           role: 'player',
@@ -99,44 +104,52 @@ const register = async (req, res) => {
 // POST /api/auth/login
 const login = async (req, res) => {
   try {
-    const { username, password, role } = req.body;
+    const { username, password } = req.body;
 
-    if (!username || !password || !role) {
-      return res.status(400).json({ message: 'Proporciona username, password y role.' });
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Proporciona username y password.' });
     }
 
     let userFound = null;
     let userId = null;
     let userFullname = '';
     let hashToCompare = '';
+    let userRole = '';
 
-    if (role === 'teacher') {
-      userFound = await Teacher.findOne({ where: { username } });
-      if (userFound) {
-        userId = userFound.id_maestro || userFound.id;
-        userFullname = userFound.name || userFound.username;
-        hashToCompare = userFound.passwordHash;
-      }
-    } else if (role === 'player') {
+    // 1. Buscar primero en la tabla de Profesores (Teachers)
+    userFound = await Teacher.findOne({ where: { username } });
+
+    if (userFound) {
+      userId = userFound.id_maestro || userFound.id;
+      userFullname = userFound.name || userFound.username;
+      hashToCompare = userFound.passwordHash;
+      userRole = 'teacher';
+    } else {
+      // 2. Si no se encuentra como profesor, buscar en la tabla de Alumnos (Players)
       userFound = await Player.findOne({ where: { username } });
+      
       if (userFound) {
         userId = userFound.id_jugador || userFound.id;
         userFullname = userFound.name || userFound.username;
         hashToCompare = userFound.passwordHash;
+        userRole = 'player';
       }
     }
 
+    // 3. Si no existe en ninguna de las dos tablas
     if (!userFound) {
       return res.status(404).json({ message: 'Usuario no encontrado.' });
     }
 
+    // 4. Validar la contraseña encriptada
     const isPasswordValid = await bcrypt.compare(password, hashToCompare);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Contraseña incorrecta.' });
     }
 
+    // 5. Generar token con el rol detectado automáticamente
     const token = jwt.sign(
-      { id: userId, username: userFound.username, role },
+      { id: userId, userId: userId, username: userFound.username, role: userRole },
       JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -146,9 +159,10 @@ const login = async (req, res) => {
       token: token,
       user: {
         id: userId,
+        userId: userId,
         username: userFound.username,
         fullname: userFullname,
-        role: role,
+        role: userRole,
         token: token
       }
     });
@@ -165,7 +179,6 @@ const teacherLogin = async (req, res) => {
     const { teacherKey } = req.body;
     const expectedKey = process.env.TEACHER_KEY;
 
-    // Validación segura para evitar bypassed con valores undefined o vacíos
     if (!expectedKey || !teacherKey || teacherKey !== expectedKey) {
       return res.status(401).json({ 
         success: false, 
@@ -199,9 +212,38 @@ const verifyToken = async (req, res) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET);
-    return res.status(200).json({ valid: true, user: decoded });
+    return res.status(200).json({ 
+      valid: true, 
+      user: decoded,
+      id: decoded.id || decoded.userId,
+      username: decoded.username,
+      role: decoded.role
+    });
   } catch (error) {
     return res.status(401).json({ valid: false, message: 'Token expirado o inválido.' });
+  }
+};
+
+// 🔍 GET /api/auth/check-username (Validación previa de disponibilidad)
+const checkUsername = async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) {
+      return res.status(400).json({ available: false, message: 'Username requerido.' });
+    }
+
+    const cleanUsername = username.trim();
+    const existingTeacher = await Teacher.findOne({ where: { username: cleanUsername } });
+    const existingPlayer = await Player.findOne({ where: { username: cleanUsername } });
+
+    if (existingTeacher || existingPlayer) {
+      return res.status(200).json({ available: false, message: 'El username ya está en uso.' });
+    }
+
+    return res.status(200).json({ available: true });
+  } catch (error) {
+    console.error('Error en checkUsername:', error);
+    return res.status(500).json({ available: false, message: 'Error interno al validar usuario.' });
   }
 };
 
@@ -209,5 +251,6 @@ module.exports = {
   register,
   login,
   teacherLogin,
-  verifyToken
+  verifyToken,
+  checkUsername
 };

@@ -1,11 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 0. ACTUALIZAR NOMBRE DE BIENVENIDA DEL ESTUDIANTE EN INGLÉS
+    // Helper para cambiar de pantalla y GUARDAR el estado actual
+    const navegarA = (idPantalla) => {
+        const el = document.getElementById(idPantalla);
+        if (window.mostrarPantalla && el) {
+            window.mostrarPantalla(el);
+        } else if (el) {
+            document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
+            el.classList.remove('oculto');
+        }
+        // Guardar la pantalla activa para que el F5 sepa dónde quedarse
+        localStorage.setItem('pantallaActiva', idPantalla);
+    };
+
+    // 0. ACTUALIZAR SALUDO ESTUDIANTE
     const actualizarSaludoEstudiante = () => {
         let studentName = '';
-
         try {
-            // Revisa todas las posibles claves en localStorage y sessionStorage
             const userObj = JSON.parse(
                 localStorage.getItem('usuarioRegistrado') || 
                 sessionStorage.getItem('userData') ||
@@ -16,137 +27,93 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             studentName = userObj.fullname || userObj.username || userObj.name || userObj.nombre || '';
         } catch (e) {
-            console.error('Error al leer datos del usuario en Storage:', e);
+            console.error('Error al leer datos del usuario:', e);
         }
 
-        // Respaldo por si el nombre está guardado como un string directo
         if (!studentName) {
             studentName = localStorage.getItem('username') || 
                           localStorage.getItem('fullname') || 
                           localStorage.getItem('nombre') || '';
         }
 
-        // Busca el título principal o cualquier elemento con el saludo
-        const studentTitle = document.getElementById('welcome-student-title') || 
-                             document.querySelector('.card h2') || 
-                             document.querySelector('.pantalla-estudiante h2') ||
-                             document.querySelector('h2');
-
+        const studentTitle = document.getElementById('welcome-student-title') || document.querySelector('h2');
         if (studentTitle && studentName) {
             studentTitle.innerText = `Hello, ${studentName}`;
         }
-
         return studentName;
     };
 
-    // Ejecutar inmediatamente al cargar el DOM
     actualizarSaludoEstudiante();
 
-    // 1. OBTENER TOKEN BUSCANDO EN TODAS LAS UBICACIONES POSIBLES
+    // 1. OBTENER TOKEN
     const obtenerTokenSeguro = () => {
         let token = '';
+        if (typeof window.obtenerToken === 'function') token = window.obtenerToken();
 
-        // Intento 1: De la función global de config.js
-        if (typeof window.obtenerToken === 'function') {
-            token = window.obtenerToken();
-        }
-
-        // Intento 2: Directo del objeto usuarioRegistrado o sessionStorage
         if (!token) {
             try {
                 const userObj = JSON.parse(
                     localStorage.getItem('usuarioRegistrado') || 
                     sessionStorage.getItem('userData') ||
-                    localStorage.getItem('user') || 
-                    '{}'
+                    localStorage.getItem('user') || '{}'
                 );
                 token = userObj.token || userObj.jwt || '';
             } catch (e) {
-                console.error('Error al leer token de usuario:', e);
+                console.error('Error al leer token:', e);
             }
         }
 
-        // Intento 3: Directo de la clave 'token' en localStorage o sessionStorage
         if (!token) {
-            token = localStorage.getItem('token') || 
-                    sessionStorage.getItem('token') || 
-                    localStorage.getItem('jwt') || '';
+            token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('jwt') || '';
         }
-
         return token;
     };
 
     let token = obtenerTokenSeguro();
-    console.log('🔑 Token detectado para Socket:', token ? ' [TOKEN ENCONTRADO]' : '❌ [SIN TOKEN]');
+    console.log('🔑 Token detectado para Socket:', token ? '[TOKEN ENCONTRADO]' : '❌ [SIN TOKEN]');
 
-    // 🔗 LECTURA CENTRALIZADA DE LA URL DE SOCKETS DESDE CONFIG.JS
     const serverUrl = window.CONFIG?.SOCKET_URL || window.API_BASE_URL || window.location.origin;
 
-    // Configuración centralizada del cliente Socket.io con reconexión automática
     const socketOptions = {
-        auth: { 
-            token: token
-        },
-        extraHeaders: {
-            Authorization: `Bearer ${token}`
-        },
+        auth: { token: token },
+        extraHeaders: { Authorization: `Bearer ${token}` },
         transports: ['websocket', 'polling'],
-        // 🔄 OPCIONES DE RECONEXIÓN AUTOMÁTICA
         reconnection: true,
         reconnectionAttempts: 10,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000
     };
 
-    // 2. CONECTAR CON SOCKET.IO Y EXPONERLO GLOBALMENTE
+    // 2. INICIALIZAR SOCKET
     let socket = null;
+    if (typeof io !== 'undefined') socket = io(serverUrl, socketOptions);
+    else if (window.io) socket = window.io(serverUrl, socketOptions);
 
-    if (typeof io !== 'undefined') {
-        socket = io(serverUrl, socketOptions);
-    } else if (window.io) {
-        socket = window.io(serverUrl, socketOptions);
-    }
-
-    // Guardar referencia en el objeto window
     window.socket = socket;
 
     // Elementos del DOM
-    const btnCrearCodigo = document.getElementById('btn-crear-sala');
+    const btnCrearCodigo = document.getElementById('btn-crear-codigo');
     const inputRoomCode = document.getElementById('room-code-display');
     const inputRoomName = document.getElementById('room-name-input');
     const formCrearSala = document.getElementById('form-crear-sala');
     const btnVolverProfesor = document.getElementById('btn-volver-rol-profesor');
     const btnReady = document.getElementById('btn-ready');
     const btnStartGame = document.getElementById('btn-start-game');
+    const btnBackLobby = document.getElementById('btn-back-lobby'); 
 
-    // Elementos del DOM para la Pantalla de Estudiante (Entrar a Sala)
-    const inputJoinCode = document.getElementById('input-join-code') || 
-                          document.getElementById('room-code-input') || 
-                          document.querySelector('.card input[type="text"]');
+    const inputJoinCode = document.getElementById('input-room-code') || document.getElementById('input-join-code');
+    const formUnirseSala = document.getElementById('form-unirse-sala');
 
-    const btnJoinRoom = document.getElementById('btn-join-room') || 
-                        document.getElementById('btn-unirse-sala') || 
-                        document.querySelector('.card .btn');
-
-    // Limpiar el campo de texto si contenía una URL por defecto
     if (inputJoinCode) {
         if (inputJoinCode.value.includes('http') || inputJoinCode.value.includes('localhost')) {
             inputJoinCode.value = '';
         }
-        inputJoinCode.placeholder = 'Enter 6-digit room code';
+        inputJoinCode.placeholder = 'XXXXXX';
         inputJoinCode.maxLength = 6;
     }
 
-    // Escuchar el evento que envía auth-player.js cuando el alumno intenta unirse a una sala
-    window.addEventListener('unirseSalaSocket', (e) => {
-        if (socket && socket.connected) {
-            socket.emit('room:join', e.detail);
-            socket.emit('unirse-sala', e.detail); 
-        }
-    });
-
-    // 3. GENERAR CÓDIGO ALEATORIO (PROFESOR)
-    if (btnCrearCodigo) {
+    // 3. GENERAR CÓDIGO
+    if (btnCrearCodigo && inputRoomCode) {
         btnCrearCodigo.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -157,14 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const codigoGenerado = Math.floor(100000 + Math.random() * 900000).toString();
-            if (inputRoomCode) {
-                inputRoomCode.value = codigoGenerado;
+            const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let codigoGenerado = '';
+            for (let i = 0; i < 6; i++) {
+                codigoGenerado += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
             }
+            inputRoomCode.value = codigoGenerado;
         });
     }
 
-    // 4. FORMULARIO: CREAR SALA (PROFESOR)
+    // 4. CREAR SALA (SOLICITUD AL BACKEND)
     if (formCrearSala) {
         formCrearSala.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -206,290 +175,246 @@ document.addEventListener('DOMContentLoaded', () => {
                     username: user.fullname || user.username || user.nombre || 'Profesor'
                 });
             } else {
-                console.warn('⚠️ Socket no conectado. Avanzando a la pantalla del Lobby...');
-                cambiarALobby(roomName, roomCode);
+                alert('⚠️ No hay conexión activa con el servidor. Verifica que el Backend esté encendido.');
             }
         });
     }
 
-    // 4.B. UNIRSE A SALA (ESTUDIANTE) - ¡GARANTIZANDO EL NOMBRE REAL DE USUARIO!
-    if (btnJoinRoom) {
-        btnJoinRoom.addEventListener('click', (e) => {
+    // 4.B. UNIRSE A SALA (ESTUDIANTE)
+    if (formUnirseSala) {
+        formUnirseSala.addEventListener('submit', (e) => {
             e.preventDefault();
 
-            if (!inputJoinCode) {
-                alert('Room code input field not found.');
-                return;
+            if (!inputJoinCode) return alert('Campo de código no encontrado.');
+            const cleanCode = inputJoinCode.value.trim().toUpperCase();
+
+            if (!cleanCode || cleanCode.length !== 6) {
+                return alert('Por favor ingresa un código válido de 6 caracteres.');
             }
 
-            // 1. Extraer el valor y limpiar espacios
-            const cleanCode = inputJoinCode.value.trim();
-
-            // 2. Validar que cumpla exactamente con el formato de 6 dígitos
-            const regex6Digits = /^\d{6}$/;
-            if (!regex6Digits.test(cleanCode)) {
-                alert('Please enter a valid 6-digit room code.');
-                return;
-            }
-
-            // 🟢 EXTRACCIÓN ROBUSTA DE NOMBRE DESDE TODAS LAS FUENTES POSIBLES
             let studentName = actualizarSaludoEstudiante();
-
-            if (!studentName || studentName === 'Student' || studentName === 'Estudiante') {
-                try {
-                    const temp = JSON.parse(sessionStorage.getItem('tempUserData') || '{}');
-                    const userReg = JSON.parse(localStorage.getItem('usuarioRegistrado') || '{}');
-                    const userSess = JSON.parse(sessionStorage.getItem('userData') || '{}');
-                    
-                    studentName = temp.fullname || temp.username || 
-                                 userReg.fullname || userReg.username || 
-                                 userSess.fullname || userSess.username || 
-                                 localStorage.getItem('username') || 
-                                 sessionStorage.getItem('username') || '';
-                } catch (err) {
-                    console.error('Error al parsear datos de usuario:', err);
-                }
-            }
-
-            // Asignar fallback sólo si es absolutamente imposible recuperar el nombre
-            const nombreFinalAsegurado = (studentName && studentName !== 'Student' && studentName !== 'Estudiante') 
-                ? studentName 
-                : 'Estudiante';
-
+            const nombreFinal = (studentName && studentName !== 'Student') ? studentName : 'Estudiante';
             const tokenFresca = obtenerTokenSeguro();
 
-            // 🔄 ACTUALIZAR AUTENTICACIÓN DEL SOCKET
             if (socket) {
                 socket.auth = { token: tokenFresca };
-                if (socket.io && socket.io.opts) {
-                    socket.io.opts.extraHeaders = { Authorization: `Bearer ${tokenFresca}` };
-                }
-
-                if (!socket.connected) {
-                    console.log('🔄 Socket desconectado. Reconectando...');
-                    socket.connect();
-                }
+                if (!socket.connected) socket.connect();
             }
 
-            const payload = {
-                roomId: cleanCode,
-                roomCode: cleanCode,
-                username: nombreFinalAsegurado // 👈 ¡Garantizado no undefined!
-            };
+            const payload = { roomId: cleanCode, roomCode: cleanCode, username: nombreFinal };
+            localStorage.setItem('currentRoom', JSON.stringify({ code: cleanCode, isHost: false }));
 
-            // Guardar contexto localmente
-            localStorage.setItem('currentRoom', JSON.stringify({ 
-                code: cleanCode,
-                isHost: false 
-            }));
-
-            // Función para emitir la solicitud
-            const ejecutarUnion = () => {
-                console.log('🚀 Joining room con payload:', payload);
-                socket.emit('room:join', payload);
-                socket.emit('unirse-sala', payload);
-            };
-
-            // 3. Manejo de emisión dependiente del estado del Socket
             if (socket && socket.connected) {
-                ejecutarUnion();
+                socket.emit('room:join', payload);
             } else if (socket) {
-                const onConnectOnce = () => {
-                    console.log('🟢 Reconexión exitosa, emitiendo unirse a sala...');
-                    ejecutarUnion();
-                };
-
-                socket.once('connect', onConnectOnce);
-
-                setTimeout(() => {
-                    if (!socket.connected) {
-                        socket.off('connect', onConnectOnce);
-                        alert('No connection to the server. Please check if the backend is running.');
-                    }
-                }, 2500);
+                socket.once('connect', () => socket.emit('room:join', payload));
             }
         });
     }
 
-    // 5. BOTÓN "READY?" PARA ESTUDIANTES
+    // 5. BOTONES DE ACCIÓN
     if (btnReady) {
         btnReady.addEventListener('click', () => {
-            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
-            if (currentRoom.code && socket && socket.connected) {
-                socket.emit('room:toggle_ready', { roomId: currentRoom.code });
-            }
+            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (room.code && socket?.connected) socket.emit('room:toggle_ready', { roomId: room.code });
         });
     }
 
-    // 6. BOTÓN "START GAME" PARA EL PROFESOR
     if (btnStartGame) {
         btnStartGame.addEventListener('click', () => {
-            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (room.code && socket?.connected) socket.emit('room:start', { roomId: room.code });
+        });
+    }
+
+    // ACCIÓN DE REGRESAR AL LOBBY
+    if (btnBackLobby) {
+        btnBackLobby.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            let currentRoom = {};
+            try {
+                currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            } catch (err) {}
+
             if (currentRoom.code && socket && socket.connected) {
-                console.log('🚀 El profesor ha presionado "Start Game"...');
-                socket.emit('room:start', { roomId: currentRoom.code });
+                socket.emit('room:back_to_lobby', { roomId: currentRoom.code });
+            } else {
+                navegarA('pantalla-sala-espera');
             }
         });
     }
 
-    // 7. EVENTOS Y RESPUESTAS DEL SERVIDOR
-    if (socket) {
-        socket.on('connect', () => {
-            console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
-        });
+    // 🔄 RESTAURACIÓN DE SESIÓN / RECONEXIÓN AUTOMÁTICA AL RECARGAR (F5)
+    let yaRestaurado = false;
+    const restaurarEstadoSesion = () => {
+        const tokenActual = obtenerTokenSeguro();
+        const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+        const userObj = JSON.parse(localStorage.getItem('usuarioRegistrado') || sessionStorage.getItem('userData') || '{}');
+        const pantallaGuardada = localStorage.getItem('pantallaActiva');
 
-        // ⚠️ MANEJO DE DESCONEXIONES EN TIEMPO DE EJECUCIÓN
-        socket.on('disconnect', (reason) => {
-            console.warn('⚠️ Se perdió la conexión con el servidor Socket.io. Razón:', reason);
-            if (reason === 'io server disconnect') {
-                // Si el servidor desconectó explícitamente el socket, forzar reconexión manual
-                socket.connect();
-            }
-        });
+        if (pantallaGuardada && document.getElementById(pantallaGuardada)) {
+            navegarA(pantallaGuardada);
+        }
 
-        // 🔄 RE-UNIRSE AUTOMÁTICAMENTE A LA SALA TRAS PERDER CONEXIÓN (NGROK / MICRO-CORTES)
-        socket.on('reconnect', (attemptNumber) => {
-            console.log(`🟢 Reconectado con éxito tras ${attemptNumber} intento(s).`);
+        if (!yaRestaurado && tokenActual && currentRoom.code) {
+            yaRestaurado = true;
+            console.log(`🔄 Reconectando automáticamente a la sala ${currentRoom.code}...`);
             
-            const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
-            if (currentRoom.code) {
-                const studentName = actualizarSaludoEstudiante() || 'Estudiante';
-                
+            if (socket) {
+                socket.auth = { token: tokenActual };
+                if (!socket.connected) socket.connect();
+
+                const nombreJugador = userObj.fullname || userObj.username || actualizarSaludoEstudiante() || 'Estudiante';
+
                 if (currentRoom.isHost) {
                     socket.emit('room:create', {
                         roomId: currentRoom.code,
                         roomName: currentRoom.name || 'Sala de Juego',
-                        username: studentName
+                        username: nombreJugador
                     });
                 } else {
-                    const payload = {
+                    socket.emit('room:join', {
                         roomId: currentRoom.code,
                         roomCode: currentRoom.code,
-                        username: studentName
-                    };
-                    socket.emit('room:join', payload);
-                    socket.emit('unirse-sala', payload);
+                        username: nombreJugador
+                    });
                 }
             }
+        }
+    };
+
+    // 6. MANEJO DE EVENTOS DE SOCKET
+    if (socket) {
+        socket.on('connect', () => {
+            console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
+            restaurarEstadoSesion();
         });
 
         socket.on('room:created', (data) => {
-            console.log('✅ Sala creada exitosamente en servidor y MariaDB:', data);
-            cambiarALobby(data.roomName, data.roomId);
+            console.log('✅ Sala creada exitosamente:', data);
+            const pantallaActual = localStorage.getItem('pantallaActiva');
+            if (pantallaActual !== 'pantalla-seleccion-escena') {
+                cambiarALobby(data.roomName || data.name, data.roomId || data.code);
+            }
         });
 
         const handleRoomJoined = (data) => {
             console.log('✅ Unido a la sala exitosamente:', data);
-            cambiarALobby(data.roomName || 'Sala de Juego', data.roomId || data.roomCode);
+            const pantallaActual = localStorage.getItem('pantallaActiva');
+            if (pantallaActual !== 'pantalla-seleccion-escena') {
+                cambiarALobby(data.roomName || 'Sala de Juego', data.roomId || data.roomCode);
+            }
         };
 
         socket.on('room:joined', handleRoomJoined);
         socket.on('sala-unida', handleRoomJoined);
 
         const handleRoomError = (data) => {
-            const msg = data.message || data.error || 'The room does not exist or is full.';
-            console.error('❌ Error recibido de la sala:', msg);
+            const msg = data.message || data.error || 'Ocurrió un error en la sala.';
+            console.error('❌ Error devuelto por el servidor:', msg);
             alert(msg);
         };
 
         socket.on('room:error', handleRoomError);
-        socket.on('error-sala', handleRoomError);
 
-        // 🔄 ACTUALIZACIÓN EN TIEMPO REAL DEL LOBBY (BLINDADO HASTA 4 JUGADORES)
+        socket.on('connect_error', (err) => {
+            console.error('❌ Error en authSocketMiddleware.js:', err.message);
+            if (err.message.includes('auth') || err.message.includes('token')) {
+                alert('Tu sesión ha expirado. Por favor, vuelve a iniciar sesión.');
+            }
+        });
+
+        // 🟢 ACTUALIZACIÓN DEL LOBBY (LÓGICA REVISADA CON NOMBRE Y ROL DE USUARIO)
         socket.on('room:update', (roomData) => {
             if (!roomData) return;
 
-            console.log('📡 Actualización de sala recibida:', roomData);
-
-            // A. Nombre del Header y Código de Sala
-            const headerTitle = document.getElementById('room-header-title') || document.querySelector('.pantalla-sala-espera h2');
+            const headerTitle = document.getElementById('room-header-title');
             const roomCode = roomData.roomId || roomData.code || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
             if (headerTitle) {
-                headerTitle.innerText = `${roomData.name || 'FOFI'} (Code: ${roomCode})`;
+                headerTitle.innerText = `${roomData.name || roomData.roomName || 'Room'} (Code: ${roomCode})`;
             }
 
-            const players = roomData.players || [];
+            // Normalización para asegurar array de jugadores
+            let players = [];
+            if (Array.isArray(roomData.players)) {
+                players = roomData.players;
+            } else if (roomData.players && typeof roomData.players === 'object') {
+                players = Object.values(roomData.players);
+            }
+
+            // 🎯 MOSTRAR EL USUARIO ACTIVO CON SU ROL (Professor: Luisa / Student: Michael)
+            const localUserDisplay = document.getElementById('local-user-display');
+            if (localUserDisplay) {
+                const userObj = JSON.parse(localStorage.getItem('usuarioRegistrado') || sessionStorage.getItem('userData') || '{}');
+                const rawRole = (userObj.role || '').toLowerCase();
+                
+                const isTeacher = rawRole.includes('teacher') || rawRole.includes('docente') || rawRole.includes('professor') || roomData.hostId === socket.id;
+                const rolePrefix = isTeacher ? 'Professor' : 'Student';
+                const userName = userObj.fullname || userObj.username || actualizarSaludoEstudiante() || 'Player';
+
+                localUserDisplay.innerText = `${rolePrefix}: ${userName}`;
+            }
+            
+            // 🎯 LÓGICA DE ESPERA / SALA LLENA EN EL INPUT CENTRAL
+            const activeDisplay = document.getElementById('active-player-display');
+            if (activeDisplay) {
+                if (players.length >= 4) {
+                    activeDisplay.value = "Room full (4/4)";
+                } else {
+                    activeDisplay.value = `Waiting for players... (${players.length}/4)`;
+                }
+            }
+
             const esProfesor = roomData.hostId === socket.id;
 
-            // B. Renderizar cada uno de los 4 slots de jugadores
             for (let i = 1; i <= 4; i++) {
                 const card = document.getElementById(`card-player${i}`);
                 const playerLabel = document.getElementById(`label-player${i}-name`);
                 const statusLabel = document.getElementById(`status-player${i}`);
-
-                const player = players[i - 1]; // Datos del jugador en esta posición
+                const player = players[i - 1];
 
                 if (player) {
-                    // Si hay jugador, MOSTRAR tarjeta y actualizar información
-                    if (card) {
-                        card.classList.remove('oculto');
-                        card.style.display = 'flex'; // Asegura visibilidad en layout
-                    }
-                    if (playerLabel) {
-                        playerLabel.innerText = player.name || player.username || 'Student';
-                    }
+                    if (card) { card.classList.remove('oculto'); card.style.display = 'flex'; }
+                    if (playerLabel) playerLabel.innerText = player.name || player.username || 'Student';
                     if (statusLabel) {
                         statusLabel.classList.remove('oculto');
                         statusLabel.style.display = 'block';
                         statusLabel.innerText = player.isReady ? 'Ready' : 'Not Ready';
                         statusLabel.style.color = player.isReady ? '#2ed573' : '#ff4757';
                     }
-                } else {
-                    // Si no hay jugador en este espacio, ocultar el slot
-                    if (card) {
-                        card.classList.add('oculto');
-                        card.style.display = 'none';
-                    }
+                } else if (card) {
+                    card.classList.add('oculto');
+                    card.style.display = 'none';
                 }
             }
 
-            // C. Visibilidad de Controles según Rol
-            if (btnStartGame) {
-                btnStartGame.style.display = esProfesor ? 'block' : 'none';
-            }
-
-            if (btnReady) {
-                btnReady.style.display = esProfesor ? 'none' : 'block';
-            }
+            if (btnStartGame) btnStartGame.style.display = esProfesor ? 'block' : 'none';
+            if (btnReady) btnReady.style.display = esProfesor ? 'none' : 'block';
         });
 
-        // 🎮 EVENTO: INICIO DE JUEGO PARA TODOS LOS INTEGRANTES DE LA SALA
-        socket.on('room:game_started', (data) => {
-            console.log('🏁 ¡Iniciando el juego!', data);
-            if (typeof window.mostrarPantalla === 'function') {
-                window.mostrarPantalla('pantalla-seleccion-escena');
-            } else {
-                document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-                document.getElementById('pantalla-seleccion-escena')?.classList.remove('oculto');
-            }
+        socket.on('room:game_started', () => {
+            navegarA('pantalla-seleccion-escena');
         });
 
-        socket.on('connect_error', (err) => {
-            console.error('❌ Error de autenticación en Socket.io:', err.message);
+        socket.on('room:returned_to_lobby', () => {
+            console.log('🔄 Regresando al lobby por orden del servidor...');
+            navegarA('pantalla-sala-espera');
         });
     }
 
-    // Cambiar a la vista del Lobby
     function cambiarALobby(nombreSala, codigoSala) {
         const headerTitle = document.getElementById('room-header-title');
         if (headerTitle) {
             headerTitle.innerText = `${nombreSala} (Code: ${codigoSala})`;
         }
-
-        if (typeof window.mostrarPantalla === 'function') {
-            window.mostrarPantalla('pantalla-sala-espera');
-        } else {
-            document.querySelectorAll('.pantalla, .pantalla-bienvenida').forEach(d => d.classList.add('oculto'));
-            document.getElementById('pantalla-sala-espera')?.classList.remove('oculto');
-        }
+        navegarA('pantalla-sala-espera');
     }
 
     if (btnVolverProfesor) {
         btnVolverProfesor.addEventListener('click', (e) => {
             e.preventDefault();
-            if (typeof window.mostrarPantalla === 'function') {
-                window.mostrarPantalla('pantalla-rol');
-            }
+            navegarA('pantalla-rol');
         });
     }
 });

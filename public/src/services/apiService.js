@@ -39,16 +39,20 @@ window.apiService = {
 
     /**
      * Envía las credenciales al backend Express para iniciar sesión
-     * @param {Object} credentials - { username, password }
+     * Acepta tanto un objeto { username, password } como parámetros separados (username, password)
      */
-    async login(credentials) {
+    async login(usernameOrCredentials, password) {
         try {
+            const payload = typeof usernameOrCredentials === 'object' 
+                ? usernameOrCredentials 
+                : { username: usernameOrCredentials, password };
+
             const response = await fetch(`${getApiUrl()}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(credentials)
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json().catch(() => ({}));
@@ -61,6 +65,27 @@ window.apiService = {
         } catch (error) {
             console.error('Error en apiService.login:', error);
             throw error;
+        }
+    },
+
+    /**
+     * Valida la disponibilidad del username en la base de datos antes del registro
+     * @param {string} username 
+     */
+    async checkUsername(username) {
+        try {
+            const response = await fetch(`${getApiUrl()}/auth/check-username?username=${encodeURIComponent(username)}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json().catch(() => ({}));
+            return data;
+        } catch (error) {
+            console.error('Error en apiService.checkUsername:', error);
+            return { available: false, message: 'Error de conexión con el servidor.' };
         }
     },
 
@@ -173,7 +198,7 @@ window.apiService = {
 
         alert('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
 
-        const loginModal = document.getElementById('login-modal');
+        const loginModal = document.getElementById('modal-login');
         if (loginModal) {
             loginModal.classList.remove('oculto', 'hidden');
         }

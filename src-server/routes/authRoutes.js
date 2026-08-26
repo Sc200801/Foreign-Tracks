@@ -14,6 +14,9 @@ router.post('/teacher-login', authController.teacherLogin);
 // 🔑 GET /api/auth/verify (Verificación del Token JWT para Auto-login / Expiración)
 router.get('/verify', authController.verifyToken);
 
+// 🔍 GET /api/auth/check-username (Validación previa de disponibilidad de usuario)
+router.get('/check-username', authController.checkUsername);
+
 
 // ===================================================
 // RUTAS ESPECÍFICAS ADICIONALES
