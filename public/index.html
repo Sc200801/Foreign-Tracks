@@ -1,660 +1,605 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Foreign Tracks</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Foreign Tracks</title>
+  
+  <!-- Fuentes Pixel Art -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
-    <!-- Fuente Pixel Art -->
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  
+  <style>
+    .oculto { display: none !important; }
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* --- FONDO GENERADO POR CSS (SIN IMÁGENES EXTERNAS) --- */
-        body {
-            position: relative;
-            background:
-                radial-gradient(circle at 8% 8%, rgba(225, 126, 68, 0.6) 0%, rgba(225, 126, 68, 0) 28%),
-                radial-gradient(circle at 92% 92%, rgba(220, 118, 62, 0.65) 0%, rgba(220, 118, 62, 0) 30%),
-                radial-gradient(circle at 75% 20%, rgba(255, 230, 160, 0.45) 0%, rgba(255, 230, 160, 0) 45%),
-                radial-gradient(circle at 20% 85%, rgba(246, 150, 95, 0.5) 0%, rgba(246, 150, 95, 0) 50%),
-                radial-gradient(circle at 50% 50%, #f1b378 0%, #e89e60 50%, #de8a49 100%);
-            background-color: #e89e60;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
-        }
-
-        /* Capa con efecto de textura/grano pixel-art */
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background-image: radial-gradient(#000 1px, transparent 1px);
-            background-size: 4px 4px;
-            opacity: 0.03;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        /* Oculta de manera estricta las pantallas e elementos inactivos */
-        .oculto {
-            display: none !important;
-        }
-
-        /* --- PANTALLA 0: BIENVENIDA (PORTADA) --- */
-        .pantalla-bienvenida {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            background: inherit;
-        }
-
-        .pixel-title {
-            font-family: 'Press Start 2P', cursive;
-            font-size: clamp(2em, 5vw, 3.8em);
-            color: #ffffff;
-            text-align: center;
-            text-shadow: 4px 4px 0px rgba(0, 0, 0, 0.25);
-            margin-bottom: 40px;
-            letter-spacing: 2px;
-            z-index: 2;
-        }
-
-        .btn-pixel-welcome {
-            font-family: 'Press Start 2P', cursive;
-            font-size: clamp(0.75em, 1.5vw, 1em);
-            background-color: #e08353;
-            color: #ffffff;
-            padding: 18px 40px;
-            border: none;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            transition: transform 0.2s ease, background-color 0.2s ease;
-            z-index: 2;
-        }
-
-        .btn-pixel-welcome:hover {
-            transform: scale(1.05);
-            background-color: #d17240;
-        }
-
-        /* Elementos flotantes animados */
-        .floating-element {
-            position: absolute;
-            opacity: 0.85;
-            pointer-events: none;
-            animation: floatAnimation 5s ease-in-out infinite;
-            z-index: 2;
-        }
-
-        .floating-1 { top: 22%; left: 18%; animation-duration: 6s; font-size: 2.2em; }
-        .floating-2 { top: 68%; right: 20%; animation-duration: 4.5s; animation-delay: 1s; font-size: 1.8em; }
-        .floating-3 { top: 28%; right: 15%; animation-duration: 7s; animation-delay: 1.5s; font-size: 2.5em; }
-
-        @keyframes floatAnimation {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(4deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
-        }
-
-        /* --- ESTILOS GENERALES DE PANTALLAS --- */
-        .pantalla {
-            position: relative;
-            z-index: 2;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            max-width: 480px;
-            padding: 30px 20px;
-            background-color: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            margin: 20px;
-        }
-
-        .pantalla-ancha {
-            max-width: 800px !important;
-        }
-
-        .title-rol {
-            font-size: 1.8em;
-            font-weight: 800;
-            margin-bottom: 25px;
-            color: #1a1a1a;
-            text-align: center;
-        }
-
-        .input-custom {
-            width: 100%;
-            padding: 14px 16px;
-            margin-bottom: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 0.95em;
-            outline: none;
-            box-sizing: border-box;
-        }
-
-        /* --- ESTILOS ESTÉTICOS PARA MOSTRAR / OCULTAR CONTRASEÑA --- */
-        .password-container {
-            position: relative;
-            width: 100%;
-            display: flex;
-            align-items: center;
-        }
-
-        .password-container .input-custom {
-            padding-right: 42px !important;
-        }
-
-        .btn-toggle-password {
-            position: absolute;
-            right: 12px;
-            top: 14px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 2px 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0.5;
-            transition: opacity 0.2s ease, transform 0.15s ease;
-            user-select: none;
-        }
-
-        .btn-toggle-password:hover {
-            opacity: 0.85;
-            transform: scale(1.1);
-        }
-
-        .btn-toggle-password.active {
-            opacity: 1;
-            filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
-        }
-
-        .btn-create {
-            width: 100%;
-            padding: 14px;
-            background-color: #fbc4ab;
-            color: #000;
-            font-weight: bold;
-            font-size: 1em;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            margin-top: 10px;
-            box-shadow: 0 3px 0 #e5a990;
-            transition: transform 0.1s ease, box-shadow 0.1s ease;
-        }
-
-        .btn-create:active {
-            transform: translateY(2px);
-            box-shadow: none;
-        }
-
-        .card-rol {
-            width: 100%;
-            border: 2px solid #000;
-            border-radius: 16px;
-            padding: 20px 10px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-        .card-profesor { background-color: #dcd6ff; }
-        .card-student { background-color: #c4f9ff; }
-
-        .btn-logout-link {
-            background: none;
-            border: none;
-            margin-top: 15px;
-            color: #d9534f;
-            font-weight: bold;
-            font-size: 0.95em;
-            cursor: pointer;
-            text-decoration: underline;
-            transition: color 0.2s ease;
-        }
-
-        .btn-logout-link:hover {
-            color: #b52b27;
-        }
-
-        .tutorial-box {
-            width: 100%;
-            border: 3px solid #000;
-            background-color: #fff;
-            padding: 24px 20px;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-            border-radius: 12px;
-        }
-
-        /* Lobby y Niveles */
-        .lobby-grid { display: grid; grid-template-columns: 240px 1fr; gap: 30px; width: 100%; }
-        .character-box { background-color: #dcd6ff; border: 3px solid #000; border-radius: 20px; height: 340px; padding: 15px; text-align: center; }
-        .players-container { display: flex; flex-direction: column; align-items: center; width: 100%; }
-        .players-avatars { display: flex; justify-content: space-around; width: 100%; margin-bottom: 25px; min-height: 90px; }
-        .player-card { display: flex; flex-direction: column; align-items: center; }
-        .avatar-circle { width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-        .bg-p1 { background-color: #dcd6ff; } .bg-p2 { background-color: #fbc4ab; } .bg-p3 { background-color: #c4f9ff; } .bg-p4 { background-color: #f8c2f0; }
-        .status-ready { color: #2ed573; font-weight: bold; font-size: 0.8em; margin-top: 3px; }
-        .lobby-actions { display: flex; gap: 15px; width: 100%; max-width: 400px; margin-top: 15px; }
-
-        .scenes-container { width: 100%; max-width: 650px; border: 3px solid #000; background-color: #fff; padding: 25px 30px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px; border-radius: 12px; }
-        .scene-item { display: grid; grid-template-columns: 80px 1fr 140px; align-items: center; gap: 15px; }
-        .scene-icon-box { position: relative; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; }
-        .scene-icon { font-size: 3em; }
-        .lock-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.6); display: flex; align-items: center; justify-content: center; font-size: 2em; }
-        .scene-info h3 { margin: 0; font-size: 1.3em; font-weight: 800; }
-        .scene-info p { margin: 4px 0 0 0; font-size: 1.1em; color: #444; }
-        .btn-play-scene { padding: 10px 0; background-color: #fbc4ab; border: none; border-radius: 6px; font-weight: bold; font-size: 1em; cursor: pointer; text-align: center; box-shadow: 0 2px 0 #e5a990; }
-        .btn-play-scene:disabled { background-color: #e0e0e0; color: #888; box-shadow: none; cursor: not-allowed; }
-
-        /* --- ESTILOS DEL MODAL DE LOGIN --- */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-
-        .modal-content {
-            background-color: #ffffff;
-            padding: 30px 25px;
-            border-radius: 20px;
-            width: 90%;
-            max-width: 400px;
-            position: relative;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        .close-btn {
-            position: absolute;
-            top: 12px;
-            right: 18px;
-            font-size: 28px;
-            font-weight: bold;
-            color: #666;
-            cursor: pointer;
-            line-height: 1;
-        }
-
-        .close-btn:hover {
-            color: #000;
-        }
-
-        /* ===================================================
-           TARJETAS DE ALERTA AUTOMÁTICAS (SÓLO ESTILOS)
-           =================================================== */
-
-        /* Detecta cuando la alerta es visible y la convierte en tarjeta */
-        .alert-msg:not(.oculto):not(.hidden) {
-            display: flex !important;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            width: 100%;
-            padding: 10px 14px;
-            margin: 10px 0;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 0.88rem;
-            text-align: center;
-            box-sizing: border-box;
-            animation: fadeInSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-
-        @keyframes fadeInSlide {
-            from {
-                opacity: 0;
-                transform: translateY(-6px) scale(0.98);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        /* Estilo automático para errores (Rojo) */
-        .alert-msg.error-text:not(.oculto):not(.hidden) {
-            color: #d63031 !important;
-            background-color: #ffebeb !important;
-            border: 1px solid #ff7675 !important;
-            box-shadow: 0 3px 8px rgba(214, 48, 49, 0.12);
-        }
-
-        .alert-msg.error-text:not(.oculto):not(.hidden)::before {
-            content: '⚠️';
-            font-size: 1rem;
-        }
-
-        /* Estilo automático para éxitos (Verde) */
-        .alert-msg.success-text:not(.oculto):not(.hidden) {
-            color: #27ae60 !important;
-            background-color: #eafaf1 !important;
-            border: 1px solid #2ecc71 !important;
-            box-shadow: 0 3px 8px rgba(39, 174, 96, 0.12);
-        }
-
-        .alert-msg.success-text:not(.oculto):not(.hidden)::before {
-            content: '✅';
-            font-size: 1rem;
-        }
-    </style>
+    /* Estilos del Modal Flotante de Login */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    .modal-content {
+      background: rgba(0, 0, 0, 0.95);
+      padding: 2rem;
+      border: 4px solid #fff;
+      border-radius: 8px;
+      max-width: 400px;
+      width: 90%;
+      box-shadow: 0 0 20px rgba(0,0,0,0.9);
+      position: relative;
+    }
+    .btn-close-modal {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 1.2rem;
+      cursor: pointer;
+      font-family: 'Press Start 2P', monospace;
+    }
+  </style>
 </head>
 <body>
 
-    <!-- 0. PANTALLA DE BIENVENIDA -->
-    <div id="pantalla-bienvenida-inicial" class="pantalla-bienvenida oculto">
-        <div class="floating-element floating-1">☁️</div>
-        <div class="floating-element floating-2">☁️</div>
-        <div class="floating-element floating-3">✨</div>
+<!-- =========================================================
+     1. PANTALLA PRINCIPAL / PORTADA (FOREIGN TRACKS)
+     ========================================================= -->
+<div id="pantalla-rol" class="pantalla main-container" style="position: relative; width: 100vw; height: 100vh; overflow: hidden; display: block;">
+  <nav class="navbar-pixel" style="position: absolute; top: 0; left: 0; width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 3rem; z-index: 20; box-sizing: border-box;">
+    <div class="nav-logo" style="font-family: 'Press Start 2P', monospace; font-size: 1.6rem; color: #fff; text-shadow: 2px 2px #000;">
+      FOREIGN TRACKS
+    </div>
+    <ul class="nav-links" style="list-style: none; display: flex; gap: 2rem; margin: 0; padding: 0;">
+      <!-- 🟢 Botón LOGIN para abrir modal flotante -->
+      <li><a href="#" id="btn-open-login-modal" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">LOGIN</a></li>
+      <li><a href="#" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
+    </ul>
+  </nav>
 
-        <h1 class="pixel-title">FOREIGN TRACKS</h1>
+  <div class="hero-section" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;">
+    <img src="src/assets/pixel-hero.jpeg" alt="Foreign Tracks Banner" class="hero-img" style="width: 100%; height: 100%; object-fit: cover;" />
+  </div>
 
-        <button type="button" id="btn-ir-registro" class="btn-pixel-welcome">
-            SIGN UP HERE
-        </button>
+  <button id="btn-play-game" style="position: absolute; top: 20%; left: 50%; transform: translate(-50%, -50%); z-index: 15; font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 4px solid #000; padding: 1.2rem 3rem; font-size: 1.2rem; cursor: pointer; text-shadow: 2px 2px #000; box-shadow: 5px 5px #000;">
+    ▶️ PLAY
+  </button>
+</div>
+
+<!-- =========================================================
+     2. PANTALLA DINÁMICA DE ACCESO (REGISTRO Y ROLES)
+     ========================================================= -->
+<div id="pantalla-acceso" class="pantalla oculto" style="position: relative; width: 100vw; min-height: 100vh; background: #1c2d37; display: flex; align-items: center; justify-content: center; flex-direction: column; padding: 2rem; box-sizing: border-box;">
+  
+  <div id="vista-login" style="display: block; text-align: center; background: rgba(0, 0, 0, 0.85); padding: 2.5rem; border: 4px solid #fff; border-radius: 8px; max-width: 420px; width: 90%; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+    <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 0.9rem; margin-bottom: 1.5rem; line-height: 1.5;">WELCOME!</h2>
+    
+    <form id="form-login" style="display: flex; flex-direction: column; gap: 1rem;">
+      <input type="text" id="register-fullname" placeholder="Write your full name" style="padding: 0.8rem; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000; font-family: inherit;" required />
+      <input type="text" id="register-username" placeholder="Write your Username" style="padding: 0.8rem; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000; font-family: inherit;" required />
+
+      <div class="password-wrapper" style="position: relative; width: 100%;">
+        <input type="password" id="register-password" placeholder="Write your Password" style="width: 100%; padding: 0.8rem; padding-right: 45px; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000; box-sizing: border-box; font-family: inherit;" required />
+        <button type="button" id="toggle-password" class="btn-toggle-password" onclick="togglePassword('register-password', this)">👁️</button>
+      </div>
+
+      <button type="submit" id="btn-register" style="font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 2px solid #fff; padding: 0.9rem; cursor: pointer; margin-top: 0.5rem; font-size: 0.8rem;">CREATE ACCOUNT</button>
+    </form>
+  </div>
+
+  <div id="vista-rol" style="display: none; text-align: center; background: rgba(0, 0, 0, 0.85); padding: 2.5rem; border: 4px solid #fff; border-radius: 8px; max-width: 480px; width: 90%; box-shadow: 0 0 20px rgba(0,0,0,0.8);">
+    <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 1rem; margin-bottom: 1.8rem;">SELECT YOUR ROLE</h2>
+    <div style="display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap;">
+      <button id="btn-rol-student" class="role-card" style="font-family: 'Press Start 2P', monospace; background: #37566b; color: #fff; border: 3px solid #fff; padding: 1.2rem; cursor: pointer; font-size: 0.8rem;">STUDENT</button>
+      <button id="btn-rol-profesor" class="role-card" style="font-family: 'Press Start 2P', monospace; background: #a54f4c; color: #fff; border: 3px solid #fff; padding: 1.2rem; cursor: pointer; font-size: 0.8rem;">PROFESSOR</button>
+    </div>
+    <button id="btn-back-to-login" class="btn-pixel btn-sub" style="margin-top: 1.5rem; font-size: 0.7rem;">⬅️ BACK TO FORM</button>
+  </div>
+</div>
+
+<!-- =========================================================
+     4. PASO 1 ALUMNO: INGRESO DE CÓDIGO DE SALA
+     ========================================================= -->
+<div id="pantalla-alumno" class="pantalla oculto">
+  <div class="pixel-card-box">
+    <div class="icon-top">📖</div>
+    <h2 id="welcome-student-title" class="pixel-title">ENTER ROOM CODE</h2>
+
+    <form id="form-unirse-sala">
+      <div class="input-group">
+        <label for="input-room-code">ROOM CODE:</label>
+        <input type="text" id="input-room-code" placeholder="XXXXXX" required autocomplete="off">
+      </div>
+      <button type="submit" class="btn-pixel btn-main">▶️ JOIN ROOM</button>
+    </form>
+
+    <button id="btn-volver-rol-alumno" class="btn-pixel btn-sub" style="margin-top: 0.5rem;">BACK TO MENU</button>
+  </div>
+</div>
+
+<!-- =========================================================
+     5. PASO 2 ALUMNO: MENÚ DEL JUEGO (MAIN MENU)
+     ========================================================= -->
+<div id="pantalla-menu-juego" class="pantalla oculto">
+  <div class="pixel-card-box">
+    <h2 class="pixel-title">MAIN MENU</h2>
+    <div class="menu-vertical">
+      <button id="btn-game-play" class="btn-pixel btn-main">🎮 PLAY</button>
+      <button id="btn-game-tutorial" class="btn-pixel btn-accent">📜 TUTORIAL</button>
+      <button id="btn-game-exit" class="btn-pixel btn-danger">❌ EXIT</button>
+    </div>
+    <!-- 🔴 LOG OUT para estudiante -->
+    <a href="#" id="btn-logout-estudiante" style="display: block; margin-top: 2.2rem; margin-bottom: 0.5rem; text-align: center; font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: #c85a56; text-decoration: none;">↩️ LOG OUT</a>
+  </div>
+</div>
+
+<!-- =========================================================
+     6. PANTALLA SALA DE ESPERA
+     ========================================================= -->
+<div id="pantalla-sala-espera" class="pantalla oculto" style="width: 100vw; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem; box-sizing: border-box;">
+  
+  <h2 id="room-header-title" style="font-family: 'Press Start 2P', monospace; font-size: 1.8rem; color: #000; margin: 0 0 1.2rem 0; line-height: 1.2;">Room A (Code: ---)</h2>
+  
+  <p id="local-user-display" style="font-family: 'Press Start 2P', monospace; font-size: 0.85rem; color: #37566b; margin-top: 0.5rem; margin-bottom: 2rem; font-weight: bold; text-shadow: 1px 1px #fff;"></p>
+
+  <div style="display: flex; gap: 2rem; width: 90%; max-width: 950px; align-items: stretch; justify-content: center;">
+    
+    <!-- SELECCIÓN DE PERSONAJE -->
+    <div style="background-color: #cbbbfb; border: 4px solid #000; border-radius: 20px; padding: 1.2rem; width: 280px; box-sizing: border-box; display: flex; flex-direction: column; gap: 1rem; box-shadow: 4px 4px 0px #000;">
+      <h3 style="font-family: 'Press Start 2P', monospace; font-size: 0.85rem; text-align: center; margin: 0 0 0.5rem 0; color: #000;">Select Character</h3>
     </div>
 
-    <!-- 1. PANTALLA REGISTRO INICIAL -->
-    <div id="pantalla-registro-inicial" class="pantalla oculto">
-        <h2 class="title-rol">Create Account</h2>
-        <form id="form-registro-inicial" style="width: 100%;">
-            <input type="text" id="reg-fullname" class="input-custom" placeholder="Write your full name" required>
-            <input type="text" id="reg-username" class="input-custom" placeholder="Write your Username" required>
-
-            <!-- Campo de Contraseña con Ojito Estético -->
-            <div class="password-container">
-                <input type="password" id="reg-password" class="input-custom" placeholder="Write your Password" required>
-                <button type="button" class="btn-toggle-password" onclick="togglePassword('reg-password', this)" title="Mostrar contraseña">
-                    👁️
-                </button>
-            </div>
-
-            <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL REGISTRO -->
-            <p id="registro-alert-msg" class="alert-msg error-text oculto"></p>
-
-            <button type="submit" class="btn-create">Create account</button>
-        </form>
-    </div>
-
-    <!-- 2. PANTALLA ELECCIÓN DE ROL -->
-    <div id="pantalla-rol" class="pantalla oculto">
-        <h2 class="title-rol">CHOOSE YOUR ROL</h2>
-        <div id="btn-rol-profesor" class="card-rol card-profesor"><h3>TEACHER</h3></div>
-        <div id="btn-rol-student" class="card-rol card-student"><h3>STUDENT</h3></div>
-
-        <!-- ENLACE PARA ABRIR EL MODAL DE LOGIN -->
-        <a href="#" id="btn-open-login-modal" style="margin-top: 10px; color: #333; font-weight: bold; text-decoration: underline; font-size: 0.9em;">
-            ¡Ya tengo cuenta / Iniciar Sesión!
-        </a>
-
-        <button type="button" id="btn-logout" class="btn-logout-link">
-            ⬅️ Log out
-        </button>
-    </div>
-
-   <!-- 3. PANTALLA CLAVE DOCENTE (INSTITUCIONAL) -->
-    <div id="pantalla-clave-docente" class="pantalla oculto">
-        <h2 class="title-rol">Teacher Access</h2>
-        <form id="form-clave-docente" style="width: 100%;">
-            <!-- Campo de Clave Docente con Ojito Estético -->
-            <div class="password-container">
-                <input type="password" id="clave-maestra-input" class="input-custom" placeholder="Clave institucional" required>
-                <button type="button" class="btn-toggle-password" onclick="togglePassword('clave-maestra-input', this)" title="Mostrar contraseña">
-                    👁️
-                </button>
-            </div>
-
-            <!-- ⚠️ CONTENEDOR DE ALERTA PARA LA CLAVE DOCENTE -->
-            <p id="teacher-key-alert-msg" class="alert-msg error-text oculto"></p>
-
-            <button type="submit" class="btn-create">Check code</button>
-        </form>
-        <button type="button" id="btn-volver-rol" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
-    </div>
-
-    <!-- 4. PANTALLA PROFESOR (CREAR SALA Y GENERAR CÓDIGO) -->
-    <div id="pantalla-profesor" class="pantalla oculto">
-        <h2 class="title-rol">Create room</h2>
-        <form id="form-crear-sala" style="width: 100%;">
-            <input type="text" id="room-name-input" class="input-custom" placeholder="Write the room's name" required>
-            <button type="button" id="btn-crear-sala" class="btn-create">Create room code</button>
-            <input type="text" id="room-code-display" class="input-custom" placeholder="Room code" readonly style="text-align: center; font-weight: bold; font-size: 1.1em; background-color: #fff;">
-            <button type="submit" class="btn-create">Create room</button>
-        </form>
-        <button type="button" id="btn-volver-rol-profesor" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
-    </div>
-
-    <!-- 5. PANTALLA ALUMNO (UNIRSE A SALA - CORREGIDA Y OPTIMIZADA) -->
-    <div id="pantalla-alumno" class="pantalla oculto">
-        <h2 id="welcome-student-title" class="title-rol">Hello, Student</h2>
-        <form id="form-unirse-sala" style="width: 100%;">
-            <input type="text" id="input-join-code" class="input-custom" placeholder="Enter 6-digit room code" maxlength="6" required>
-            <button type="button" id="btn-join-room" class="btn-create">Join room</button>
-        </form>
-        <button type="button" id="btn-volver-rol-alumno" style="background:none; border:none; margin-top:15px; cursor:pointer; text-decoration:underline;">Back</button>
-    </div>
-
-    <!-- 6. PANTALLA MENÚ DE JUEGO -->
-    <div id="pantalla-menu-juego" class="pantalla oculto">
-        <h2 class="title-rol">MAIN MENU</h2>
-        <button type="button" id="btn-game-play" class="btn-create">Play</button>
-        <button type="button" id="btn-game-tutorial" class="btn-create">Tutorial</button>
-        <button type="button" id="btn-game-exit" class="btn-create">Exit</button>
-    </div>
-
-    <!-- 7. PANTALLA TUTORIAL -->
-    <div id="pantalla-tutorial" class="pantalla oculto">
-        <h2 class="title-rol">TUTORIAL</h2>
-        <div class="tutorial-box">
-            <ul style="padding-left: 20px; line-height: 1.6; color: #333; font-size: 0.95em;">
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 1:</strong> Lee detenidamente las preguntas en inglés y selecciona la respuesta correcta.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 2:</strong> Usa las flechas del teclado o los controles en pantalla para mover a tu personaje por el mapa.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 3:</strong> Completa los desafíos de cada escena (Hotel, Hospital, Restaurante) para desbloquear el siguiente nivel.
-                </li>
-                <li style="margin-bottom: 10px;">
-                    <strong>Instrucción 4:</strong> Asegúrate de que todos los jugadores de tu sala presionen <em>"Ready?"</em> en el Lobby para iniciar la partida.
-                </li>
-            </ul>
-        </div>
-        <button type="button" id="btn-volver-menu" class="btn-create">Volver al Menú</button>
-    </div>
-
-    <!-- 8. PANTALLA SALA DE ESPERA (LOBBY RESTRUCTURADO) -->
-    <div id="pantalla-sala-espera" class="pantalla pantalla-ancha oculto">
-        <h2 id="room-header-title" class="title-rol">Room (Code: ---)</h2>
-        <div class="lobby-grid">
-            <div class="character-box"><h3>Select Character</h3></div>
-            <div class="players-container">
-                <div class="players-avatars">
-                    <!-- Tarjetas ocultas por defecto (se muestran dinámicamente según se conecten) -->
-                    <div class="player-card oculto" id="card-player1">
-                        <div class="avatar-circle bg-p1"></div>
-                        <span id="label-player1-name"></span>
-                        <span id="status-player1" class="status-ready oculto">Not Ready</span>
-                    </div>
-                    <div class="player-card oculto" id="card-player2">
-                        <div class="avatar-circle bg-p2"></div>
-                        <span id="label-player2-name"></span>
-                        <span id="status-player2" class="status-ready oculto">Not Ready</span>
-                    </div>
-                    <div class="player-card oculto" id="card-player3">
-                        <div class="avatar-circle bg-p3"></div>
-                        <span id="label-player3-name"></span>
-                        <span id="status-player3" class="status-ready oculto">Not Ready</span>
-                    </div>
-                    <div class="player-card oculto" id="card-player4">
-                        <div class="avatar-circle bg-p4"></div>
-                        <span id="label-player4-name"></span>
-                        <span id="status-player4" class="status-ready oculto">Not Ready</span>
-                    </div>
-                </div>
-
-                <input type="text" id="active-player-display" class="input-custom" style="text-align: center; font-weight: bold; max-width: 280px;" readonly placeholder="Esperando jugadores...">
-
-                <div class="lobby-actions">
-                    <button type="button" id="btn-ready" class="btn-create">Ready?</button>
-                    <button type="button" id="btn-start-game" class="btn-create">Start game</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 9. PANTALLA SELECCIÓN DE ESCENA / NIVELES -->
-    <div id="pantalla-seleccion-escena" class="pantalla pantalla-ancha oculto">
-        <h2 class="title-rol" style="font-size: 2.2em; margin-bottom: 25px;">Choose your adventure!</h2>
-
-        <div class="scenes-container">
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏨</span></div>
-                <div class="scene-info"><h3>Scene 1:</h3><p>Hotel</p></div>
-                <div><button type="button" id="btn-play-scene1" class="btn-play-scene">PLAY</button></div>
-            </div>
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏥</span><div id="lock-scene2" class="lock-overlay">🔒</div></div>
-                <div class="scene-info"><h3>Scene 2:</h3><p>Hospital</p></div>
-                <div><button type="button" id="btn-play-scene2" class="btn-play-scene" disabled>PLAY</button></div>
-            </div>
-            <div class="scene-item">
-                <div class="scene-icon-box"><span class="scene-icon">🏪</span><div id="lock-scene3" class="lock-overlay">🔒</div></div>
-                <div class="scene-info"><h3>Scene 3:</h3><p>Restaurant</p></div>
-                <div><button type="button" id="btn-play-scene3" class="btn-play-scene" disabled>PLAY</button></div>
-            </div>
+    <!-- TARJETAS Y CONTROLES -->
+    <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; align-items: center; padding: 0.5rem 0;">
+      
+      <!-- CONTENEDOR DE JUGADORES (HASTA 4 JUGADORES) -->
+      <div style="display: flex; gap: 1rem; justify-content: center; align-items: flex-start; width: 100%; margin-top: 1rem; flex-wrap: wrap;">
+        
+        <!-- PLAYER 1 -->
+        <div class="player-card oculto" id="card-player1" style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+          <div class="avatar-circle bg-p1" style="width: 55px; height: 55px; border-radius: 50%; background-color: #b5a4f7; border: 2px solid #fff;"></div>
+          <span id="label-player1-name" style="font-family: sans-serif; font-weight: bold; font-size: 0.85rem; color: #000;">Player 1</span>
+          <span id="status-player1" class="status-ready oculto" style="font-family: sans-serif; font-size: 0.75rem; color: #2e7d32; font-weight: bold;">Ready</span>
         </div>
 
-        <button type="button" id="btn-volver-lobby" class="btn-create" style="max-width: 250px; margin-top: 25px; background-color: #e0e0e0; box-shadow: 0 3px 0 #cccccc;">Volver al Lobby</button>
-    </div>
-
-    <!-- =================================================== -->
-    <!-- VENTANA EMERGENTE (MODAL) DE INICIAR SESIÓN -->
-    <!-- =================================================== -->
-    <div id="login-modal" class="modal oculto">
-        <div class="modal-content">
-            <span id="btn-close-login-modal" class="close-btn">&times;</span>
-            <h2 class="title-rol" style="font-size: 1.4em; margin-bottom: 15px;">Login</h2>
-
-            <form id="form-login-modal" style="width: 100%;">
-                <input type="text" id="login-username" class="input-custom" placeholder="Write your username" required>
-                
-                <div class="password-container" style="margin-bottom: 5px;">
-                    <input type="password" id="login-password" class="input-custom" placeholder="Write your password" required>
-                    <button type="button" class="btn-toggle-password" onclick="togglePassword('login-password', this)" title="Mostrar contraseña">
-                        👁️
-                    </button>
-                </div>
-
-                <!-- ⚠️ CONTENEDOR DE ALERTA PARA EL LOGIN -->
-                <p id="login-alert-msg" class="alert-msg error-text oculto"></p>
-
-                <button type="submit" class="btn-create">Login</button>
-            </form>
+        <!-- PLAYER 2 -->
+        <div class="player-card oculto" id="card-player2" style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+          <div class="avatar-circle bg-p2" style="width: 55px; height: 55px; border-radius: 50%; background-color: #f7a48d; border: 2px solid #fff;"></div>
+          <span id="label-player2-name" style="font-family: sans-serif; font-weight: bold; font-size: 0.85rem; color: #000;">Player 2</span>
+          <span id="status-player2" class="status-ready oculto" style="font-family: sans-serif; font-size: 0.75rem; color: #2e7d32; font-weight: bold;">Ready</span>
         </div>
+
+        <!-- PLAYER 3 -->
+        <div class="player-card oculto" id="card-player3" style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+          <div class="avatar-circle bg-p3" style="width: 55px; height: 55px; border-radius: 50%; background-color: #8ce3a8; border: 2px solid #fff;"></div>
+          <span id="label-player3-name" style="font-family: sans-serif; font-weight: bold; font-size: 0.85rem; color: #000;">Player 3</span>
+          <span id="status-player3" class="status-ready oculto" style="font-family: sans-serif; font-size: 0.75rem; color: #2e7d32; font-weight: bold;">Ready</span>
+        </div>
+
+        <!-- PLAYER 4 -->
+        <div class="player-card oculto" id="card-player4" style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+          <div class="avatar-circle bg-p4" style="width: 55px; height: 55px; border-radius: 50%; background-color: #f7d08d; border: 2px solid #fff;"></div>
+          <span id="label-player4-name" style="font-family: sans-serif; font-weight: bold; font-size: 0.85rem; color: #000;">Player 4</span>
+          <span id="status-player4" class="status-ready oculto" style="font-family: sans-serif; font-size: 0.75rem; color: #2e7d32; font-weight: bold;">Ready</span>
+        </div>
+
+      </div>
+
+      <input type="text" id="active-player-display" style="text-align: center; font-weight: bold; width: 280px; padding: 0.6rem; border: none; background: #ffffff; color: #000; margin: 1.5rem 0 1rem 0;" readonly placeholder="Waiting for players...">
+
+      <div style="display: flex; gap: 2rem; width: 100%; justify-content: center;">
+        <button type="button" id="btn-ready" style="font-family: sans-serif; font-weight: bold; background-color: #fbbd9e; color: #000; border: none; padding: 0.8rem 2.2rem; border-radius: 10px; cursor: pointer;">Ready?</button>
+        <button type="button" id="btn-start-game" style="font-family: sans-serif; font-weight: bold; background-color: #fbbd9e; color: #000; border: none; padding: 0.8rem 2.2rem; border-radius: 10px; cursor: pointer;">Start game</button>
+      </div>
+
     </div>
+  </div>
+</div>
 
-    <!-- ========================================== -->
-    <!-- MÓDULOS Y SCRIPTS JAVASCRIPT DEL PROYECTO -->
-    <!-- ========================================== -->
+<!-- =========================================================
+     7. PANTALLA INSTRUCCIONES (TUTORIAL)
+     ========================================================= -->
+<div id="pantalla-tutorial" class="pantalla oculto">
+  <div class="pixel-card-box wide-box">
+    <h2 class="pixel-title">How to play?</h2>
+    <div class="instructions-content">
+      <p><strong>Instrucción 1:</strong> Lee las preguntas en inglés y selecciona la respuesta adecuada.</p>
+      <p><strong>Instrucción 2:</strong> En cada escena cada jugador desempeñará un papel diferente.</p>
+      <p><strong>Instrucción 3:</strong> Cada respuesta incorrecta afectará al equipo.</p>
+      <p><strong>Instrucción 4:</strong> Puedes usar el chat integrado para comunicarte.</p>
+    </div>
+    <button id="btn-volver-menu" class="btn-pixel btn-main" style="margin-top: 1.5rem;">VOLVER AL MENÚ</button>
+  </div>
+</div>
 
-    <!-- Función JS global para ocultar/mostrar contraseña manteniendo solo el ojo -->
-    <script>
-        function togglePassword(inputId, btn) {
-            const input = document.getElementById(inputId);
-            if (input) {
-                if (input.type === 'password') {
-                    input.type = 'text';
-                    btn.classList.add('active');
-                    btn.setAttribute('title', 'Ocultar contraseña');
-                } else {
-                    input.type = 'password';
-                    btn.classList.remove('active');
-                    btn.setAttribute('title', 'Mostrar contraseña');
-                }
-            }
+<!-- =========================================================
+     8. PANTALLA SELECCIÓN DE ESCENA
+     ========================================================= -->
+<div id="pantalla-seleccion-escena" class="pantalla oculto">
+  <div class="pixel-card-box wide-box">
+    <h2 class="pixel-title">Choose your adventure!</h2>
+    <div class="scenes-list">
+      <div class="scene-item">
+        <div class="scene-icon">🏨</div>
+        <div class="scene-info">
+          <h3>Scene 1:</h3>
+          <p>Hotel</p>
+        </div>
+        <button id="btn-play-scene1" class="btn-pixel btn-main" style="width: auto; padding: 0.6rem 1.2rem;">PLAY</button>
+      </div>
+      <div class="scene-item locked">
+        <div class="scene-icon">🔒 🏥</div>
+        <div class="scene-info">
+          <h3>Scene 2:</h3>
+          <p>Hospital</p>
+        </div>
+        <button id="btn-play-scene2" class="btn-pixel btn-main" style="width: auto; padding: 0.6rem 1.2rem;">PLAY</button>
+      </div>
+      <div class="scene-item locked">
+        <div class="scene-icon"> 🔒 🍝</div>
+        <div class="scene-info">
+          <h3>Scene 3:</h3>
+          <p>Restaurant</p>
+        </div>
+        <button id="btn-play-scene3" class="btn-pixel btn-main" style="width: auto; padding: 0.6rem 1.2rem;">PLAY</button>
+      </div>
+
+    </div>
+    <button type="button" id="btn-back-lobby" class="btn-pixel btn-sub" style="margin-top: 1rem;">BACK TO LOBBY</button>
+  </div>
+</div>
+
+<!-- =========================================================
+     9. ACCESO Y PANEL DEL PROFESOR
+     ========================================================= -->
+<div id="pantalla-clave-docente" class="pantalla oculto">
+  <div class="pixel-card-box">
+    <div class="icon-top">📜</div>
+    <h2 class="pixel-title">TEACHER ACCESS</h2>
+    <form id="form-clave-docente">
+      <div class="input-group">
+        <label for="teacher-key">CLAVE INSTITUCIONAL:</label>
+        <div class="password-wrapper">
+          <input type="password" id="teacher-key" placeholder="Ingresa clave..." required />
+          <button type="button" id="toggle-teacher-password" class="btn-toggle-password" onclick="togglePassword('teacher-key', this)">👁️</button>
+        </div>
+      </div>
+      <p id="teacher-key-alert-msg" class="alert-msg error-text oculto" style="font-size: 0.65rem; margin: -0.5rem 0 1rem 0; min-height: 1rem;"></p>
+      <button type="submit" class="btn-pixel btn-main">Check code</button>
+    </form>
+    <button id="btn-volver-rol" class="btn-pixel btn-sub" style="margin-top: 0.5rem;">BACK</button>
+  </div>
+</div>
+
+<div id="pantalla-profesor" class="pantalla oculto">
+  <div class="pixel-card-box">
+    <h2 class="pixel-title">Create room</h2>
+    <p id="bienvenida-docente" style="font-size: 0.7rem; color: #3b5055; margin-bottom: 1rem; font-weight: bold;"></p>
+    <form id="form-crear-sala">
+      <input type="text" id="room-name-input" placeholder="Write the room's name" required autocomplete="off">
+      <button type="button" id="btn-crear-codigo" class="btn-pixel btn-accent">Create room code</button>
+      <input type="text" id="room-code-display" placeholder="Room code" readonly style="background-color: #e5e0d8; cursor: not-allowed; margin-top: 0.5rem;">
+      <button type="submit" id="btn-submit-crear-sala" class="btn-pixel btn-main" style="margin-top: 0.5rem;">Create room</button>
+    </form>
+    <button id="btn-volver-rol-profesor" class="btn-pixel btn-sub" style="margin-top: 1rem;">BACK</button>
+
+    <!-- 🔴 LOG OUT para docente -->
+    <a href="#" id="btn-logout-docente" style="display: block; margin-top: 2.2rem; margin-bottom: 0.5rem; text-align: center; font-family: 'Press Start 2P', monospace; font-size: 0.7rem; color: #c85a56; text-decoration: none;">↩️ LOG OUT</a>
+  </div>
+</div>
+
+<!-- =========================================================
+     10. MODAL FLOTANTE DE INICIO DE SESIÓN (LOGIN)
+     ========================================================= -->
+<div id="modal-login" class="modal-overlay oculto">
+  <div class="modal-content">
+    <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">LOG IN</h2>
+    
+    <form id="form-modal-login" style="display: flex; flex-direction: column; gap: 1rem;">
+      <input type="text" id="modal-login-username" placeholder="Write your Username" style="padding: 0.8rem; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000; font-family: inherit;" required />
+      
+      <div class="password-wrapper" style="position: relative; width: 100%;">
+        <input type="password" id="modal-login-password" placeholder="Write your Password" style="width: 100%; padding: 0.8rem; padding-right: 45px; font-size: 1rem; border: 2px solid #fff; background: #e8dcc2; color: #000; box-sizing: border-box; font-family: inherit;" required />
+        <button type="button" class="btn-toggle-password" onclick="togglePassword('modal-login-password', this)">👁️</button>
+      </div>
+
+      <button type="submit" style="font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 2px solid #fff; padding: 0.9rem; cursor: pointer; margin-top: 0.5rem; font-size: 0.8rem;">START GAME</button>
+    </form>
+  </div>
+</div>
+
+<!-- SCRIPTS DE LÓGICA -->
+<script>
+  function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input) {
+      const esPassword = input.type === 'password';
+      input.type = esPassword ? 'text' : 'password';
+      btn.textContent = esPassword ? '🫣' : '👁️';
+      btn.classList.toggle('active', esPassword);
+    }
+  }
+</script>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="src/js/config.js"></script>
+<script src="src/services/apiService.js"></script>
+<script src="src/js/auth-utils.js"></script>
+<script src="src/js/auth-player.js"></script>
+<script src="src/js/auth-teacher.js"></script>
+<script src="src/js/room.js"></script>
+
+<script>
+  window.pendingRegistrationData = null;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnPlay = document.getElementById("btn-play-game");
+    const pantallaAcceso = document.getElementById("pantalla-acceso");
+    const vistaLogin = document.getElementById("vista-login");
+    const vistaRol = document.getElementById("vista-rol");
+    const formLogin = document.getElementById("form-login");
+
+    const btnStudent = document.getElementById('btn-rol-student');
+    const btnProfesor = document.getElementById('btn-rol-profesor');
+    const btnBackToLogin = document.getElementById('btn-back-to-login');
+    
+    const pantallaAlumno = document.getElementById('pantalla-alumno');
+    const pantallaClaveDocente = document.getElementById('pantalla-clave-docente');
+    const pantallaMenuJuego = document.getElementById('pantalla-menu-juego');
+    const pantallaTutorial = document.getElementById('pantalla-tutorial');
+
+    const btnGamePlay = document.getElementById('btn-game-play');
+    const btnGameTutorial = document.getElementById('btn-game-tutorial');
+    const btnGameExit = document.getElementById('btn-game-exit');
+    const btnVolverMenu = document.getElementById('btn-volver-menu');
+
+    const btnVolverRolAlumno = document.getElementById('btn-volver-rol-alumno');
+    const btnVolverRolDocente = document.getElementById('btn-volver-rol');
+    const btnVolverRolProfesor = document.getElementById('btn-volver-rol-profesor');
+
+    // Elementos del Modal de Login
+    const btnOpenLoginModal = document.getElementById('btn-open-login-modal');
+    const btnCloseLoginModal = document.getElementById('btn-close-login-modal');
+    const modalLogin = document.getElementById('modal-login');
+    const formModalLogin = document.getElementById('form-modal-login');
+
+    function mostrarPantalla(pantallaActiva) {
+      let targetEl = pantallaActiva;
+      if (typeof pantallaActiva === 'string') {
+        targetEl = document.getElementById(pantallaActiva);
+      }
+      if (!targetEl) return;
+      document.querySelectorAll('.pantalla').forEach(p => p.classList.add('oculto'));
+      targetEl.classList.remove('oculto');
+      targetEl.style.display = '';
+
+      if (targetEl.id) {
+        localStorage.setItem('pantallaActiva', targetEl.id);
+      }
+    }
+
+    window.mostrarPantalla = mostrarPantalla;
+
+    // 🟢 Manejo Apertura/Cierre del Modal Flotante
+    if (btnOpenLoginModal) {
+      btnOpenLoginModal.addEventListener('click', (e) => {
+        e.preventDefault();
+        modalLogin.classList.remove('oculto');
+      });
+    }
+
+    if (btnCloseLoginModal) {
+      btnCloseLoginModal.addEventListener('click', () => {
+        modalLogin.classList.add('oculto');
+      });
+    }
+
+    // Cerrar si hace clic fuera del contenido
+    window.addEventListener('click', (e) => {
+      if (e.target === modalLogin) {
+        modalLogin.classList.add('oculto');
+      }
+    });
+
+    // 🟢 Procesar Inicio de Sesión desde el Modal Flotante (CORREGIDO)
+    if (formModalLogin) {
+      formModalLogin.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const usernameInput = document.getElementById('modal-login-username');
+        const passwordInput = document.getElementById('modal-login-password');
+        
+        const username = usernameInput ? usernameInput.value.trim() : '';
+        const password = passwordInput ? passwordInput.value : '';
+
+        if (!username || !password) {
+          alert('Por favor completa ambos campos.');
+          return;
         }
-    </script>
 
-    <!-- 1. Librería cliente de Socket.io provista por el servidor -->
-    <script src="/socket.io/socket.io.js"></script>
+        try {
+          if (!window.apiService || typeof window.apiService.login !== 'function') {
+            throw new Error('Servicio API no disponible.');
+          }
 
-    <!-- 2. Scripts tradicionales del proyecto -->
-    <script src="src/js/config.js"></script>
-    <script src="src/services/apiService.js"></script>
-    <script src="src/js/auth-utils.js"></script>
-    <script src="src/js/auth-player.js"></script>
-    <script src="src/js/auth-teacher.js"></script>
+          const responseData = await window.apiService.login(username, password);
 
-    <!-- 3. Cargar room.js como script clásico -->
-    <script src="src/js/room.js"></script>
+          // Verificar si retornó token o usuario válido
+          if (responseData && (responseData.token || responseData.user || responseData.jwt)) {
+            const token = responseData.token || responseData.jwt;
+            if (token) {
+              localStorage.setItem('token', token);
+              sessionStorage.setItem('token', token);
+            }
 
-    <!-- 4. Inicialización de Socket.io y listener para el botón PLAY de Escena 1 -->
-    <script>
-    // Recuperar el token guardado en el navegador
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+            const userObj = responseData.user || { username: username };
+            localStorage.setItem('usuarioRegistrado', JSON.stringify(userObj));
+            localStorage.setItem('username', userObj.username || username);
+            sessionStorage.setItem('userData', JSON.stringify(userObj));
 
-    // Conectar a Socket.io enviando el token
-    const socket = io({
-      auth: {
-        token: token
+            // Reconectar sockets si están activos
+            if (window.socket && token) {
+              window.socket.auth = { token };
+              if (window.socket.connected) window.socket.disconnect();
+              window.socket.connect();
+            }
+
+            modalLogin.classList.add('oculto');
+            formModalLogin.reset();
+
+            // REDIRECCIÓN SEGÚN ROL DEL USUARIO AUTENTICADO
+            const rol = (userObj.role || '').toLowerCase();
+            if (rol === 'teacher' || rol === 'docente' || rol === 'professor') {
+              const bienvenida = document.getElementById('bienvenida-docente');
+              if (bienvenida) {
+                bienvenida.innerText = `Profesor(a): ${userObj.fullname || userObj.username || 'Docente'}`;
+              }
+              mostrarPantalla('pantalla-profesor');
+            } else {
+              // Estudiantes u otros roles van directamente al Main Menu del Juego
+              mostrarPantalla('pantalla-menu-juego');
+            }
+
+          } else {
+            throw new Error(responseData?.message || 'Credenciales inválidas.');
+          }
+        } catch (error) {
+          console.error('❌ Error en login modal:', error);
+          alert(error.message || 'Usuario o contraseña incorrectos.');
+        }
+      });
+    }
+
+    if (btnPlay) {
+      btnPlay.addEventListener("click", () => {
+        mostrarPantalla(pantallaAcceso);
+        if (vistaLogin) vistaLogin.style.display = "block";
+        if (vistaRol) vistaRol.style.display = "none";
+      });
+    }
+
+    if (formLogin) {
+      formLogin.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const fullName = document.getElementById('register-fullname').value.trim();
+        const username = document.getElementById('register-username').value.trim();
+        const password = document.getElementById('register-password').value;
+
+        if (!fullName || !username || !password) {
+          alert('Por favor completa todos los campos.');
+          return;
+        }
+
+        // 🔍 VERIFICACIÓN PREVIA: Comprobar disponibilidad antes de cambiar de pantalla
+        if (window.apiService && typeof window.apiService.checkUsername === 'function') {
+          const check = await window.apiService.checkUsername(username);
+
+          if (!check.available) {
+            alert(check.message || 'El username ya está en uso.');
+            return; // ⛔ FRENO TOTAL: No avanza a la selección de roles
+          }
+        }
+
+        const regData = { fullName, username, password };
+        window.pendingRegistrationData = regData;
+        sessionStorage.setItem('tempUserData', JSON.stringify(regData));
+
+        if (vistaLogin) vistaLogin.style.display = "none";
+        if (vistaRol) vistaRol.style.display = "block";
+      });
+    }
+
+    if (btnBackToLogin) {
+      btnBackToLogin.addEventListener('click', () => {
+        if (vistaLogin) vistaLogin.style.display = "block";
+        if (vistaRol) vistaRol.style.display = "none";
+      });
+    }
+
+    // BOTÓN ESTUDIANTE: Dispara evento procesado en auth-player.js
+    if (btnStudent) {
+      btnStudent.addEventListener('click', () => {
+        document.dispatchEvent(new CustomEvent('register-student-triggered'));
+      });
+    }
+
+    // BOTÓN PROFESOR
+    if (btnProfesor) {
+      btnProfesor.addEventListener('click', () => {
+        mostrarPantalla(pantallaClaveDocente);
+      });
+    }
+
+    // NAVEGACIÓN DENTRO DEL MAIN MENU
+    if (btnGamePlay) btnGamePlay.addEventListener('click', () => mostrarPantalla(pantallaAlumno));
+    if (btnGameTutorial) btnGameTutorial.addEventListener('click', () => mostrarPantalla(pantallaTutorial));
+    if (btnGameExit) btnGameExit.addEventListener('click', () => mostrarPantalla(pantallaAcceso));
+    if (btnVolverMenu) btnVolverMenu.addEventListener('click', () => mostrarPantalla(pantallaMenuJuego));
+
+    const regresarARoles = () => {
+      // Limpiar datos en borrador para prevenir accesos no autorizados
+      window.pendingRegistrationData = null;
+      sessionStorage.removeItem('tempUserData');
+  
+      localStorage.setItem('pantallaActiva', 'pantalla-acceso');
+      mostrarPantalla(pantallaAcceso);
+      if (vistaLogin) vistaLogin.style.display = "none";
+      if (vistaRol) vistaRol.style.display = "block";
+    };
+
+    if (btnVolverRolAlumno) btnVolverRolAlumno.addEventListener('click', () => mostrarPantalla(pantallaMenuJuego));
+    if (btnVolverRolDocente) btnVolverRolDocente.addEventListener('click', regresarARoles);
+    if (btnVolverRolProfesor) btnVolverRolProfesor.addEventListener('click', regresarARoles);
+
+    // 🔴 LÓGICA CENTRALIZADA DE LOGOUT
+    function ejecutarLogOut(e) {
+      if (e) e.preventDefault();
+
+      if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
+        // Limpiar almacenamiento local y temporal
+        localStorage.clear();
+        sessionStorage.clear();
+        window.pendingRegistrationData = null;
+
+        // Desconectar sockets activos
+        if (window.socket && window.socket.connected) {
+          window.socket.disconnect();
+        }
+
+        // Resetear campos de formularios
+        if (formLogin) formLogin.reset();
+        
+        const roomInput = document.getElementById('room-name-input');
+        if (roomInput) roomInput.value = '';
+
+        const codeDisplay = document.getElementById('room-code-display');
+        if (codeDisplay) codeDisplay.value = '';
+
+        // Regresar a la pantalla de inicio
+        mostrarPantalla('pantalla-rol');
+        if (vistaLogin) vistaLogin.style.display = "block";
+        if (vistaRol) vistaRol.style.display = "none";
       }
-    });
+    }
 
-    socket.on('connect', () => {
-      console.log('✅ Conectado a Socket.io exitosamente:', socket.id);
-    });
+    // Vincular evento de logout a ambos botones
+    const btnLogoutEstudiante = document.getElementById('btn-logout-estudiante');
+    const btnLogoutDocente = document.getElementById('btn-logout-docente');
 
-    socket.on('connect_error', (err) => {
-      console.error('❌ Error de autenticación en Socket.io:', err.message);
-    });
-
-    // Cargar el escenario Hotel haciendo uso de window.apiService
-    document.getElementById('btn-play-scene1')?.addEventListener('click', async () => {
-      try {
-        const scenarioData = await window.apiService.getHotelScenario();
-        console.log('🏨 Datos del Escenario Hotel cargados correctamente:', scenarioData);
-      } catch (err) {
-        console.error('❌ Error al obtener el escenario Hotel:', err);
-      }
-    });
-    </script>
+    if (btnLogoutEstudiante) btnLogoutEstudiante.addEventListener('click', ejecutarLogOut);
+    if (btnLogoutDocente) btnLogoutDocente.addEventListener('click', ejecutarLogOut);
+  });
+</script>
 </body>
 </html>

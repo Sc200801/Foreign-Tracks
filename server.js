@@ -16,7 +16,6 @@ const authSocketMiddleware = require('./src-server/middlewares/authSocketMiddlew
 // 3. Importar el Seeder de datos iniciales (Hotel y Ending)
 const seedInitialData = require('./src-server/seeders/seedData');
 
-
 // Carga de todos los modelos y relaciones antes de sincronizar la BD
 require('./src-server/models');
 
@@ -80,8 +79,12 @@ async function startServer() {
     await connectDB();
 
     // 2. Sincronizar modelos con MariaDB
-    await sequelize.sync({ alter: true });
-    console.log('✅ Modelos y relaciones sincronizados con MariaDB.');
+    // Permite forzar o alterar mediante banderas de entorno, default: sync seguro sin acumular indices
+    const isForce = process.env.DB_FORCE === 'true';
+    const isAlter = process.env.DB_ALTER === 'true';
+
+    await sequelize.sync({ force: isForce, alter: isAlter });
+    console.log(`✅ Base de datos sincronizada (force: ${isForce}, alter: ${isAlter})`);
     
     // 3. Cargar datos iniciales en la BD (Hotel y Ending)
     await seedInitialData();

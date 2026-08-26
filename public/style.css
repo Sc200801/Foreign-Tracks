@@ -1,246 +1,403 @@
-/* ===================================================
-   IMPORTACIÓN DE TIPOGRAFÍA PERSONALIZADA (Arcadia Grid)
-   =================================================== */
-@font-face {
-    font-family: 'Arcadia Grid';
-    /* Ajusta la ruta según la carpeta donde guardes el archivo .ttf o .otf */
-    src: url('assets/fonts/ArcadiaGrid.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
+/* =========================================================
+   ESTILOS FINALES COMPLETOS
+   ========================================================= */
+
+/* Control de visibilidad para prevenir parpadeo (Flicker) al cargar */
+.oculto {
+  display: none !important;
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap');
-
-/* ===================================================
-   VARIABLES GLOBALES (Paleta Warm Orange + Gradient Soft)
-   =================================================== */
-:root {
-    /* Tonos Sólidos Base */
-    --color-wild-rice:    #ECE48F; /* Amarillo crema */
-    --color-tulip-tree:   #E7B12E; /* Amarillo dorado */
-    --color-tangerine:    #E19B02; /* Naranja cálido */
-    --color-golden-bell:  #E17D12; /* Naranja medio */
-    --color-rose-sharon:  #BA5304; /* Naranja oscuro / Terracota */
-    --color-peru-tan:     #892E00; /* Marrón profundo para textos y bordes */
-
-    /* Tonos Pastel para Selección de Rol */
-    --color-profesor:     #D8B4F8; /* Morado suave pastel */
-    --color-student:      #A2E8DD; /* Menta/Turquesa suave pastel */
-
-    /* Degradados Difuminados Amigables */
-    --gradiente-fondo: linear-gradient(180deg, #FFF9E6 0%, #FDE8BB 100%);
-    --gradiente-tarjeta: linear-gradient(135deg, #FFFFFF 0%, #FFF3D6 100%);
-    --gradiente-boton-principal: linear-gradient(180deg, #F9CD68 0%, #E7B12E 100%);
-    --gradiente-boton-hover: linear-gradient(180deg, #E7B12E 0%, #E19B02 100%);
-
-    /* Tipografías */
-    --fuente-pixel: 'Arcadia Grid', monospace, sans-serif;
-    --fuente-ui: 'Quicksand', sans-serif;
+.pantalla {
+  display: none !important;
+  min-height: 100vh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-/* ===================================================
-   ESTILOS GENERALES
-   =================================================== */
-* {
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
+/* Solo la pantalla activa se muestra como flex */
+.pantalla:not(.oculto) {
+  display: flex !important;
 }
 
 body {
-    background: var(--gradiente-fondo);
-    color: var(--color-peru-tan);
-    font-family: var(--fuente-ui);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    overflow: hidden;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  font-family: 'Press Start 2P', cursive, sans-serif;
+  color: #2D1B36;
+  background: radial-gradient(circle at center, #F5E6CC 0%, #A3B1A8 100%);
+  min-height: 100vh;
 }
 
-/* ===================================================
-   CONTENEDORES Y TARJETAS
-   =================================================== */
-.pantalla, .tarjeta {
-    background: var(--gradiente-tarjeta);
-    border: 4px solid var(--color-rose-sharon);
-    border-radius: 20px;
-    padding: 30px;
-    width: 90%;
-    max-width: 420px;
-    text-align: center;
-    box-shadow: 0px 8px 16px rgba(137, 46, 0, 0.15), 
-                inset 0px 2px 4px rgba(255, 255, 255, 0.8);
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
+.main-container {
+  width: 100vw;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Clase para ocultar vistas inactivas */
-.oculto {
-    display: none !important;
+/* Banner superior con pixel-hero.jpeg */
+.hero-section {
+  width: 100%;
+  overflow: hidden;
+  background-color: #e5e0d8;
 }
 
-/* ===================================================
-   ENCABEZADOS CON ARCADIA GRID
-   =================================================== */
-h1, h2, h3, .titulo-pixel {
-    font-family: var(--fuente-pixel);
-    color: var(--color-rose-sharon);
-    font-size: 1.3rem;
-    line-height: 1.4;
-    text-transform: uppercase;
-    text-shadow: 2px 2px 0px #FFFFFF;
-    margin-bottom: 10px;
-    letter-spacing: 1px;
+.hero-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  image-rendering: pixelated;
+  display: block;
 }
 
-p, label {
-    font-size: 1rem;
-    font-weight: 700;
-    color: var(--color-peru-tan);
+/* Sección inferior de la portada */
+.bottom-section {
+  width: 100%;
+  flex: 1;
+  background: linear-gradient(to bottom, #3e4d4f 0%, #869493 18%, #E5DAC2 50%, #eaddc6 50%);
+  padding: 2rem 1rem;
+  box-sizing: border-box;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
-/* ===================================================
-   INPUTS / CAMPOS DE TEXTO
-   =================================================== */
-input[type="text"], 
-input[type="password"], 
-select {
-    width: 100%;
-    padding: 12px 15px;
-    border: 3px solid var(--color-tulip-tree);
-    border-radius: 12px;
-    background-color: #FFFFFF;
-    color: var(--color-peru-tan);
-    font-family: var(--fuente-ui);
-    font-size: 0.95rem;
-    font-weight: 700;
-    outline: none;
-    transition: all 0.2s ease;
+.main-title {
+  color: #3E2723;
+  font-size: 1.3rem;
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  text-shadow: 2px 2px #FFFFFF;
 }
 
-input:focus {
-    border-color: var(--color-golden-bell);
-    box-shadow: 0 0 8px rgba(225, 125, 18, 0.4);
+.subtitle {
+  color: #5D4037;
+  font-size: 0.6rem;
+  margin-bottom: 1.5rem;
+  font-weight: bold;
 }
 
-/* Placeholder usando la fuente legible */
-::placeholder {
-    color: #C29A68;
-    font-weight: 500;
-}
 
 /* ===================================================
    MOSTRAR / OCULTAR CONTRASEÑA (PASSWORD TOGGLE)
    =================================================== */
-.password-container {
+/* Contenedor relativo */
+.password-wrapper {
     position: relative;
     width: 100%;
     display: flex;
     align-items: center;
+    margin-bottom: 1rem;
 }
 
-/* Espacio interno a la derecha para no encimar el texto con el ojo */
-.password-container input {
-    padding-right: 45px !important;
+/* El input dentro del wrapper no debe tener margin-bottom extra */
+.password-wrapper input[type="password"],
+.password-wrapper input[type="text"] {
+    width: 100%;
+    padding-right: 48px; /* Espacio para que el texto no se monte sobre el ojito */
+    margin-bottom: 0 !important;
+    box-sizing: border-box;
 }
 
+/* Estilo del botón centrado al 50% con transform exacto */
 .btn-toggle-password {
     position: absolute;
     right: 12px;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    
     background: transparent !important;
     border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
+    outline: none !important;
     cursor: pointer;
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0.6;
-    transition: opacity 0.2s ease, transform 0.15s ease;
-    user-select: none;
+    
+    font-size: 1.1rem;
     line-height: 1;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+    height: auto !important;
+    
+    /* Anular la regla global de botones para evitar fondos y bordes 3D */
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
 .btn-toggle-password:hover {
-    opacity: 1;
-    transform: scale(1.15);
-    background: transparent !important;
-    box-shadow: none !important;
+    opacity: 0.8;
 }
 
 .btn-toggle-password:active {
-    transform: scale(0.95);
-    box-shadow: none !important;
-}
-
-.btn-toggle-password.active {
-    opacity: 1;
-    filter: drop-shadow(0 0 3px rgba(186, 83, 4, 0.5));
+    transform: translateY(-50%) scale(0.9) !important;
 }
 
 /* ===================================================
    BOTONES CON ARCADIA GRID
    =================================================== */
 button, .btn {
-    font-family: var(--fuente-pixel);
+    font-family: var(--fuente-pixel, 'Press Start 2P', cursive);
     font-size: 0.9rem;
     padding: 14px 20px;
     color: #FFFFFF;
-    background: var(--gradiente-boton-principal);
-    border: 3px solid var(--color-rose-sharon);
+    background: var(--gradiente-boton-principal, #FFB74D);
+    border: 3px solid var(--color-rose-sharon, #3E2723);
     border-radius: 12px;
     cursor: pointer;
-    text-shadow: 1px 1px 0px var(--color-peru-tan);
-    box-shadow: 0px 4px 0px var(--color-rose-sharon);
+    text-shadow: 1px 1px 0px var(--color-peru-tan, #000000);
+    box-shadow: 0px 4px 0px var(--color-rose-sharon, #3E2723);
     transition: transform 0.1s ease, background 0.2s ease;
 }
 
-button:hover {
-    background: var(--gradiente-boton-hover);
-    transform: translateY(-2px);
-    box-shadow: 0px 6px 0px var(--color-rose-sharon);
+.roles-grid {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
-button:active {
-    transform: translateY(2px);
-    box-shadow: 0px 2px 0px var(--color-rose-sharon);
+.role-card {
+  background-color: #FFFFFF;
+  border: 4px solid #3E2723;
+  border-radius: 12px;
+  width: 200px;
+  overflow: hidden;
+  box-shadow: 4px 4px 0px #3E2723;
+  transition: transform 0.1s ease;
+  cursor: pointer;
 }
 
-/* Estilos de botones para Selección de Rol */
-.btn-profesor {
-    background: linear-gradient(180deg, #E2C5FF 0%, var(--color-profesor) 100%) !important;
-    border-color: #8A5BB8 !important;
-    color: #4A2270 !important;
-    text-shadow: none !important;
-    box-shadow: 0px 4px 0px #8A5BB8 !important;
+.role-card:hover {
+  transform: translateY(-2px);
 }
 
-.btn-estudiante {
-    background: linear-gradient(180deg, #C2F3EC 0%, var(--color-student) 100%) !important;
-    border-color: #389B8E !important;
-    color: #174E47 !important;
-    text-shadow: none !important;
-    box-shadow: 0px 4px 0px #389B8E !important;
+.card-banner {
+  background-color: #FFF59D;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  border-bottom: 3px solid #3E2723;
 }
 
-/* ===================================================
-   CANVAS DE PHASER
-   =================================================== */
-#game-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 6px solid var(--color-rose-sharon);
-    border-radius: 12px;
-    overflow: hidden;
-    box-shadow: 0px 10px 20px rgba(0, 0, 0, 0.25);
+.card-profesor .card-banner {
+  background-color: #FFB74D;
 }
 
-canvas {
-    display: block;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+.card-footer {
+  padding: 0.8rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  color: #3E2723;
 }
+
+/* =========================================================
+   TARJETAS Y SALA DE ESPERA (LOBBY / WIDE-BOX)
+   ========================================================= */
+.pixel-card-box {
+  background-color: #FFFFFF;
+  border: 4px solid #3E2723;
+  border-radius: 12px;
+  padding: 2rem;
+  width: 90%;
+  max-width: 450px;
+  text-align: center;
+  box-shadow: 6px 6px 0px #3E2723;
+  position: relative;
+  box-sizing: border-box;
+  margin: 1rem auto;
+}
+
+.pixel-card-box.wide-box {
+  max-width: 750px;
+}
+
+.icon-top {
+  font-size: 2rem;
+  background: #FFF59D;
+  border: 3px solid #3E2723;
+  width: 50px;
+  height: 50px;
+  margin: -45px auto 1rem auto;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.section-tag {
+  font-size: 0.6rem;
+  color: #795548;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.pixel-title {
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  color: #3E2723;
+  text-transform: uppercase;
+}
+
+.btn-pixel {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.75rem;
+  padding: 0.8rem 1.2rem;
+  border: 3px solid #3E2723;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 3px 3px 0px #3E2723;
+  transition: all 0.1s ease;
+  margin: 0.4rem 0;
+  width: 100%;
+}
+
+.btn-pixel:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #3E2723;
+}
+
+.btn-main { background-color: #FFF59D; color: #3E2723; } 
+.btn-accent { background-color: #FFB74D; color: #3E2723; } 
+.btn-danger { background-color: #FF7043; color: #FFFFFF; } 
+.btn-sub { background-color: #8C9C96; color: #FFFFFF; } 
+
+input[type="text"], input[type="password"] {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.75rem;
+  padding: 0.8rem;
+  border: 3px solid #3E2723;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 1rem;
+  background-color: #FFFFFF;
+  color: #3E2723;
+  text-align: center;
+}
+
+/* Estilos de la Sala de Espera y Selección de Personajes */
+.instructions-content {
+  background: #FFFFFF;
+  border: 3px solid #3E2723;
+  border-radius: 8px;
+  padding: 1.2rem;
+  text-align: left;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #3E2723;
+}
+
+.lobby-layout {
+  display: flex;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.character-select-panel {
+  flex: 1;
+  background: #FFB74D;
+  border: 3px solid #3E2723;
+  border-radius: 8px;
+  padding: 1rem;
+  min-width: 200px;
+}
+
+.character-select-panel h3 {
+  font-size: 0.75rem;
+  margin-top: 0;
+  color: #3E2723;
+}
+
+.avatar-preview-box {
+  background: #FFFFFF;
+  border: 3px solid #3E2723;
+  border-radius: 8px;
+  height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  margin-top: 0.5rem;
+}
+
+.players-panel {
+  flex: 2;
+  min-width: 260px;
+}
+
+.players-icons-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.player-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #FFFFFF;
+  border: 2px solid #3E2723;
+  padding: 0.6rem;
+  border-radius: 8px;
+}
+
+.avatar-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 2px solid #3E2723;
+  background-color: #FFF59D;
+}
+
+.status-tag {
+  font-size: 0.55rem;
+  color: #555;
+  margin-top: 0.3rem;
+}
+
+.status-tag.ready {
+  color: #2E7D32;
+  font-weight: bold;
+}
+
+.scene-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border: 3px solid #3E2723;
+  border-radius: 8px;
+  padding: 0.8rem 1.2rem;
+  margin-bottom: 0.8rem;
+}
+
+.scene-item.locked {
+  opacity: 0.5;
+  background: #E0E0E0;
+}
+
+.scene-icon { font-size: 1.8rem; }
+.scene-info { text-align: left; flex: 1; margin-left: 1rem; }
+.scene-info h3 { font-size: 0.75rem; margin: 0; color: #3E2723; }
+.scene-info p { font-size: 0.65rem; margin: 0.2rem 0 0 0; color: #555; }
