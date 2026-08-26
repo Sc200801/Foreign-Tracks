@@ -1,26 +1,20 @@
-export default class BootScene extends Phaser.Scene {
+import * as Phaser from 'https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.esm.js';
+
+export default class Boot extends Phaser.Scene {
     constructor() {
-        super({ key: 'BootScene' });
+        super('Boot'); // Asegúrate de que esta sea la primera escena que inicia tu juego
     }
 
     preload() {
-        console.log('🔄 BootScene: Precargando mapa, tileset y sprites...');
+        // 1. Cargar la imagen del tileset
+        this.load.image('hotel_tileset_image', 'src/assets/tiles/hotel_tileset.png');
 
-        // 1. Cargar el mapa Tiled JSON y la imagen del tileset
-        this.load.tilemapTiledJSON('hotel_map', 'assets/maps/hotel.json'); //[cite: 1]
-        this.load.image('hotel_tiles', 'assets/maps/tileset.png'); //[cite: 1]
-
-        // 2. Cargar el spritesheet del personaje[cite: 1]
-        // Nota: Si tus sprites son de 32x32 cambia frameHeight a 32
-        this.load.spritesheet('player', 'assets/images/player.png', { //[cite: 1]
-            frameWidth: 32, //[cite: 1]
-            frameHeight: 48 //[cite: 1]
-        });
+        // 2. Cargar el JSON del mapa con la clave exacta 'hotelMap'
+        this.load.tilemapTiledJSON('hotelMap', 'src/assets/maps/hotel.json');
     }
 
     create() {
-        console.log('✅ BootScene: Recursos cargados con éxito. Iniciando HotelScene...');
-        // Transición directa hacia la escena del Hotel[cite: 1]
-        this.scene.start('HotelScene'); //[cite: 1]
+        console.log('✅ Archivos cargados en caché. Entrando a HotelScene...');
+        this.scene.start('HotelScene');
     }
 }

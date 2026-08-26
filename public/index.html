@@ -261,6 +261,14 @@
 </div>
 
 <!-- =========================================================
+     8.1 PANTALLA DEL JUEGO (ESCENA DEL HOTEL - PHASER)
+     ========================================================= -->
+<div id="pantalla-juego-canvas" class="pantalla oculto">
+  <div id="game-container"></div>
+  <button type="button" id="btn-salir-juego" class="btn-pixel btn-sub">Salir al Menú</button>
+</div>
+
+<!-- =========================================================
      9. ACCESO Y PANEL DEL PROFESOR
      ========================================================= -->
 <div id="pantalla-clave-docente" class="pantalla oculto">
@@ -339,6 +347,7 @@
 <script src="src/js/auth-player.js"></script>
 <script src="src/js/auth-teacher.js"></script>
 <script src="src/js/room.js"></script>
+<script type="module" src="src/js/game.js"></script>
 
 <script>
   window.pendingRegistrationData = null;
@@ -599,6 +608,38 @@
 
     if (btnLogoutEstudiante) btnLogoutEstudiante.addEventListener('click', ejecutarLogOut);
     if (btnLogoutDocente) btnLogoutDocente.addEventListener('click', ejecutarLogOut);
+  });
+</script>
+
+<!-- =========================================================
+     CARGA DE LA ESCENA DEL HOTEL (PHASER)
+     ========================================================= -->
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    function irAEscenaHotel() {
+      if (typeof window.mostrarPantalla === 'function') {
+        window.mostrarPantalla('pantalla-juego-canvas');
+      }
+      // Esperar a que el navegador pinte la pantalla visible
+      // antes de crear/mostrar el juego de Phaser.
+      requestAnimationFrame(() => {
+        if (typeof window.startHotelGame === 'function') {
+          window.startHotelGame();
+        } else {
+          console.error('No se encontró startHotelGame. Revisa game.js.');
+        }
+      });
+    }
+
+    document.getElementById('btn-play-scene1')
+      ?.addEventListener('click', irAEscenaHotel);
+
+    document.getElementById('btn-salir-juego')
+      ?.addEventListener('click', () => {
+        if (typeof window.mostrarPantalla === 'function') {
+          window.mostrarPantalla('pantalla-seleccion-escena');
+        }
+      });
   });
 </script>
 </body>
