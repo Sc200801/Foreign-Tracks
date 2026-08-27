@@ -100,7 +100,7 @@ module.exports = (io, socket) => {
     }
   });
 
-// 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
+  // 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
   const handleJoinRoom = (data) => {
     const targetRoomId = data?.roomId || data?.roomCode;
     let username = data?.username;
@@ -198,7 +198,7 @@ module.exports = (io, socket) => {
     }
   });
 
-// 4. INICIAR JUEGO CON VALIDACIÓN RIGUROSA DE "READY"
+  // 4. INICIAR JUEGO CON VALIDACIÓN RIGUROSA DE "READY"
   socket.on('room:start', (data) => {
     const { roomId } = data || {};
     const room = rooms[roomId];
@@ -284,7 +284,41 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 7. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
+  // 💬 7. GESTIÓN DEL CHAT MULTIJUGADOR Y MÉTRICA DE PARTICIPACIÓN
+  socket.on('enviar-mensaje-chat', (data) => {
+    const { roomId, usuario, mensaje, palabrasContadas, totalAcumulado, timestamp } = data || {};
+
+    if (!mensaje) return;
+
+    // Obtener nombre del remitente
+    let senderName = usuario;
+    if (!senderName && socket.user) {
+      senderName = socket.user.fullname || socket.user.name || socket.user.username;
+    }
+    if (!senderName && roomId && rooms[roomId]) {
+      const p = rooms[roomId].players.find(player => player.id === socket.id);
+      if (p) senderName = p.name;
+    }
+    senderName = senderName || 'Estudiante';
+
+    const responsePayload = {
+      usuario: senderName,
+      mensaje: mensaje,
+      palabrasContadas: palabrasContadas || 0,
+      totalAcumulado: totalAcumulado || 0,
+      timestamp: timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      socketId: socket.id
+    };
+
+    // Si viene con roomId se envía a la sala, si no a todos los conectados
+    if (roomId) {
+      io.to(roomId).emit('mensaje-chat-recibido', responsePayload);
+    } else {
+      io.emit('mensaje-chat-recibido', responsePayload);
+    }
+  });
+
+  // 8. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];
