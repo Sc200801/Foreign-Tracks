@@ -266,6 +266,31 @@
 <div id="pantalla-juego-canvas" class="pantalla oculto">
   <div id="game-container"></div>
   <button type="button" id="btn-salir-juego" class="btn-pixel btn-sub">Salir al Menú</button>
+
+  <!-- 💬 CHAT INTEGRADO DIRECTAMENTE EN LA PANTALLA DEL JUEGO -->
+  <!-- Botón Flotante / Burbuja (Sin clase oculto para aparecer junto al canvas) -->
+  <button id="chat-toggle-btn" class="chat-toggle-btn" title="Abrir/Cerrar Chat">
+    💬
+  </button>
+
+  <!-- Ventana del Chat -->
+  <div id="chat-modal" class="chat-modal oculto">
+    <div class="chat-header">
+      <span>💬 Chat de Juego</span>
+      <button type="button" id="chat-close-btn" class="chat-close-btn">&times;</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <form id="chat-form" class="chat-form">
+      <input 
+        type="text" 
+        id="chat-input" 
+        placeholder="Escribe un mensaje..." 
+        autocomplete="off" 
+        maxlength="150"
+      />
+      <button type="submit" id="chat-send-btn">Enviar</button>
+    </form>
+  </div>
 </div>
 
 <!-- =========================================================
@@ -348,6 +373,7 @@
 <script src="src/js/auth-teacher.js"></script>
 <script src="src/js/room.js"></script>
 <script type="module" src="src/js/game.js"></script>
+<script src="src/js/chat.js"></script>
 
 <script>
   window.pendingRegistrationData = null;
