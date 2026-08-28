@@ -675,8 +675,60 @@
 
     if (btnLogoutEstudiante) btnLogoutEstudiante.addEventListener('click', ejecutarLogOut);
     if (btnLogoutDocente) btnLogoutDocente.addEventListener('click', ejecutarLogOut);
+
+    // =========================================================
+    // 🎮 CONTROLADORES DE LOBBY Y ESCENAS
+    // =========================================================
+
+    // 1. Botón "PLAY" de la Escena 1 (Hotel) -> Navega directamente al escenario Phaser
+    const btnPlayScene1 = document.getElementById('btn-play-scene1');
+    if (btnPlayScene1) {
+      btnPlayScene1.addEventListener('click', () => {
+        if (typeof window.irAEscenaHotel === 'function') {
+          window.irAEscenaHotel();
+        }
+      });
+    }
+
+    // 2. Botón "BACK TO LOBBY"
+    const btnBackLobby = document.getElementById('btn-back-lobby');
+    if (btnBackLobby) {
+      btnBackLobby.addEventListener('click', () => {
+        mostrarPantalla('pantalla-sala-espera');
+      });
+    }
+
+    // 4. Escuchar si el servidor valida correctamente e indica cambiar de pantalla
+    if (window.socket) {
+      const handleGameStarted = (data) => {
+        console.log('🏁 Sala validada, avanzando a la selección de escena:', data);
+        window.currentInitialGameData = data;
+        mostrarPantalla('pantalla-seleccion-escena');
+      };
+
+      window.socket.on('room:game_started', handleGameStarted);
+      window.socket.on('iniciar-partida', handleGameStarted);
+    }
   });
 </script>
 
+<!-- =========================================================
+     CARGA DE LA ESCENA DEL HOTEL (PHASER)
+     ========================================================= -->
+<script>
+  function irAEscenaHotel() {
+    if (typeof window.mostrarPantalla === 'function') {
+      window.mostrarPantalla('pantalla-juego-canvas');
+    }
+    requestAnimationFrame(() => {
+      if (typeof window.startHotelGame === 'function') {
+        window.startHotelGame();
+      } else {
+        console.error('No se encontró la función startHotelGame en window.');
+      }
+    });
+  }
+  window.irAEscenaHotel = irAEscenaHotel;
+</script>
 </body>
 </html>

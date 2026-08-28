@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // 🔍 LÍNEA DE PRUEBA:
+    console.log('🚀 DEPURACIÓN: room.js se ha ejecutado desde la línea 2');
+
     // Helper para cambiar de pantalla y GUARDAR el estado actual
     const navegarA = (idPantalla) => {
         const el = document.getElementById(idPantalla);
@@ -84,12 +87,17 @@ document.addEventListener('DOMContentLoaded', () => {
         reconnectionDelayMax: 5000
     };
 
-    // 2. INICIALIZAR SOCKET
-    let socket = null;
-    if (typeof io !== 'undefined') socket = io(serverUrl, socketOptions);
-    else if (window.io) socket = window.io(serverUrl, socketOptions);
+    // 2. INICIALIZAR SOCKET (PATRÓN SINGLETON: EVITA MÚLTIPLES CONEXIONES)
+    let socket = window.socket || null;
 
-    window.socket = socket;
+    if (!socket || !socket.connected) {
+        if (typeof io !== 'undefined') socket = io(serverUrl, socketOptions);
+        else if (window.io) socket = window.io(serverUrl, socketOptions);
+        window.socket = socket;
+    } else {
+        // Si el socket ya existía, actualizamos sus credenciales en lugar de instanciar uno nuevo
+        socket.auth = { token: token };
+    }
 
     // Elementos del DOM
     const btnCrearCodigo = document.getElementById('btn-crear-codigo');
@@ -161,6 +169,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!socket.connected) socket.connect();
             }
 
+            // 🟢 GUARDAMOS EL CÓDIGO DIRECTO EN AMBAS CLAVES DE STORAGE
+            localStorage.setItem('currentRoomCode', roomCode);
+            sessionStorage.setItem('currentRoomCode', roomCode);
+
             localStorage.setItem('currentRoom', JSON.stringify({ 
                 name: roomName, 
                 code: roomCode,
@@ -202,6 +214,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const payload = { roomId: cleanCode, roomCode: cleanCode, username: nombreFinal };
+            
+            // 🟢 GUARDAMOS EL CÓDIGO DIRECTO EN AMBAS CLAVES DE STORAGE
+            localStorage.setItem('currentRoomCode', cleanCode);
+            sessionStorage.setItem('currentRoomCode', cleanCode);
+
             localStorage.setItem('currentRoom', JSON.stringify({ code: cleanCode, isHost: false }));
 
             if (socket && socket.connected) {
@@ -215,15 +232,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // 5. BOTONES DE ACCIÓN
     if (btnReady) {
         btnReady.addEventListener('click', () => {
-            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
-            if (room.code && socket?.connected) socket.emit('room:toggle_ready', { roomId: room.code });
+            const roomCode = localStorage.getItem('currentRoomCode') || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
+            if (roomCode && socket?.connected) socket.emit('room:toggle_ready', { roomId: roomCode });
         });
     }
 
     if (btnStartGame) {
         btnStartGame.addEventListener('click', () => {
-            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
-            if (room.code && socket?.connected) socket.emit('room:start', { roomId: room.code });
+            const roomCode = localStorage.getItem('currentRoomCode') || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
+            if (roomCode && socket?.connected) socket.emit('room:start', { roomId: roomCode });
         });
     }
 
@@ -232,13 +249,10 @@ document.addEventListener('DOMContentLoaded', () => {
         btnBackLobby.addEventListener('click', (e) => {
             e.preventDefault();
             
-            let currentRoom = {};
-            try {
-                currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
-            } catch (err) {}
+            const roomCode = localStorage.getItem('currentRoomCode') || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
 
-            if (currentRoom.code && socket && socket.connected) {
-                socket.emit('room:back_to_lobby', { roomId: currentRoom.code });
+            if (roomCode && socket && socket.connected) {
+                socket.emit('room:back_to_lobby', { roomId: roomCode });
             } else {
                 navegarA('pantalla-sala-espera');
             }
@@ -250,6 +264,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const restaurarEstadoSesion = () => {
         const tokenActual = obtenerTokenSeguro();
         const currentRoom = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+        const roomCode = localStorage.getItem('currentRoomCode') || currentRoom.code;
         const userObj = JSON.parse(localStorage.getItem('usuarioRegistrado') || sessionStorage.getItem('userData') || '{}');
         const pantallaGuardada = localStorage.getItem('pantallaActiva');
 
@@ -257,10 +272,13 @@ document.addEventListener('DOMContentLoaded', () => {
             navegarA(pantallaGuardada);
         }
 
-        if (!yaRestaurado && tokenActual && currentRoom.code) {
+        if (!yaRestaurado && tokenActual && roomCode) {
             yaRestaurado = true;
-            console.log(`🔄 Reconectando automáticamente a la sala ${currentRoom.code}...`);
+            console.log(`🔄 Reconectando automáticamente a la sala ${roomCode}...`);
             
+            // Aseguramos persistencia en caso de que viniera solo del objeto
+            localStorage.setItem('currentRoomCode', roomCode);
+
             if (socket) {
                 socket.auth = { token: tokenActual };
                 if (!socket.connected) socket.connect();
@@ -269,14 +287,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (currentRoom.isHost) {
                     socket.emit('room:create', {
-                        roomId: currentRoom.code,
+                        roomId: roomCode,
                         roomName: currentRoom.name || 'Sala de Juego',
                         username: nombreJugador
                     });
                 } else {
                     socket.emit('room:join', {
-                        roomId: currentRoom.code,
-                        roomCode: currentRoom.code,
+                        roomId: roomCode,
+                        roomCode: roomCode,
                         username: nombreJugador
                     });
                 }
@@ -286,6 +304,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. MANEJO DE EVENTOS DE SOCKET
     if (socket) {
+        // Desvincular eventos antes de volver a registrar para prevenir duplicación por reconexión
+        socket.off('connect');
+        socket.off('room:created');
+        socket.off('room:joined');
+        socket.off('sala-unida');
+        socket.off('room:error');
+        socket.off('connect_error');
+        socket.off('room:update');
+        socket.off('room:game_started');
+        socket.off('room:returned_to_lobby');
+
         socket.on('connect', () => {
             console.log('🟢 Conectado con éxito a Socket.io. ID:', socket.id);
             restaurarEstadoSesion();
@@ -293,17 +322,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         socket.on('room:created', (data) => {
             console.log('✅ Sala creada exitosamente:', data);
+            const rCode = data.roomId || data.code;
+            if (rCode) {
+                localStorage.setItem('currentRoomCode', rCode);
+            }
             const pantallaActual = localStorage.getItem('pantallaActiva');
             if (pantallaActual !== 'pantalla-seleccion-escena') {
-                cambiarALobby(data.roomName || data.name, data.roomId || data.code);
+                cambiarALobby(data.roomName || data.name, rCode);
             }
         });
 
         const handleRoomJoined = (data) => {
             console.log('✅ Unido a la sala exitosamente:', data);
+            const rCode = data.roomId || data.roomCode;
+            if (rCode) {
+                localStorage.setItem('currentRoomCode', rCode);
+            }
             const pantallaActual = localStorage.getItem('pantallaActiva');
             if (pantallaActual !== 'pantalla-seleccion-escena') {
-                cambiarALobby(data.roomName || 'Sala de Juego', data.roomId || data.roomCode);
+                cambiarALobby(data.roomName || 'Sala de Juego', rCode);
             }
         };
 
@@ -325,17 +362,20 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // 🟢 ACTUALIZACIÓN DEL LOBBY (LÓGICA REVISADA CON NOMBRE Y ROL DE USUARIO)
+        // 🟢 ACTUALIZACIÓN DEL LOBBY
         socket.on('room:update', (roomData) => {
             if (!roomData) return;
 
+            const roomCode = roomData.roomId || roomData.code || localStorage.getItem('currentRoomCode') || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
+            if (roomCode) {
+                localStorage.setItem('currentRoomCode', roomCode);
+            }
+
             const headerTitle = document.getElementById('room-header-title');
-            const roomCode = roomData.roomId || roomData.code || JSON.parse(localStorage.getItem('currentRoom') || '{}').code;
             if (headerTitle) {
                 headerTitle.innerText = `${roomData.name || roomData.roomName || 'Room'} (Code: ${roomCode})`;
             }
 
-            // Normalización para asegurar array de jugadores
             let players = [];
             if (Array.isArray(roomData.players)) {
                 players = roomData.players;
@@ -343,7 +383,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 players = Object.values(roomData.players);
             }
 
-            // 🎯 MOSTRAR EL USUARIO ACTIVO CON SU ROL (Professor: Luisa / Student: Michael)
             const localUserDisplay = document.getElementById('local-user-display');
             if (localUserDisplay) {
                 const userObj = JSON.parse(localStorage.getItem('usuarioRegistrado') || sessionStorage.getItem('userData') || '{}');
@@ -356,7 +395,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 localUserDisplay.innerText = `${rolePrefix}: ${userName}`;
             }
             
-            // 🎯 LÓGICA DE ESPERA / SALA LLENA EN EL INPUT CENTRAL
             const activeDisplay = document.getElementById('active-player-display');
             if (activeDisplay) {
                 if (players.length >= 4) {
@@ -407,6 +445,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const headerTitle = document.getElementById('room-header-title');
         if (headerTitle) {
             headerTitle.innerText = `${nombreSala} (Code: ${codigoSala})`;
+        }
+        if (codigoSala) {
+            localStorage.setItem('currentRoomCode', codigoSala);
         }
         navegarA('pantalla-sala-espera');
     }
