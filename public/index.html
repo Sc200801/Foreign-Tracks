@@ -49,6 +49,13 @@
       cursor: pointer;
       font-family: 'Press Start 2P', monospace;
     }
+
+    /* 🎨 Los estilos de la Tarjeta Flotante "¿Quiénes Somos?" y Podio
+       (.pixel-card-container, .pixel-title-modal, .pixel-content-box, .pixel-btn-yellow)
+       viven únicamente en style.css. Se quitaron de aquí a propósito: este bloque
+       se carga DESPUÉS del <link rel="stylesheet" href="style.css">, así que si estas
+       clases se repitieran en ambos lados, las reglas de este bloque ganarían siempre
+       y taparían cualquier cambio hecho en style.css. */
   </style>
 </head>
 <body>
@@ -64,7 +71,7 @@
     <ul class="nav-links" style="list-style: none; display: flex; gap: 2rem; margin: 0; padding: 0;">
       <!-- 🟢 Botón LOGIN para abrir modal flotante -->
       <li><a href="#" id="btn-open-login-modal" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">LOGIN</a></li>
-      <li><a href="#" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
+      <li><a href="#" id="btn-open-about-nav" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
     </ul>
   </nav>
 
@@ -268,7 +275,6 @@
   <button type="button" id="btn-salir-juego" class="btn-pixel btn-sub">Salir al Menú</button>
 
   <!-- 💬 CHAT INTEGRADO DIRECTAMENTE EN LA PANTALLA DEL JUEGO -->
-  <!-- Botón Flotante / Burbuja (Sin clase oculto para aparecer junto al canvas) -->
   <button id="chat-toggle-btn" class="chat-toggle-btn" title="Abrir/Cerrar Chat">
     💬
   </button>
@@ -337,6 +343,7 @@
      ========================================================= -->
 <div id="modal-login" class="modal-overlay oculto">
   <div class="modal-content">
+    <button id="btn-close-login-modal" class="btn-close-modal">&times;</button>
     <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">LOG IN</h2>
     
     <form id="form-modal-login" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -349,6 +356,39 @@
 
       <button type="submit" style="font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 2px solid #fff; padding: 0.9rem; cursor: pointer; margin-top: 0.5rem; font-size: 0.8rem;">START GAME</button>
     </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     11. MODAL FLOTANTE DEL PODIO DE RESULTADOS
+     ========================================================= -->
+<div id="podium-modal" class="modal-overlay oculto">
+  <div class="pixel-card-container">
+    <h2 class="pixel-title-modal">PODIO DE RESULTADOS</h2>
+    <div id="podium-cards" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;"></div>
+  </div>
+</div>
+
+<!-- =========================================================
+     12. MODAL FLOTANTE DE ¿QUIÉNES SOMOS? (ABOUT US)
+     ========================================================= -->
+<div id="about-modal" class="modal-overlay oculto">
+  <div class="pixel-card-container">
+    <h2 class="pixel-title-modal">ABOUT US</h2>
+    
+    <div class="pixel-content-box">
+      <p>
+        Somos un equipo apasionado por el desarrollo de software, el diseño interactivo y la creación de experiencias digitales innovadoras. Creemos firmemente que la mejor forma de aprender y adquirir nuevas habilidades es a través del juego, la curiosidad y el reto constante.
+      </p>
+      <p>
+        <strong>Foreign Tracks</strong> nace precisamente de esa idea: construir un espacio donde la cultura global, la estética visual en pixel art y el aprendizaje dinámico del idioma inglés se conecten en tiempo real. Cada escenario, mecánica de juego y línea de código han sido diseñados para que los jugadores exploren el mundo mientras fortalecen sus conocimientos lingüísticos y compiten de manera divertida con otros usuarios.
+      </p>
+      <p>
+        Nuestro objetivo principal es hacer del aprendizaje una aventura accesible, entretenida y visualmente atractiva. Agradecemos enormemente a cada persona que juega, comparte y forma parte de nuestra comunidad. ¡Gracias por acompañarnos en este viaje y ser parte de Foreign Tracks!
+      </p>
+    </div>
+
+    <button class="pixel-btn-yellow" onclick="cerrarAboutUs()">BACK</button>
   </div>
 </div>
 
@@ -372,6 +412,7 @@
 <script src="src/js/auth-player.js"></script>
 <script src="src/js/auth-teacher.js"></script>
 <script src="src/js/room.js"></script>
+<script src="src/js/podium.js"></script>
 <script type="module" src="src/js/game.js"></script>
 <script src="src/js/chat.js"></script>
 
@@ -409,6 +450,10 @@
     const modalLogin = document.getElementById('modal-login');
     const formModalLogin = document.getElementById('form-modal-login');
 
+    // Elementos del Modal About Us en Navbar
+    const btnOpenAboutNav = document.getElementById('btn-open-about-nav');
+    const modalAbout = document.getElementById('about-modal');
+
     function mostrarPantalla(pantallaActiva) {
       let targetEl = pantallaActiva;
       if (typeof pantallaActiva === 'string') {
@@ -426,7 +471,15 @@
 
     window.mostrarPantalla = mostrarPantalla;
 
-    // 🟢 Manejo Apertura/Cierre del Modal Flotante
+    // 🟢 Abrir About Us desde Navbar
+    if (btnOpenAboutNav) {
+      btnOpenAboutNav.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (modalAbout) modalAbout.classList.remove('oculto');
+      });
+    }
+
+    // 🟢 Manejo Apertura/Cierre del Modal Flotante de Login
     if (btnOpenLoginModal) {
       btnOpenLoginModal.addEventListener('click', (e) => {
         e.preventDefault();
@@ -440,14 +493,17 @@
       });
     }
 
-    // Cerrar si hace clic fuera del contenido
+    // Cerrar modales si hace clic fuera del contenido
     window.addEventListener('click', (e) => {
       if (e.target === modalLogin) {
         modalLogin.classList.add('oculto');
       }
+      if (e.target === modalAbout) {
+        modalAbout.classList.add('oculto');
+      }
     });
 
-    // 🟢 Procesar Inicio de Sesión desde el Modal Flotante (CORREGIDO)
+    // 🟢 Procesar Inicio de Sesión desde el Modal Flotante
     if (formModalLogin) {
       formModalLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -469,7 +525,6 @@
 
           const responseData = await window.apiService.login(username, password);
 
-          // Verificar si retornó token o usuario válido
           if (responseData && (responseData.token || responseData.user || responseData.jwt)) {
             const token = responseData.token || responseData.jwt;
             if (token) {
@@ -482,7 +537,6 @@
             localStorage.setItem('username', userObj.username || username);
             sessionStorage.setItem('userData', JSON.stringify(userObj));
 
-            // Reconectar sockets si están activos
             if (window.socket && token) {
               window.socket.auth = { token };
               if (window.socket.connected) window.socket.disconnect();
@@ -492,7 +546,6 @@
             modalLogin.classList.add('oculto');
             formModalLogin.reset();
 
-            // REDIRECCIÓN SEGÚN ROL DEL USUARIO AUTENTICADO
             const rol = (userObj.role || '').toLowerCase();
             if (rol === 'teacher' || rol === 'docente' || rol === 'professor') {
               const bienvenida = document.getElementById('bienvenida-docente');
@@ -501,7 +554,6 @@
               }
               mostrarPantalla('pantalla-profesor');
             } else {
-              // Estudiantes u otros roles van directamente al Main Menu del Juego
               mostrarPantalla('pantalla-menu-juego');
             }
 
@@ -536,13 +588,12 @@
           return;
         }
 
-        // 🔍 VERIFICACIÓN PREVIA: Comprobar disponibilidad antes de cambiar de pantalla
         if (window.apiService && typeof window.apiService.checkUsername === 'function') {
           const check = await window.apiService.checkUsername(username);
 
           if (!check.available) {
             alert(check.message || 'El username ya está en uso.');
-            return; // ⛔ FRENO TOTAL: No avanza a la selección de roles
+            return;
           }
         }
 
@@ -562,28 +613,24 @@
       });
     }
 
-    // BOTÓN ESTUDIANTE: Dispara evento procesado en auth-player.js
     if (btnStudent) {
       btnStudent.addEventListener('click', () => {
         document.dispatchEvent(new CustomEvent('register-student-triggered'));
       });
     }
 
-    // BOTÓN PROFESOR
     if (btnProfesor) {
       btnProfesor.addEventListener('click', () => {
         mostrarPantalla(pantallaClaveDocente);
       });
     }
 
-    // NAVEGACIÓN DENTRO DEL MAIN MENU
     if (btnGamePlay) btnGamePlay.addEventListener('click', () => mostrarPantalla(pantallaAlumno));
     if (btnGameTutorial) btnGameTutorial.addEventListener('click', () => mostrarPantalla(pantallaTutorial));
     if (btnGameExit) btnGameExit.addEventListener('click', () => mostrarPantalla(pantallaAcceso));
     if (btnVolverMenu) btnVolverMenu.addEventListener('click', () => mostrarPantalla(pantallaMenuJuego));
 
     const regresarARoles = () => {
-      // Limpiar datos en borrador para prevenir accesos no autorizados
       window.pendingRegistrationData = null;
       sessionStorage.removeItem('tempUserData');
   
@@ -597,22 +644,18 @@
     if (btnVolverRolDocente) btnVolverRolDocente.addEventListener('click', regresarARoles);
     if (btnVolverRolProfesor) btnVolverRolProfesor.addEventListener('click', regresarARoles);
 
-    // 🔴 LÓGICA CENTRALIZADA DE LOGOUT
     function ejecutarLogOut(e) {
       if (e) e.preventDefault();
 
       if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        // Limpiar almacenamiento local y temporal
         localStorage.clear();
         sessionStorage.clear();
         window.pendingRegistrationData = null;
 
-        // Desconectar sockets activos
         if (window.socket && window.socket.connected) {
           window.socket.disconnect();
         }
 
-        // Resetear campos de formularios
         if (formLogin) formLogin.reset();
         
         const roomInput = document.getElementById('room-name-input');
@@ -621,14 +664,12 @@
         const codeDisplay = document.getElementById('room-code-display');
         if (codeDisplay) codeDisplay.value = '';
 
-        // Regresar a la pantalla de inicio
         mostrarPantalla('pantalla-rol');
         if (vistaLogin) vistaLogin.style.display = "block";
         if (vistaRol) vistaRol.style.display = "none";
       }
     }
 
-    // Vincular evento de logout a ambos botones
     const btnLogoutEstudiante = document.getElementById('btn-logout-estudiante');
     const btnLogoutDocente = document.getElementById('btn-logout-docente');
 
@@ -637,36 +678,5 @@
   });
 </script>
 
-<!-- =========================================================
-     CARGA DE LA ESCENA DEL HOTEL (PHASER)
-     ========================================================= -->
-<script>
-  document.addEventListener('DOMContentLoaded', () => {
-    function irAEscenaHotel() {
-      if (typeof window.mostrarPantalla === 'function') {
-        window.mostrarPantalla('pantalla-juego-canvas');
-      }
-      // Esperar a que el navegador pinte la pantalla visible
-      // antes de crear/mostrar el juego de Phaser.
-      requestAnimationFrame(() => {
-        if (typeof window.startHotelGame === 'function') {
-          window.startHotelGame();
-        } else {
-          console.error('No se encontró startHotelGame. Revisa game.js.');
-        }
-      });
-    }
-
-    document.getElementById('btn-play-scene1')
-      ?.addEventListener('click', irAEscenaHotel);
-
-    document.getElementById('btn-salir-juego')
-      ?.addEventListener('click', () => {
-        if (typeof window.mostrarPantalla === 'function') {
-          window.mostrarPantalla('pantalla-seleccion-escena');
-        }
-      });
-  });
-</script>
 </body>
 </html>
