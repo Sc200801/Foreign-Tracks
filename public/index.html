@@ -49,6 +49,13 @@
       cursor: pointer;
       font-family: 'Press Start 2P', monospace;
     }
+
+    /* 🎨 Los estilos de la Tarjeta Flotante "¿Quiénes Somos?" y Podio
+       (.pixel-card-container, .pixel-title-modal, .pixel-content-box, .pixel-btn-yellow)
+       viven únicamente en style.css. Se quitaron de aquí a propósito: este bloque
+       se carga DESPUÉS del <link rel="stylesheet" href="style.css">, así que si estas
+       clases se repitieran en ambos lados, las reglas de este bloque ganarían siempre
+       y taparían cualquier cambio hecho en style.css. */
   </style>
 </head>
 <body>
@@ -64,7 +71,7 @@
     <ul class="nav-links" style="list-style: none; display: flex; gap: 2rem; margin: 0; padding: 0;">
       <!-- 🟢 Botón LOGIN para abrir modal flotante -->
       <li><a href="#" id="btn-open-login-modal" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">LOGIN</a></li>
-      <li><a href="#" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
+      <li><a href="#" id="btn-open-about-nav" class="nav-link" style="font-family: 'Press Start 2P', monospace; font-size: 1.1rem; color: #fff; text-decoration: none; text-shadow: 1px 1px #000;">ABOUT US</a></li>
     </ul>
   </nav>
 
@@ -266,6 +273,30 @@
 <div id="pantalla-juego-canvas" class="pantalla oculto">
   <div id="game-container"></div>
   <button type="button" id="btn-salir-juego" class="btn-pixel btn-sub">Salir al Menú</button>
+
+  <!-- 💬 CHAT INTEGRADO DIRECTAMENTE EN LA PANTALLA DEL JUEGO -->
+  <button id="chat-toggle-btn" class="chat-toggle-btn" title="Abrir/Cerrar Chat">
+    💬
+  </button>
+
+  <!-- Ventana del Chat -->
+  <div id="chat-modal" class="chat-modal oculto">
+    <div class="chat-header">
+      <span>💬 Chat de Juego</span>
+      <button type="button" id="chat-close-btn" class="chat-close-btn">&times;</button>
+    </div>
+    <div id="chat-messages" class="chat-messages"></div>
+    <form id="chat-form" class="chat-form">
+      <input 
+        type="text" 
+        id="chat-input" 
+        placeholder="Escribe un mensaje..." 
+        autocomplete="off" 
+        maxlength="150"
+      />
+      <button type="submit" id="chat-send-btn">Enviar</button>
+    </form>
+  </div>
 </div>
 
 <!-- =========================================================
@@ -312,6 +343,7 @@
      ========================================================= -->
 <div id="modal-login" class="modal-overlay oculto">
   <div class="modal-content">
+    <button id="btn-close-login-modal" class="btn-close-modal">&times;</button>
     <h2 style="font-family: 'Press Start 2P', monospace; color: #fff; font-size: 0.9rem; margin-bottom: 1.5rem; text-align: center;">LOG IN</h2>
     
     <form id="form-modal-login" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -324,6 +356,39 @@
 
       <button type="submit" style="font-family: 'Press Start 2P', monospace; background-color: #37566b; color: #fff; border: 2px solid #fff; padding: 0.9rem; cursor: pointer; margin-top: 0.5rem; font-size: 0.8rem;">START GAME</button>
     </form>
+  </div>
+</div>
+
+<!-- =========================================================
+     11. MODAL FLOTANTE DEL PODIO DE RESULTADOS
+     ========================================================= -->
+<div id="podium-modal" class="modal-overlay oculto">
+  <div class="pixel-card-container">
+    <h2 class="pixel-title-modal">PODIO DE RESULTADOS</h2>
+    <div id="podium-cards" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;"></div>
+  </div>
+</div>
+
+<!-- =========================================================
+     12. MODAL FLOTANTE DE ¿QUIÉNES SOMOS? (ABOUT US)
+     ========================================================= -->
+<div id="about-modal" class="modal-overlay oculto">
+  <div class="pixel-card-container">
+    <h2 class="pixel-title-modal">ABOUT US</h2>
+    
+    <div class="pixel-content-box">
+      <p>
+        Somos un equipo apasionado por el desarrollo de software, el diseño interactivo y la creación de experiencias digitales innovadoras. Creemos firmemente que la mejor forma de aprender y adquirir nuevas habilidades es a través del juego, la curiosidad y el reto constante.
+      </p>
+      <p>
+        <strong>Foreign Tracks</strong> nace precisamente de esa idea: construir un espacio donde la cultura global, la estética visual en pixel art y el aprendizaje dinámico del idioma inglés se conecten en tiempo real. Cada escenario, mecánica de juego y línea de código han sido diseñados para que los jugadores exploren el mundo mientras fortalecen sus conocimientos lingüísticos y compiten de manera divertida con otros usuarios.
+      </p>
+      <p>
+        Nuestro objetivo principal es hacer del aprendizaje una aventura accesible, entretenida y visualmente atractiva. Agradecemos enormemente a cada persona que juega, comparte y forma parte de nuestra comunidad. ¡Gracias por acompañarnos en este viaje y ser parte de Foreign Tracks!
+      </p>
+    </div>
+
+    <button class="pixel-btn-yellow" onclick="cerrarAboutUs()">BACK</button>
   </div>
 </div>
 
@@ -347,7 +412,9 @@
 <script src="src/js/auth-player.js"></script>
 <script src="src/js/auth-teacher.js"></script>
 <script src="src/js/room.js"></script>
+<script src="src/js/podium.js"></script>
 <script type="module" src="src/js/game.js"></script>
+<script src="src/js/chat.js"></script>
 
 <script>
   window.pendingRegistrationData = null;
@@ -383,6 +450,10 @@
     const modalLogin = document.getElementById('modal-login');
     const formModalLogin = document.getElementById('form-modal-login');
 
+    // Elementos del Modal About Us en Navbar
+    const btnOpenAboutNav = document.getElementById('btn-open-about-nav');
+    const modalAbout = document.getElementById('about-modal');
+
     function mostrarPantalla(pantallaActiva) {
       let targetEl = pantallaActiva;
       if (typeof pantallaActiva === 'string') {
@@ -400,7 +471,15 @@
 
     window.mostrarPantalla = mostrarPantalla;
 
-    // 🟢 Manejo Apertura/Cierre del Modal Flotante
+    // 🟢 Abrir About Us desde Navbar
+    if (btnOpenAboutNav) {
+      btnOpenAboutNav.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (modalAbout) modalAbout.classList.remove('oculto');
+      });
+    }
+
+    // 🟢 Manejo Apertura/Cierre del Modal Flotante de Login
     if (btnOpenLoginModal) {
       btnOpenLoginModal.addEventListener('click', (e) => {
         e.preventDefault();
@@ -414,10 +493,13 @@
       });
     }
 
-    // Cerrar si hace clic fuera del contenido
+    // Cerrar modales si hace clic fuera del contenido
     window.addEventListener('click', (e) => {
       if (e.target === modalLogin) {
         modalLogin.classList.add('oculto');
+      }
+      if (e.target === modalAbout) {
+        modalAbout.classList.add('oculto');
       }
     });
 
@@ -648,6 +730,5 @@
   }
   window.irAEscenaHotel = irAEscenaHotel;
 </script>
-
 </body>
 </html>

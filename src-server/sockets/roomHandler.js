@@ -101,6 +101,7 @@ module.exports = (io, socket) => {
 
   // 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
   const handleJoinRoom = async (data) => {
+
     const targetRoomId = data?.roomId || data?.roomCode;
     let username = data?.username;
 
@@ -226,6 +227,7 @@ module.exports = (io, socket) => {
   // 4. INICIAR JUEGO CON CREACIÓN DE GAME SESSIONS Y ASIGNACIÓN DE TURNOS
   socket.removeAllListeners('room:start');
   socket.on('room:start', async (data) => {
+
     const { roomId } = data || {};
     const room = rooms[roomId];
 
@@ -306,9 +308,7 @@ module.exports = (io, socket) => {
                   roomId: idSalaDB,
                   playerId: playerItem.playerId,
                   currentScenarioId: hotelScenario.id,
-                  endingId: null // Se mantiene NULL mientras la partida esté en curso
-                  // badgesEarned, survivalHealth y accumulatedEnglishScore
-                  // se omiten para usar sus DEFAULT de MariaDB (0, 0.00, 0)
+                  endingId: null
                 }
               });
               createdSessions.push(session);
@@ -387,8 +387,6 @@ module.exports = (io, socket) => {
 
       if (isCorrect) {
         // --- CASO RESPUESTA CORRECTA ---
-        
-        // A) Sumar puntos (+10) en la GameSession del jugador que respondió
         if (room.dbRoomId && studentId) {
           await GameSession.update(
             { accumulatedEnglishScore: sequelize.literal('accumulatedEnglishScore + 10') },
@@ -396,7 +394,6 @@ module.exports = (io, socket) => {
           );
         }
 
-        // B) Buscar el siguiente paso de diálogo (stepIndex + 1)
         const nextStepIndex = currentDialogue.stepIndex + 1;
         const nextDialogue = await DialogueNode.findOne({
           where: {
@@ -406,7 +403,6 @@ module.exports = (io, socket) => {
         });
 
         if (nextDialogue) {
-          // Obtener la asignación de turnos actualizada o en memoria
           let roomPlayers = [];
           if (room.dbRoomId) {
             roomPlayers = await RoomPlayer.findAll({
@@ -424,7 +420,6 @@ module.exports = (io, socket) => {
 
           const activeTurn = turnAssignment.find(t => t.turnOrder === nextDialogue.targetPlayer) || turnAssignment[0];
 
-          // Emitir éxito y siguiente diálogo a toda la sala
           io.to(roomId).emit('dialogue:success', {
             message: '¡Respuesta correcta!',
             nextDialogue: {
@@ -439,7 +434,6 @@ module.exports = (io, socket) => {
             turns: turnAssignment
           });
         } else {
-          // No hay más diálogos -> Fin de la escena/escenario
           io.to(roomId).emit('scenario:completed', {
             message: '¡Felicidades! Han completado el escenario con éxito.'
           });
@@ -447,10 +441,8 @@ module.exports = (io, socket) => {
 
       } else {
         // --- CASO RESPUESTA INCORRECTA ---
-        
-        const DAMAGE = 20.00; // Daño a la salud grupal por fallo
+        const DAMAGE = 20.00;
 
-        // A) Descontar vida a la salud grupal de TODOS los jugadores de esta sala en GameSessions
         if (room.dbRoomId) {
           await GameSession.update(
             { survivalHealth: sequelize.literal(`GREATEST(0, survivalHealth - ${DAMAGE})`) },
@@ -458,8 +450,7 @@ module.exports = (io, socket) => {
           );
         }
 
-        // B) Obtener la vida restante de la sala
-        let currentHealth = 100 - DAMAGE; // Valor estimado de respaldo
+        let currentHealth = 100 - DAMAGE;
         if (room.dbRoomId) {
           const sampleSession = await GameSession.findOne({
             where: { roomId: room.dbRoomId }
@@ -469,7 +460,6 @@ module.exports = (io, socket) => {
           }
         }
 
-        // C) Parsear el feedback pedagógico (JSON)
         let parsedFeedback = null;
         if (currentDialogue.feedbackText) {
           try {
@@ -479,7 +469,6 @@ module.exports = (io, socket) => {
           }
         }
 
-        // D) Emitir evento de fallo con feedback sin avanzar de paso
         io.to(roomId).emit('dialogue:error', {
           message: 'Respuesta incorrecta. La vida del grupo ha disminuido.',
           damageTaken: DAMAGE,
@@ -543,7 +532,40 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 7. MANEJO DE DESCONEXIÓN INVOLUNTARIA
+  // 7. GESTIÓN DEL CHAT MULTIJUGADOR Y MÉTRICA DE PARTICIPACIÓN
+  socket.removeAllListeners('enviar-mensaje-chat');
+  socket.on('enviar-mensaje-chat', (data) => {
+    const { roomId, usuario, mensaje, palabrasContadas, totalAcumulado, timestamp } = data || {};
+
+    if (!mensaje) return;
+
+    let senderName = usuario;
+    if (!senderName && socket.user) {
+      senderName = socket.user.fullname || socket.user.name || socket.user.username;
+    }
+    if (!senderName && roomId && rooms[roomId]) {
+      const p = rooms[roomId].players.find(player => player.id === socket.id);
+      if (p) senderName = p.name;
+    }
+    senderName = senderName || 'Estudiante';
+
+    const responsePayload = {
+      usuario: senderName,
+      mensaje: mensaje,
+      palabrasContadas: palabrasContadas || 0,
+      totalAcumulado: totalAcumulado || 0,
+      timestamp: timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      socketId: socket.id
+    };
+
+    if (roomId) {
+      io.to(roomId).emit('mensaje-chat-recibido', responsePayload);
+    } else {
+      io.emit('mensaje-chat-recibido', responsePayload);
+    }
+  });
+
+  // 8. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
   socket.removeAllListeners('disconnect');
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
