@@ -5,25 +5,33 @@ const dialogueNodesData = [
     stepIndex: 1,
     targetPlayer: 1,
     situationTextEn: "Hey there, guys! Who are you all?",
-    correctAnswerPattern: "We are travelers."
+    correctAnswerPattern: "We are travelers.",
+    wrongAnswer: "I am a tourist..",
+    feedbackText: JSON.stringify({ "❌ Atención al grupo": "Seleccionaste 'I am', una forma que sirve para hablar solo de ti (singular)." })
   },
   {
     stepIndex: 2,
     targetPlayer: 2,
     situationTextEn: "Do you all have your IDs? What do you guys have?",
-    correctAnswerPattern: "Here are our passports."
+    correctAnswerPattern: "Here are our passports.",
+    wrongAnswer: "I have a red bag.",
+    feedbackText: JSON.stringify({ "❌ Revisa la pregunta": "Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual." })
   },
   {
     stepIndex: 3,
     targetPlayer: 3,
     situationTextEn: "And your luggage? What color are your bags?",
-    correctAnswerPattern: "Our suitcases are yellow and blue."
+    correctAnswerPattern: "Our suitcases are yellow and blue.",
+    wrongAnswer: "My suitcase is blue.",
+    feedbackText: JSON.stringify({ "❌ Falta el equipaje del resto": "Usaste 'My' (Mi), lo que responde únicamente por tu maleta." })
   },
   {
     stepIndex: 4,
     targetPlayer: 4,
     situationTextEn: "Got it! How long are you guys staying here?",
-    correctAnswerPattern: "We are staying for two nights. Thanks!"
+    correctAnswerPattern: "We are staying for two nights. Thanks!",
+    wrongAnswer: "I am staying one day.",
+    feedbackText: JSON.stringify({ "❌ Registro incompleto": "Indicar 'I am staying' registra a una sola persona y dejaría a tus compañeros fuera del hotel." })
   }
 ];
 

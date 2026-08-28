@@ -421,7 +421,7 @@
       }
     });
 
-    // 🟢 Procesar Inicio de Sesión desde el Modal Flotante (CORREGIDO)
+    // 🟢 Procesar Inicio de Sesión desde el Modal Flotante
     if (formModalLogin) {
       formModalLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -443,7 +443,6 @@
 
           const responseData = await window.apiService.login(username, password);
 
-          // Verificar si retornó token o usuario válido
           if (responseData && (responseData.token || responseData.user || responseData.jwt)) {
             const token = responseData.token || responseData.jwt;
             if (token) {
@@ -456,7 +455,6 @@
             localStorage.setItem('username', userObj.username || username);
             sessionStorage.setItem('userData', JSON.stringify(userObj));
 
-            // Reconectar sockets si están activos
             if (window.socket && token) {
               window.socket.auth = { token };
               if (window.socket.connected) window.socket.disconnect();
@@ -466,7 +464,6 @@
             modalLogin.classList.add('oculto');
             formModalLogin.reset();
 
-            // REDIRECCIÓN SEGÚN ROL DEL USUARIO AUTENTICADO
             const rol = (userObj.role || '').toLowerCase();
             if (rol === 'teacher' || rol === 'docente' || rol === 'professor') {
               const bienvenida = document.getElementById('bienvenida-docente');
@@ -475,7 +472,6 @@
               }
               mostrarPantalla('pantalla-profesor');
             } else {
-              // Estudiantes u otros roles van directamente al Main Menu del Juego
               mostrarPantalla('pantalla-menu-juego');
             }
 
@@ -510,13 +506,12 @@
           return;
         }
 
-        // 🔍 VERIFICACIÓN PREVIA: Comprobar disponibilidad antes de cambiar de pantalla
         if (window.apiService && typeof window.apiService.checkUsername === 'function') {
           const check = await window.apiService.checkUsername(username);
 
           if (!check.available) {
             alert(check.message || 'El username ya está en uso.');
-            return; // ⛔ FRENO TOTAL: No avanza a la selección de roles
+            return;
           }
         }
 
@@ -536,28 +531,24 @@
       });
     }
 
-    // BOTÓN ESTUDIANTE: Dispara evento procesado en auth-player.js
     if (btnStudent) {
       btnStudent.addEventListener('click', () => {
         document.dispatchEvent(new CustomEvent('register-student-triggered'));
       });
     }
 
-    // BOTÓN PROFESOR
     if (btnProfesor) {
       btnProfesor.addEventListener('click', () => {
         mostrarPantalla(pantallaClaveDocente);
       });
     }
 
-    // NAVEGACIÓN DENTRO DEL MAIN MENU
     if (btnGamePlay) btnGamePlay.addEventListener('click', () => mostrarPantalla(pantallaAlumno));
     if (btnGameTutorial) btnGameTutorial.addEventListener('click', () => mostrarPantalla(pantallaTutorial));
     if (btnGameExit) btnGameExit.addEventListener('click', () => mostrarPantalla(pantallaAcceso));
     if (btnVolverMenu) btnVolverMenu.addEventListener('click', () => mostrarPantalla(pantallaMenuJuego));
 
     const regresarARoles = () => {
-      // Limpiar datos en borrador para prevenir accesos no autorizados
       window.pendingRegistrationData = null;
       sessionStorage.removeItem('tempUserData');
   
@@ -571,22 +562,18 @@
     if (btnVolverRolDocente) btnVolverRolDocente.addEventListener('click', regresarARoles);
     if (btnVolverRolProfesor) btnVolverRolProfesor.addEventListener('click', regresarARoles);
 
-    // 🔴 LÓGICA CENTRALIZADA DE LOGOUT
     function ejecutarLogOut(e) {
       if (e) e.preventDefault();
 
       if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-        // Limpiar almacenamiento local y temporal
         localStorage.clear();
         sessionStorage.clear();
         window.pendingRegistrationData = null;
 
-        // Desconectar sockets activos
         if (window.socket && window.socket.connected) {
           window.socket.disconnect();
         }
 
-        // Resetear campos de formularios
         if (formLogin) formLogin.reset();
         
         const roomInput = document.getElementById('room-name-input');
@@ -595,19 +582,51 @@
         const codeDisplay = document.getElementById('room-code-display');
         if (codeDisplay) codeDisplay.value = '';
 
-        // Regresar a la pantalla de inicio
         mostrarPantalla('pantalla-rol');
         if (vistaLogin) vistaLogin.style.display = "block";
         if (vistaRol) vistaRol.style.display = "none";
       }
     }
 
-    // Vincular evento de logout a ambos botones
     const btnLogoutEstudiante = document.getElementById('btn-logout-estudiante');
     const btnLogoutDocente = document.getElementById('btn-logout-docente');
 
     if (btnLogoutEstudiante) btnLogoutEstudiante.addEventListener('click', ejecutarLogOut);
     if (btnLogoutDocente) btnLogoutDocente.addEventListener('click', ejecutarLogOut);
+
+    // =========================================================
+    // 🎮 CONTROLADORES DE LOBBY Y ESCENAS
+    // =========================================================
+
+    // 1. Botón "PLAY" de la Escena 1 (Hotel) -> Navega directamente al escenario Phaser
+    const btnPlayScene1 = document.getElementById('btn-play-scene1');
+    if (btnPlayScene1) {
+      btnPlayScene1.addEventListener('click', () => {
+        if (typeof window.irAEscenaHotel === 'function') {
+          window.irAEscenaHotel();
+        }
+      });
+    }
+
+    // 2. Botón "BACK TO LOBBY"
+    const btnBackLobby = document.getElementById('btn-back-lobby');
+    if (btnBackLobby) {
+      btnBackLobby.addEventListener('click', () => {
+        mostrarPantalla('pantalla-sala-espera');
+      });
+    }
+
+    // 4. Escuchar si el servidor valida correctamente e indica cambiar de pantalla
+    if (window.socket) {
+      const handleGameStarted = (data) => {
+        console.log('🏁 Sala validada, avanzando a la selección de escena:', data);
+        window.currentInitialGameData = data;
+        mostrarPantalla('pantalla-seleccion-escena');
+      };
+
+      window.socket.on('room:game_started', handleGameStarted);
+      window.socket.on('iniciar-partida', handleGameStarted);
+    }
   });
 </script>
 
@@ -615,32 +634,20 @@
      CARGA DE LA ESCENA DEL HOTEL (PHASER)
      ========================================================= -->
 <script>
-  document.addEventListener('DOMContentLoaded', () => {
-    function irAEscenaHotel() {
-      if (typeof window.mostrarPantalla === 'function') {
-        window.mostrarPantalla('pantalla-juego-canvas');
-      }
-      // Esperar a que el navegador pinte la pantalla visible
-      // antes de crear/mostrar el juego de Phaser.
-      requestAnimationFrame(() => {
-        if (typeof window.startHotelGame === 'function') {
-          window.startHotelGame();
-        } else {
-          console.error('No se encontró startHotelGame. Revisa game.js.');
-        }
-      });
+  function irAEscenaHotel() {
+    if (typeof window.mostrarPantalla === 'function') {
+      window.mostrarPantalla('pantalla-juego-canvas');
     }
-
-    document.getElementById('btn-play-scene1')
-      ?.addEventListener('click', irAEscenaHotel);
-
-    document.getElementById('btn-salir-juego')
-      ?.addEventListener('click', () => {
-        if (typeof window.mostrarPantalla === 'function') {
-          window.mostrarPantalla('pantalla-seleccion-escena');
-        }
-      });
-  });
+    requestAnimationFrame(() => {
+      if (typeof window.startHotelGame === 'function') {
+        window.startHotelGame();
+      } else {
+        console.error('No se encontró la función startHotelGame en window.');
+      }
+    });
+  }
+  window.irAEscenaHotel = irAEscenaHotel;
 </script>
+
 </body>
 </html>
