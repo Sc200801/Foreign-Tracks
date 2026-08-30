@@ -164,7 +164,8 @@ module.exports = (io, socket) => {
       room.players.push({
         id: socket.id,
         name: finalUsername,
-        isReady: false // Nuevo jugador entra como NO LISTO por defecto
+        isReady: false, // Nuevo jugador entra como NO LISTO por defecto
+        character: null // Se asigna con room:select_character
       });
     }
 
@@ -198,7 +199,36 @@ module.exports = (io, socket) => {
     }
   });
 
-// 4. INICIAR JUEGO CON VALIDACIÓN RIGUROSA DE "READY"
+  // 3.B. ELEGIR PERSONAJE (exclusivo por sala: nadie más lo puede repetir)
+  socket.on('room:select_character', (data) => {
+    const { roomId, character } = data || {};
+    const room = rooms[roomId];
+
+    if (!room) {
+      return socket.emit('room:error', { message: 'La sala no existe.' });
+    }
+
+    const jugador = room.players.find(p => p.id === socket.id);
+    if (!jugador) {
+      return socket.emit('room:error', { message: 'No formas parte de esta sala.' });
+    }
+
+    const ocupadoPorOtro = room.players.some(
+      p => p.character === character && p.id !== socket.id
+    );
+
+    if (ocupadoPorOtro) {
+      return socket.emit('room:error', {
+        message: 'Ese personaje ya fue elegido por otro jugador.'
+      });
+    }
+
+    jugador.character = character;
+    console.log(`🧑‍🎤 "${jugador.name}" eligió el personaje "${character}" en la sala ${roomId}`);
+    io.to(roomId).emit('room:update', room);
+  });
+
+  // 4. INICIAR JUEGO CON VALIDACIÓN RIGUROSA DE "READY"
   socket.on('room:start', (data) => {
     const { roomId } = data || {};
     const room = rooms[roomId];
@@ -231,6 +261,58 @@ module.exports = (io, socket) => {
     io.to(roomId).emit('room:game_started', {
       roomId: roomId,
       message: '¡El juego ha comenzado!'
+    });
+  });
+
+  // 4.B. EL PROFESOR ABRE LA ESCENA DEL HOTEL PARA TODOS A LA VEZ
+  socket.on('room:start_scene', (data) => {
+    const { roomId } = data || {};
+    const room = rooms[roomId];
+
+    if (!room) {
+      return socket.emit('room:error', { message: 'La sala no existe.' });
+    }
+
+    if (room.hostId !== socket.id) {
+      return socket.emit('room:error', { message: 'Solo el profesor puede iniciar la escena.' });
+    }
+
+    console.log(`🎬 El profesor abrió la escena para todos en la sala ${roomId}`);
+
+    io.to(roomId).emit('room:scene_started', { roomId });
+  });
+
+  // 4.C. SINCRONIZAR POSICIÓN DE JUGADORES DENTRO DE LA ESCENA
+  // (que cada quien vea a los demás compañeros de la sala).
+  // No se guarda nada en memoria: solo se reenvía al resto de
+  // la sala, muchas veces por segundo mientras alguien camina.
+  socket.on('room:player_move', (data) => {
+    const { roomId, x, y, character, direction, moving } = data || {};
+
+    if (!roomId || !rooms[roomId]) {
+      return;
+    }
+
+    const jugador = rooms[roomId].players.find(
+      (p) => p.id === socket.id
+    );
+
+    // Si quien envía no es un jugador de la sala (ej. el
+    // profesor, que solo supervisa), no se reenvía nada: no
+    // debe aparecer como personaje moviéndose.
+    if (!jugador) {
+      return;
+    }
+
+    // socket.to() (no io.to()): no reenviar al propio emisor.
+    socket.to(roomId).emit('room:player_move', {
+      playerId: socket.id,
+      name: jugador.name,
+      x,
+      y,
+      character,
+      direction,
+      moving
     });
   });
 

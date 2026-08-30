@@ -55,6 +55,7 @@
   overflow: hidden;
 }
 
+
 body {
   margin: 0;
   padding: 0;
@@ -302,6 +303,29 @@ button, .btn {
 .btn-pixel:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px #3E2723;
+}
+
+/* =========================================================
+   SELECCIÓN DE PERSONAJE (SALA DE ESPERA - CARRUSEL)
+   ========================================================= */
+.character-preview.selected {
+  border-color: #2e7d32 !important;
+  box-shadow: 0 0 0 3px #2e7d32;
+  background-color: #e8ffe8 !important;
+}
+
+.character-preview.taken {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  filter: grayscale(1);
+}
+
+#character-preview-status.status-selected {
+  color: #2e7d32;
+}
+
+#character-preview-status.status-taken {
+  color: #c0392b;
 }
 
 .btn-main { background-color: #FFF59D; color: #3E2723; } 

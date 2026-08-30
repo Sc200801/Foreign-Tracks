@@ -104,6 +104,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputJoinCode = document.getElementById('input-room-code') || document.getElementById('input-join-code');
     const formUnirseSala = document.getElementById('form-unirse-sala');
 
+    const PERSONAJES = [
+        { key: 'rubi', name: 'Rubi', img: 'src/assets/characters/portraits/rubi.png' },
+        { key: 'luba', name: 'Luba', img: 'src/assets/characters/portraits/luba.png' },
+        { key: 'tuby', name: 'Tuby', img: 'src/assets/characters/portraits/tuby.png' },
+        { key: 'Yoongui', name: 'Yoongui', img: 'src/assets/characters/portraits/Yoongui.png' },
+        // Vera y Aethel todavía no tienen hoja de sprites de
+        // caminata propia (ver CHARACTER_SPRITE_FALLBACK en game.js);
+        // por ahora usan la animación de otro personaje "prestada".
+        { key: 'vera', name: 'Vera', img: 'src/assets/characters/portraits/vera.png' },
+        { key: 'aethel', name: 'Aethel', img: 'src/assets/characters/portraits/aethel.png' }
+    ];
+
+    const btnCharacterPrev = document.getElementById('btn-character-prev');
+    const btnCharacterNext = document.getElementById('btn-character-next');
+    const btnCharacterPreview = document.getElementById('btn-character-preview');
+    const imgCharacterPreview = document.getElementById('character-preview-img');
+    const nameCharacterPreview = document.getElementById('character-preview-name');
+    const statusCharacterPreview = document.getElementById('character-preview-status');
+    const btnPlayScene1 = document.getElementById('btn-play-scene1');
+
+    // Se actualiza en cada room:update; el botón de PLAY solo
+    // dispara room:start_scene para todos si lo aprieta el profesor.
+    let esProfesorActual = false;
+
     if (inputJoinCode) {
         if (inputJoinCode.value.includes('http') || inputJoinCode.value.includes('localhost')) {
             inputJoinCode.value = '';
@@ -224,6 +248,118 @@ document.addEventListener('DOMContentLoaded', () => {
         btnStartGame.addEventListener('click', () => {
             const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
             if (room.code && socket?.connected) socket.emit('room:start', { roomId: room.code });
+        });
+    }
+
+    // 5.B. SELECCIÓN DE PERSONAJE (carrusel: una imagen a la vez,
+    // con flechas para recorrer las opciones; sincronizada y
+    // exclusiva por sala).
+    let indiceCarrusel = 0;
+    let ultimosJugadores = [];
+    let carruselYaCentrado = false;
+
+    function renderizarCarrusel() {
+        const personaje = PERSONAJES[indiceCarrusel];
+        if (!personaje || !btnCharacterPreview) return;
+
+        const miId = socket?.id;
+        const tomadoPor = ultimosJugadores.find(
+            (p) => p.character === personaje.key && p.id !== miId
+        );
+        const esMio = ultimosJugadores.some(
+            (p) => p.id === miId && p.character === personaje.key
+        );
+
+        imgCharacterPreview.src = personaje.img;
+        imgCharacterPreview.alt = personaje.name;
+        nameCharacterPreview.textContent = personaje.name;
+
+        btnCharacterPreview.classList.toggle('selected', esMio);
+        btnCharacterPreview.classList.toggle('taken', !!tomadoPor);
+        btnCharacterPreview.disabled = !!tomadoPor;
+
+        if (statusCharacterPreview) {
+            statusCharacterPreview.classList.remove('status-selected', 'status-taken');
+            if (esMio) {
+                statusCharacterPreview.textContent = '✓ Tu personaje';
+                statusCharacterPreview.classList.add('status-selected');
+            } else if (tomadoPor) {
+                statusCharacterPreview.textContent = `Ocupado por ${tomadoPor.name}`;
+                statusCharacterPreview.classList.add('status-taken');
+            } else {
+                statusCharacterPreview.textContent = '';
+            }
+        }
+    }
+
+    function moverCarrusel(direccion) {
+        const total = PERSONAJES.length;
+        indiceCarrusel = (indiceCarrusel + direccion + total) % total;
+        renderizarCarrusel();
+    }
+
+    if (btnCharacterPrev) {
+        btnCharacterPrev.addEventListener('click', () => moverCarrusel(-1));
+    }
+
+    if (btnCharacterNext) {
+        btnCharacterNext.addEventListener('click', () => moverCarrusel(1));
+    }
+
+    if (btnCharacterPreview) {
+        btnCharacterPreview.addEventListener('click', () => {
+            if (btnCharacterPreview.disabled) return;
+
+            const personaje = PERSONAJES[indiceCarrusel];
+            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+
+            if (room.code && socket?.connected) {
+                socket.emit('room:select_character', { roomId: room.code, character: personaje.key });
+            } else {
+                // Sin sala activa (por ejemplo, pruebas locales de la escena):
+                // guarda la selección solo en este navegador.
+                window.localStorage.setItem('selectedCharacter', personaje.key);
+                renderizarCarrusel();
+            }
+        });
+    }
+
+    function actualizarSeleccionPersonajes(players) {
+        ultimosJugadores = players;
+
+        const miId = socket?.id;
+        const miJugador = players.find((p) => p.id === miId);
+        const miPersonaje = miJugador ? miJugador.character : null;
+
+        // La primera vez que llega el estado de la sala, si ya
+        // tengo un personaje asignado (ej. al recargar la página),
+        // centra el carrusel en él en vez de dejarlo en el primero.
+        if (!carruselYaCentrado && miPersonaje) {
+            const idx = PERSONAJES.findIndex((p) => p.key === miPersonaje);
+            if (idx !== -1) indiceCarrusel = idx;
+            carruselYaCentrado = true;
+        }
+
+        renderizarCarrusel();
+
+        if (miPersonaje) {
+            window.localStorage.setItem('selectedCharacter', miPersonaje);
+        }
+    }
+
+    // Mostrar el primer personaje aunque todavía no haya
+    // llegado ningún room:update (ej. probando la sala sin backend).
+    renderizarCarrusel();
+
+    // 5.C. EL PROFESOR ABRE LA ESCENA PARA TODA LA SALA
+    if (btnPlayScene1) {
+        btnPlayScene1.addEventListener('click', () => {
+            if (!esProfesorActual) return;
+
+            const room = JSON.parse(localStorage.getItem('currentRoom') || '{}');
+            if (room.code && socket?.connected) {
+                socket.emit('room:start_scene', { roomId: room.code });
+            }
         });
     }
 
@@ -367,6 +503,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const esProfesor = roomData.hostId === socket.id;
+            esProfesorActual = esProfesor;
+
+            actualizarSeleccionPersonajes(players);
 
             for (let i = 1; i <= 4; i++) {
                 const card = document.getElementById(`card-player${i}`);
@@ -395,6 +534,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
         socket.on('room:game_started', () => {
             navegarA('pantalla-seleccion-escena');
+        });
+
+        // El profesor le dio PLAY a la escena: se abre automáticamente
+        // para todos los que estén en la sala, sin que cada quien
+        // tenga que presionar PLAY por su cuenta.
+        socket.on('room:scene_started', () => {
+            navegarA('pantalla-juego-canvas');
+
+            requestAnimationFrame(() => {
+                if (typeof window.startHotelGame === 'function') {
+                    window.startHotelGame();
+                }
+            });
         });
 
         socket.on('room:returned_to_lobby', () => {
