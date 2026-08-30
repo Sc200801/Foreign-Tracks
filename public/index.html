@@ -51,7 +51,8 @@
     }
 
     /* 🎨 Los estilos de la Tarjeta Flotante "¿Quiénes Somos?" y Podio
-       (.pixel-card-container, .pixel-title-modal, .pixel-content-box, .pixel-btn-yellow)
+       (.pixel-card-container, .pixel-title-modal, .pixel-content-box, .pixel-btn-yellow,
+       .podium-window, .results-banner, .podium-stage, .podium-card, .fourth-place, etc.)
        viven únicamente en style.css. Se quitaron de aquí a propósito: este bloque
        se carga DESPUÉS del <link rel="stylesheet" href="style.css">, así que si estas
        clases se repitieran en ambos lados, las reglas de este bloque ganarían siempre
@@ -361,12 +362,16 @@
 
 <!-- =========================================================
      11. MODAL FLOTANTE DEL PODIO DE RESULTADOS
+
+     IMPORTANTE:
+     El contenido visual del podio se genera completamente desde
+     src/js/podium.js para evitar duplicar elementos del diseño.
+
+     El modal conserva #podium-modal y .pixel-card-container porque
+     podium.js los utiliza como contenedor principal.
      ========================================================= -->
 <div id="podium-modal" class="modal-overlay oculto">
-  <div class="pixel-card-container">
-    <h2 class="pixel-title-modal">PODIO DE RESULTADOS</h2>
-    <div id="podium-cards" style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; margin-bottom: 1rem;"></div>
-  </div>
+  <div class="pixel-card-container podium-window"></div>
 </div>
 
 <!-- =========================================================

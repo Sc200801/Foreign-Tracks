@@ -735,3 +735,722 @@ input[type="text"], input[type="password"] {
   transform: translate(1px, 1px);
   box-shadow: 0px 0px 0px #3E2723;
 }
+
+/* =========================================================
+   PODIO DE RESULTADOS FINALES — estilo pixel art
+   Diseño basado en la referencia proporcionada:
+   - Nombre encima del avatar
+   - Puntos y respuestas debajo del avatar
+   - 2º a la izquierda, 1º al centro, 3º a la derecha
+   - El puesto aparece dentro del bloque grande del podio
+   - 4º lugar en una tarjeta horizontal inferior
+   ========================================================= */
+
+/* Ventana principal del podio */
+.podium-window {
+  width: 90%;
+  max-width: 780px;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 24px 28px 20px;
+
+  background: linear-gradient(
+    180deg,
+    #2F4C4C 0%,
+    #314D4D 32%,
+    #6E7770 68%,
+    #CCCBBA 100%
+  );
+
+  border: 4px solid #3E2723;
+  box-shadow: 6px 6px 0 #1A100C;
+  border-radius: 12px;
+  text-align: center;
+}
+
+/* =========================================================
+   TÍTULO FOREIGN TRACKS
+   ========================================================= */
+
+.podium-title-main {
+  margin: 0 0 10px;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.25rem;
+  line-height: 1.2;
+  letter-spacing: 2px;
+  color: #FFF59D;
+  text-shadow: 2px 2px 0 #1A100C;
+  text-transform: uppercase;
+}
+
+/* Compatibilidad por si se utiliza la estructura antigua */
+.podium-header {
+  margin-bottom: 10px;
+}
+
+.podium-logo {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 1.1rem;
+  color: #FFF59D;
+  text-shadow: 2px 2px 0 #1A100C;
+  letter-spacing: 1px;
+}
+
+/* =========================================================
+   BANNER ROOM CHAMPIONS / FINAL RESULTS
+   ========================================================= */
+
+.podium-result-header {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  width: 88%;
+  max-width: 540px;
+  height: 50px;
+  margin: 0 auto 20px;
+}
+
+.podium-header-center {
+  flex: 1;
+  min-width: 0;
+  background: #FFF6DC;
+  border-top: 3px solid #69462D;
+  border-bottom: 3px solid #69462D;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.podium-header-small {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.46rem;
+  line-height: 1.2;
+  letter-spacing: 1px;
+  color: #5C4434;
+}
+
+.podium-header-big {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.82rem;
+  line-height: 1.25;
+  letter-spacing: 1px;
+  color: #4E3C31;
+}
+
+.podium-header-place {
+  width: 62px;
+  flex: 0 0 62px;
+  background: #A97845;
+  color: #FFF1C8;
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.8rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-top: 3px solid #69462D;
+  border-bottom: 3px solid #69462D;
+  box-sizing: border-box;
+}
+
+.podium-header-left {
+  clip-path: polygon(
+    18% 0,
+    100% 0,
+    100% 100%,
+    18% 100%,
+    0 50%
+  );
+  padding-left: 8px;
+}
+
+.podium-header-right {
+  clip-path: polygon(
+    0 0,
+    82% 0,
+    100% 50%,
+    82% 100%,
+    0 100%
+  );
+  padding-right: 8px;
+}
+
+/* =========================================================
+   CONTENEDOR DE LOS TRES PRIMEROS
+   ========================================================= */
+
+.podium-top-three {
+  width: 94%;
+  max-width: 650px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  align-items: end;
+  gap: 12px;
+}
+
+/* Compatibilidad con el contenedor anterior */
+.podium-stage {
+  width: 94%;
+  max-width: 650px;
+  margin: 0 auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  min-height: 230px;
+}
+
+/* =========================================================
+   JUGADORES
+   ========================================================= */
+
+.podium-player {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  box-sizing: border-box;
+}
+
+.podium-player-name {
+  width: 100%;
+  min-height: 28px;
+  margin-bottom: 6px;
+
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.72rem;
+  line-height: 1.25;
+  color: #FFF4D1;
+  text-shadow: 2px 2px 0 #4B3729;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Avatar */
+.podium-avatar {
+  width: 68px;
+  height: 68px;
+  object-fit: cover;
+
+  border: 3px solid #D4BD82;
+  border-radius: 7px;
+  background: #EEE4C8;
+
+  box-shadow:
+    0 3px 0 #6B5944,
+    inset 0 0 0 2px #FFF6D9;
+
+  image-rendering: pixelated;
+  box-sizing: border-box;
+}
+
+.podium-rank-1 .podium-avatar {
+  width: 78px;
+  height: 78px;
+  border-color: #DCAE37;
+}
+
+.podium-rank-2 .podium-avatar {
+  border-color: #C9D2D6;
+}
+
+.podium-rank-3 .podium-avatar {
+  border-color: #C98A4F;
+}
+
+/* Estadísticas */
+.podium-stats {
+  margin: 7px 0 8px;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.podium-points,
+.podium-resp {
+  font-family: 'Press Start 2P', cursive;
+  color: #211C18;
+}
+
+.podium-points {
+  font-size: 0.56rem;
+  font-weight: bold;
+}
+
+.podium-resp {
+  margin-top: 3px;
+  font-size: 0.52rem;
+}
+
+/* =========================================================
+   BLOQUES DEL PODIO
+   ========================================================= */
+
+.podium-block {
+  width: 100%;
+  min-width: 0;
+
+  background: linear-gradient(
+    180deg,
+    #DDBB70 0%,
+    #C89B54 55%,
+    #98703A 100%
+  );
+
+  border: 3px solid #805A2E;
+  box-shadow:
+    inset 0 0 0 2px rgba(255,255,255,0.18),
+    0 4px 0 #69492A;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.podium-rank-1 .podium-block {
+  height: 145px;
+}
+
+.podium-rank-2 .podium-block {
+  height: 110px;
+}
+
+.podium-rank-3 .podium-block {
+  height: 80px;
+}
+
+/* Texto del puesto dentro del bloque */
+.podium-place-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  color: #FFF6D3;
+  font-family: 'Press Start 2P', cursive;
+  text-shadow: 3px 3px 0 #72522E;
+  line-height: 1;
+}
+
+.podium-place-number {
+  font-size: 2.65rem;
+  font-weight: bold;
+}
+
+.podium-place-word {
+  margin-top: 9px;
+  font-size: 1rem;
+  font-weight: bold;
+  letter-spacing: 1px;
+}
+
+.podium-rank-1 .podium-place-number {
+  font-size: 3.1rem;
+}
+
+.podium-rank-1 .podium-place-word {
+  font-size: 1.12rem;
+}
+
+/* Orden visual:
+   2º | 1º | 3º */
+.podium-rank-1 {
+  order: 2;
+}
+
+.podium-rank-2 {
+  order: 1;
+}
+
+.podium-rank-3 {
+  order: 3;
+}
+
+/* =========================================================
+   ANIMACIÓN DE REVELADO
+   ========================================================= */
+
+.podium-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 350ms ease,
+    transform 350ms ease;
+}
+
+.podium-reveal.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Compatibilidad con la animación anterior */
+.podium-card {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 350ms ease,
+    transform 350ms ease;
+}
+
+.podium-card.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* =========================================================
+   CUARTO LUGAR
+   ========================================================= */
+
+.podium-fourth-new {
+  width: 88%;
+  max-width: 650px;
+  min-height: 60px;
+  margin: 24px auto 0;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 7px 14px;
+  box-sizing: border-box;
+
+  background: #FFF6DF;
+  border: 3px solid #725036;
+  box-shadow: 0 3px 0 #4A3323;
+
+  color: #29231E;
+}
+
+.podium-fourth-title {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.68rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.podium-fourth-avatar {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+
+  border: 2px solid #B89A62;
+  border-radius: 4px;
+  background: #EEE4C8;
+
+  image-rendering: pixelated;
+}
+
+.podium-fourth-name {
+  flex: 1;
+  min-width: 0;
+
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.62rem;
+  font-weight: bold;
+  text-align: left;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.podium-fourth-points {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.58rem;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.podium-fourth-badge {
+  padding: 5px 7px;
+
+  background: #E5C3A7;
+  border: 2px solid #855A43;
+
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.42rem;
+  white-space: nowrap;
+}
+
+/* Compatibilidad con el cuarto lugar anterior */
+.fourth-place {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.fourth-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #FFF3D6;
+  border: 3px solid #3E2723;
+  box-shadow: 0 3px 0 #1A100C;
+  padding: 8px 14px;
+}
+
+/* =========================================================
+   MENSAJE FINAL
+   ========================================================= */
+
+.podium-footnote-new {
+  width: 90%;
+  margin: 16px auto 8px;
+
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.52rem;
+  line-height: 1.7;
+  text-align: center;
+
+  color: #E8D7B0;
+}
+
+.podium-footnote-new.podium-reveal {
+  opacity: 0;
+}
+
+.podium-footnote-new.is-revealed {
+  opacity: 1;
+}
+
+/* Compatibilidad con el mensaje anterior */
+.collab-footnote {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.55rem;
+  color: #FFF3D6;
+  text-align: center;
+  margin: 16px 0 4px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   BOTÓN ABOUT US
+   ========================================================= */
+
+#podium-modal #btn-about-us {
+  display: block;
+  width: 90%;
+  max-width: 600px;
+  margin: 12px auto 0;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .podium-window {
+    width: 96%;
+    max-height: 94vh;
+    padding: 18px 12px 16px;
+  }
+
+  .podium-title-main {
+    font-size: 0.95rem;
+  }
+
+  .podium-result-header {
+    width: 96%;
+    height: 44px;
+  }
+
+  .podium-header-place {
+    width: 48px;
+    flex-basis: 48px;
+    font-size: 0.62rem;
+  }
+
+  .podium-header-small {
+    font-size: 0.38rem;
+  }
+
+  .podium-header-big {
+    font-size: 0.6rem;
+  }
+
+  .podium-top-three {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .podium-player-name {
+    font-size: 0.55rem;
+  }
+
+  .podium-avatar {
+    width: 54px;
+    height: 54px;
+  }
+
+  .podium-rank-1 .podium-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .podium-points {
+    font-size: 0.44rem;
+  }
+
+  .podium-resp {
+    font-size: 0.42rem;
+  }
+
+  .podium-rank-1 .podium-block {
+    height: 120px;
+  }
+
+  .podium-rank-2 .podium-block {
+    height: 92px;
+  }
+
+  .podium-rank-3 .podium-block {
+    height: 68px;
+  }
+
+  .podium-place-number {
+    font-size: 2rem;
+  }
+
+  .podium-rank-1 .podium-place-number {
+    font-size: 2.35rem;
+  }
+
+  .podium-place-word {
+    font-size: 0.72rem;
+  }
+
+  .podium-rank-1 .podium-place-word {
+    font-size: 0.82rem;
+  }
+
+  .podium-fourth-new {
+    width: 98%;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .podium-fourth-title {
+    font-size: 0.48rem;
+  }
+
+  .podium-fourth-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .podium-fourth-name {
+    font-size: 0.48rem;
+  }
+
+  .podium-fourth-points {
+    font-size: 0.45rem;
+  }
+
+  .podium-fourth-badge {
+    display: none;
+  }
+
+  .podium-footnote-new {
+    font-size: 0.42rem;
+  }
+}
+
+@media (max-width: 480px) {
+
+  .podium-window {
+    width: 98%;
+    padding: 16px 8px 14px;
+  }
+
+  .podium-top-three {
+    gap: 4px;
+  }
+
+  .podium-player-name {
+    font-size: 0.46rem;
+  }
+
+  .podium-avatar {
+    width: 46px;
+    height: 46px;
+  }
+
+  .podium-rank-1 .podium-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .podium-points {
+    font-size: 0.36rem;
+  }
+
+  .podium-resp {
+    font-size: 0.34rem;
+  }
+
+  .podium-rank-1 .podium-block {
+    height: 105px;
+  }
+
+  .podium-rank-2 .podium-block {
+    height: 80px;
+  }
+
+  .podium-rank-3 .podium-block {
+    height: 60px;
+  }
+
+  .podium-place-number {
+    font-size: 1.65rem;
+  }
+
+  .podium-rank-1 .podium-place-number {
+    font-size: 2rem;
+  }
+
+  .podium-place-word {
+    margin-top: 6px;
+    font-size: 0.58rem;
+  }
+
+  .podium-rank-1 .podium-place-word {
+    font-size: 0.68rem;
+  }
+
+  .podium-fourth-title {
+    font-size: 0.4rem;
+  }
+
+  .podium-fourth-avatar {
+    width: 32px;
+    height: 32px;
+  }
+
+  .podium-fourth-name {
+    font-size: 0.4rem;
+  }
+
+  .podium-fourth-points {
+    font-size: 0.38rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .podium-reveal,
+  .podium-card,
+  .fourth-place,
+  .collab-footnote {
+    transition: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
