@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
-const { GroupRoom } = require('../models');
+const { GroupRoom, RoomPlayer, Player, Scenario, DialogueNode, GameSession } = require('../models');
+const { sequelize } = require('../config/db'); // 👈 Importado para operaciones acumulativas (sequelize.literal)
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
 
@@ -96,12 +97,13 @@ module.exports = (io, socket) => {
     } catch (error) {
       console.error('❌ Error al procesar room:create:', error);
       const errorMsg = 'Ocurrió un problema al registrar la sala en la base de datos.';
-      socket.emit('room:error', { message: errorMsg });
+      return socket.emit('room:error', { message: errorMsg });
     }
   });
 
-// 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
-  const handleJoinRoom = (data) => {
+  // 2. UNIRSE A UNA SALA DE JUEGO (Estudiante)
+  const handleJoinRoom = async (data) => {
+
     const targetRoomId = data?.roomId || data?.roomCode;
     let username = data?.username;
 
@@ -121,20 +123,22 @@ module.exports = (io, socket) => {
       username = null;
     }
 
-    if (!username && socket.user) {
-      username = socket.user.fullname || socket.user.username || socket.user.name;
+    let studentId = null;
+
+    if (socket.user) {
+      username = username || socket.user.fullname || socket.user.username || socket.user.name;
+      studentId = socket.user.id || socket.user.userId;
     }
 
-    if (!username) {
-      const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
-      if (token) {
-        try {
-          const decoded = jwt.verify(token, JWT_SECRET);
-          const raw = decoded.user || decoded.data || decoded;
-          username = raw.fullname || raw.username || raw.name || raw.nombre;
-        } catch (e) {
-          console.warn('⚠️ No se pudo decodificar el token JWT al unirse a la sala:', e.message);
-        }
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        const raw = decoded.user || decoded.data || decoded;
+        if (!username) username = raw.fullname || raw.username || raw.name || raw.nombre;
+        if (!studentId) studentId = raw.id || raw.userId;
+      } catch (e) {
+        console.warn('⚠️ No se pudo decodificar el token JWT al unirse a la sala:', e.message);
       }
     }
 
@@ -142,11 +146,9 @@ module.exports = (io, socket) => {
       ? username.trim() 
       : `Jugador-${socket.id.slice(0, 4)}`;
 
-    // PRIMERO: Buscar si el jugador YA EXISTE en la sala (por Socket ID o por Nombre)
     let jugadorExistente = room.players.find(p => p.id === socket.id || p.name.toLowerCase() === finalUsername.toLowerCase());
 
     if (jugadorExistente) {
-      // Es una reconexión o recarga de página (F5)
       const timerKey = `player_${targetRoomId}_${jugadorExistente.name}`;
       if (disconnectTimers[timerKey]) {
         clearTimeout(disconnectTimers[timerKey]);
@@ -154,15 +156,39 @@ module.exports = (io, socket) => {
       }
 
       console.log(`🔄 Reconectando a "${finalUsername}" (Nuevo Socket: ${socket.id}). Conserva isReady = ${jugadorExistente.isReady}`);
-      jugadorExistente.id = socket.id; // Actualizar con el socket actual
+      jugadorExistente.id = socket.id;
     } else {
-      // SI ES UN JUGADOR NUEVO: Validar cupo
       if (room.players.length >= 4) {
         return socket.emit('room:error', { message: 'La sala ya está llena (máximo 4 jugadores).' });
       }
 
+      if (room.dbRoomId && studentId) {
+        try {
+          const [roomPlayerRecord, created] = await RoomPlayer.findOrCreate({
+            where: {
+              roomId: room.dbRoomId,
+              playerId: studentId
+            },
+            defaults: {
+              groupRole: 'member'
+            }
+          });
+
+          if (created) {
+            console.log(`💾 Estudiante ID ${studentId} registrado en RoomPlayer (ID Registro: ${roomPlayerRecord.id}) para la sala DB ${room.dbRoomId}`);
+          } else {
+            console.log(`ℹ️ Registro de estudiante ID ${studentId} ya existía en RoomPlayer para la sala DB ${room.dbRoomId}`);
+          }
+        } catch (dbErr) {
+          console.error('❌ Error al registrar RoomPlayer en MariaDB:', dbErr.message);
+        }
+      } else {
+        console.warn('⚠️ Se omitió el guardado en RoomPlayer: falta dbRoomId o el ID del estudiante.');
+      }
+
       room.players.push({
         id: socket.id,
+        dbPlayerId: studentId || null,
         name: finalUsername,
         isReady: false, // Nuevo jugador entra como NO LISTO por defecto
         character: null // Se asigna con room:select_character
@@ -182,10 +208,12 @@ module.exports = (io, socket) => {
     io.to(targetRoomId).emit('room:update', room);
   };
 
+  // Se asegura de desacoplar listener previo si existía en la instancia de este socket
+  socket.removeAllListeners('room:join');
   socket.on('room:join', handleJoinRoom);
-  socket.on('unirse-sala', handleJoinRoom);
 
   // 3. CAMBIAR ESTADO "READY / PREPARADO" (Estudiantes)
+  socket.removeAllListeners('room:toggle_ready');
   socket.on('room:toggle_ready', (data) => {
     const { roomId } = data || {};
     const room = rooms[roomId];
@@ -228,8 +256,10 @@ module.exports = (io, socket) => {
     io.to(roomId).emit('room:update', room);
   });
 
-  // 4. INICIAR JUEGO CON VALIDACIÓN RIGUROSA DE "READY"
-  socket.on('room:start', (data) => {
+  // 4. INICIAR JUEGO CON CREACIÓN DE GAME SESSIONS Y ASIGNACIÓN DE TURNOS
+  socket.removeAllListeners('room:start');
+  socket.on('room:start', async (data) => {
+
     const { roomId } = data || {};
     const room = rooms[roomId];
 
@@ -251,17 +281,108 @@ module.exports = (io, socket) => {
     if (sinPreparar.length > 0) {
       const nombresPendientes = sinPreparar.map(p => p.name).join(', ');
       console.log(`⚠️ Intento de inicio bloqueado. Faltan por confirmar: ${nombresPendientes}`);
+      
       return socket.emit('room:error', { 
         message: `No se puede iniciar. Aún hay alumnos sin confirmar listo: ${nombresPendientes}` 
       });
     }
 
-    console.log(`🏁 Todos listos. El profesor inició la partida en la sala ${roomId}`);
+    try {
+      let roomPlayers = [];
+      
+      if (room.dbRoomId) {
+        try {
+          roomPlayers = await RoomPlayer.findAll({
+            where: { roomId: room.dbRoomId },
+            order: [['createdAt', 'ASC']],
+            include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
+          });
+        } catch (errDbFetch) {
+          console.warn('⚠️ No se pudieron obtener los RoomPlayers de la BD, utilizando datos de memoria:', errDbFetch.message);
+        }
+      }
 
-    io.to(roomId).emit('room:game_started', {
-      roomId: roomId,
-      message: '¡El juego ha comenzado!'
-    });
+      const hotelScenario = await Scenario.findOne({
+        where: { name: 'Hotel' },
+        include: [
+          {
+            model: DialogueNode,
+            order: [['stepIndex', 'ASC']]
+          }
+        ]
+      });
+
+      if (!hotelScenario || !hotelScenario.DialogueNodes || !hotelScenario.DialogueNodes.length) {
+        return socket.emit('room:error', { message: 'No se encontraron diálogos para el escenario Hotel.' });
+      }
+
+      const firstDialogue = hotelScenario.DialogueNodes[0];
+
+      // 💾 CREACIÓN LIMPIA Y ESTRATÉGICA EN GameSessions
+      const createdSessions = [];
+      const idSalaDB = room.dbRoomId || null;
+
+      // Determinamos los jugadores a registrar (priorizando MariaDB y usando memoria como respaldo)
+      const listaJugadores = roomPlayers.length > 0 
+        ? roomPlayers.map(rp => ({ playerId: rp.playerId, name: rp.Player?.name || rp.Player?.username }))
+        : room.players.map(p => ({ playerId: p.dbPlayerId, name: p.name }));
+
+      if (idSalaDB) {
+        for (const playerItem of listaJugadores) {
+          if (playerItem.playerId) {
+            try {
+              const [session] = await GameSession.findOrCreate({
+                where: {
+                  roomId: idSalaDB,
+                  playerId: playerItem.playerId
+                },
+                defaults: {
+                  roomId: idSalaDB,
+                  playerId: playerItem.playerId,
+                  currentScenarioId: hotelScenario.id,
+                  endingId: null
+                }
+              });
+              createdSessions.push(session);
+            } catch (sessionErr) {
+              console.error(`❌ Error al crear GameSession para el jugador ID ${playerItem.playerId}:`, sessionErr.message);
+            }
+          }
+        }
+        console.log(`💾 Se crearon/verificaron ${createdSessions.length} registros en GameSessions.`);
+      } else {
+        console.warn('⚠️ No se creó registro en GameSessions debido a que la sala no posee dbRoomId.');
+      }
+
+      const turnAssignment = (roomPlayers.length > 0 ? roomPlayers : room.players).map((p, index) => ({
+        turnOrder: index + 1,
+        playerId: p.playerId || p.dbPlayerId || p.id,
+        playerInfo: p.Player || { username: p.name, fullname: p.name }
+      }));
+
+      const activeTurn = turnAssignment.find(t => t.turnOrder === firstDialogue.targetPlayer) || turnAssignment[0];
+
+      console.log(`🏁 Todos listos. El profesor inició la partida en la sala ${roomId}`);
+
+      io.to(roomId).emit('room:game_started', {
+        roomId: roomId,
+        message: '¡El juego ha comenzado!',
+        turns: turnAssignment,
+        activePlayerId: activeTurn ? activeTurn.playerId : null,
+        dialogue: {
+          id: firstDialogue.id,
+          stepIndex: firstDialogue.stepIndex,
+          situationTextEn: firstDialogue.situationTextEn,
+          correctAnswerPattern: firstDialogue.correctAnswerPattern,
+          wrongAnswer: firstDialogue.wrongAnswer,
+          targetPlayer: firstDialogue.targetPlayer
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ Error al iniciar partida en room:start:', error);
+      return socket.emit('room:error', { message: 'Ocurrió un error al procesar el inicio en la base de datos.' });
+    }
   });
 
   // 4.B. EL PROFESOR ABRE LA ESCENA DEL HOTEL PARA TODOS A LA VEZ
@@ -316,7 +437,139 @@ module.exports = (io, socket) => {
     });
   });
 
+  // 4.1 SUBMIT DE RESPUESTA EN DIÁLOGO (Validación, Puntos, Vida Grupal y Avance)
+  socket.removeAllListeners('dialogue:submit_answer');
+  socket.on('dialogue:submit_answer', async (data) => {
+    const { roomId, dialogueId, selectedAnswer } = data || {};
+
+    if (!roomId || !dialogueId || !selectedAnswer) {
+      return socket.emit('room:error', { message: 'Faltan parámetros requeridos para procesar la respuesta.' });
+    }
+
+    const room = rooms[roomId];
+    if (!room) {
+      return socket.emit('room:error', { message: 'La sala especificada no existe.' });
+    }
+
+    try {
+      // 1. Obtener el nodo de diálogo actual
+      const currentDialogue = await DialogueNode.findByPk(dialogueId);
+      if (!currentDialogue) {
+        return socket.emit('room:error', { message: 'No se encontró el nodo de diálogo.' });
+      }
+
+      // 2. Normalizar y comparar la respuesta elegida con la correcta
+      const isCorrect = selectedAnswer.trim().toLowerCase() === currentDialogue.correctAnswerPattern.trim().toLowerCase();
+
+      // 3. Identificar al jugador que respondió (a través de socket.id o JWT)
+      let playerInRoom = room.players.find(p => p.id === socket.id);
+      let studentId = playerInRoom ? playerInRoom.dbPlayerId : null;
+
+      if (!studentId && socket.user) {
+        studentId = socket.user.id || socket.user.userId;
+      }
+
+      if (isCorrect) {
+        // --- CASO RESPUESTA CORRECTA ---
+        if (room.dbRoomId && studentId) {
+          await GameSession.update(
+            { accumulatedEnglishScore: sequelize.literal('accumulatedEnglishScore + 10') },
+            { where: { roomId: room.dbRoomId, playerId: studentId } }
+          );
+        }
+
+        const nextStepIndex = currentDialogue.stepIndex + 1;
+        const nextDialogue = await DialogueNode.findOne({
+          where: {
+            scenarioId: currentDialogue.scenarioId,
+            stepIndex: nextStepIndex
+          }
+        });
+
+        if (nextDialogue) {
+          let roomPlayers = [];
+          if (room.dbRoomId) {
+            roomPlayers = await RoomPlayer.findAll({
+              where: { roomId: room.dbRoomId },
+              order: [['createdAt', 'ASC']],
+              include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
+            });
+          }
+
+          const turnAssignment = (roomPlayers.length > 0 ? roomPlayers : room.players).map((p, index) => ({
+            turnOrder: index + 1,
+            playerId: p.playerId || p.dbPlayerId || p.id,
+            playerInfo: p.Player || { username: p.name, fullname: p.name }
+          }));
+
+          const activeTurn = turnAssignment.find(t => t.turnOrder === nextDialogue.targetPlayer) || turnAssignment[0];
+
+          io.to(roomId).emit('dialogue:success', {
+            message: '¡Respuesta correcta!',
+            nextDialogue: {
+              id: nextDialogue.id,
+              stepIndex: nextDialogue.stepIndex,
+              situationTextEn: nextDialogue.situationTextEn,
+              correctAnswerPattern: nextDialogue.correctAnswerPattern,
+              wrongAnswer: nextDialogue.wrongAnswer,
+              targetPlayer: nextDialogue.targetPlayer
+            },
+            activePlayerId: activeTurn ? activeTurn.playerId : null,
+            turns: turnAssignment
+          });
+        } else {
+          io.to(roomId).emit('scenario:completed', {
+            message: '¡Felicidades! Han completado el escenario con éxito.'
+          });
+        }
+
+      } else {
+        // --- CASO RESPUESTA INCORRECTA ---
+        const DAMAGE = 20.00;
+
+        if (room.dbRoomId) {
+          await GameSession.update(
+            { survivalHealth: sequelize.literal(`GREATEST(0, survivalHealth - ${DAMAGE})`) },
+            { where: { roomId: room.dbRoomId } }
+          );
+        }
+
+        let currentHealth = 100 - DAMAGE;
+        if (room.dbRoomId) {
+          const sampleSession = await GameSession.findOne({
+            where: { roomId: room.dbRoomId }
+          });
+          if (sampleSession) {
+            currentHealth = sampleSession.survivalHealth;
+          }
+        }
+
+        let parsedFeedback = null;
+        if (currentDialogue.feedbackText) {
+          try {
+            parsedFeedback = JSON.parse(currentDialogue.feedbackText);
+          } catch (e) {
+            parsedFeedback = currentDialogue.feedbackText;
+          }
+        }
+
+        io.to(roomId).emit('dialogue:error', {
+          message: 'Respuesta incorrecta. La vida del grupo ha disminuido.',
+          damageTaken: DAMAGE,
+          remainingHealth: currentHealth,
+          feedback: parsedFeedback,
+          dialogueId: currentDialogue.id
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Error al procesar dialogue:submit_answer:', error);
+      return socket.emit('room:error', { message: 'Error interno al validar la respuesta.' });
+    }
+  });
+
   // 5. REGRESAR A LA SALA / LOBBY (SINCRONIZACIÓN FORZADA Y GLOBAL)
+  socket.removeAllListeners('room:back_to_lobby');
   socket.on('room:back_to_lobby', (data) => {
     const { roomId } = data || {};
     if (!roomId) return;
@@ -325,12 +578,9 @@ module.exports = (io, socket) => {
 
     console.log(`🔄 [ROOMHANDLER] Forzando regreso al lobby para la sala: ${roomId}`);
 
-    // A) Notificar a toda la sala
     io.to(roomId).emit('room:returned_to_lobby', { roomId });
 
-    // B) Notificar a TODOS los sockets conectados globalmente que tengan esa sala guardada
     if (room) {
-      // Forzar a que todos los sockets involucrados vuelvan a unirse a la sala si se habían salido
       if (room.hostId) io.sockets.sockets.get(room.hostId)?.join(roomId);
       
       room.players.forEach(p => {
@@ -341,12 +591,12 @@ module.exports = (io, socket) => {
         }
       });
 
-      // Emitir el update con la lista de jugadores actualizada
       io.to(roomId).emit('room:update', room);
     }
   });
 
   // 6. SALIR DE UNA SALA DE JUEGO (Salida Voluntaria)
+  socket.removeAllListeners('room:leave');
   socket.on('room:leave', (data) => {
     const { roomId } = data || {};
     if (!roomId || !rooms[roomId]) return;
@@ -366,7 +616,41 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 7. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
+  // 7. GESTIÓN DEL CHAT MULTIJUGADOR Y MÉTRICA DE PARTICIPACIÓN
+  socket.removeAllListeners('enviar-mensaje-chat');
+  socket.on('enviar-mensaje-chat', (data) => {
+    const { roomId, usuario, mensaje, palabrasContadas, totalAcumulado, timestamp } = data || {};
+
+    if (!mensaje) return;
+
+    let senderName = usuario;
+    if (!senderName && socket.user) {
+      senderName = socket.user.fullname || socket.user.name || socket.user.username;
+    }
+    if (!senderName && roomId && rooms[roomId]) {
+      const p = rooms[roomId].players.find(player => player.id === socket.id);
+      if (p) senderName = p.name;
+    }
+    senderName = senderName || 'Estudiante';
+
+    const responsePayload = {
+      usuario: senderName,
+      mensaje: mensaje,
+      palabrasContadas: palabrasContadas || 0,
+      totalAcumulado: totalAcumulado || 0,
+      timestamp: timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      socketId: socket.id
+    };
+
+    if (roomId) {
+      io.to(roomId).emit('mensaje-chat-recibido', responsePayload);
+    } else {
+      io.emit('mensaje-chat-recibido', responsePayload);
+    }
+  });
+
+  // 8. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
+  socket.removeAllListeners('disconnect');
   socket.on('disconnect', () => {
     for (const roomId in rooms) {
       const room = rooms[roomId];

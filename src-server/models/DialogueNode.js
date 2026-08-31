@@ -15,6 +15,14 @@ const DialogueNode = sequelize.define('DialogueNode', {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+  wrongAnswer: { // 👈 AGREGADO: Almacena las opciones incorrectas/distractores
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  feedbackText: { // 👈 NUEVO: Almacena la explicación pedagógica si el jugador falla
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
   targetPlayer: {
     type: DataTypes.INTEGER,
     allowNull: false,

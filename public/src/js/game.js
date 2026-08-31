@@ -95,6 +95,13 @@ class HotelScene extends Phaser.Scene {
                 frameHeight: FRAME_SIZE
             }
         );
+
+        // Placa de créditos del equipo, montada sobre la pared
+        // encima del elevador de la recepción (ver createPlacaCreditos).
+        this.load.image(
+            'placa_creditos',
+            'src/assets/ui/placa_esr.png'
+        );
     }
 
     create() {
@@ -167,13 +174,27 @@ class HotelScene extends Phaser.Scene {
 
         this.createMostrador(floorBounds);
 
+        this.createPlacaCreditos(floorBounds);
+
         this.configurarMultijugador();
+
+        this.configurarQuizDialogo();
+
+        // La pared de la recepción (arco, reloj y placa de
+        // créditos) se dibuja arriba del piso caminable. Para que
+        // esa decoración se vea siempre completa (sin depender de
+        // qué tan cerca esté el jugador del mostrador), el encuadre
+        // de la cámara se calcula sobre la UNIÓN de piso + pared,
+        // no solo el piso. El área donde puede caminar el jugador
+        // (physics.world.setBounds, más arriba) no se toca.
+        const wallsBounds = this.getFloorBounds(map, 'Walls');
+        const encuadre = this.unirBounds(floorBounds, wallsBounds);
 
         // Acercar la cámara al máximo posible sin deformar
         // la habitación (respeta la relación de aspecto).
         const zoom = Math.min(
-            this.scale.width / floorBounds.width,
-            this.scale.height / floorBounds.height
+            this.scale.width / encuadre.width,
+            this.scale.height / encuadre.height
         );
 
         this.cameras.main.setZoom(zoom);
@@ -185,24 +206,24 @@ class HotelScene extends Phaser.Scene {
         const viewHeight = this.scale.height / zoom;
 
         const boundsWidth = Math.max(
-            floorBounds.width,
+            encuadre.width,
             viewWidth
         );
 
         const boundsHeight = Math.max(
-            floorBounds.height,
+            encuadre.height,
             viewHeight
         );
 
-        const floorCenterX =
-            floorBounds.x + floorBounds.width / 2;
+        const encuadreCenterX =
+            encuadre.x + encuadre.width / 2;
 
-        const floorCenterY =
-            floorBounds.y + floorBounds.height / 2;
+        const encuadreCenterY =
+            encuadre.y + encuadre.height / 2;
 
         this.cameras.main.setBounds(
-            floorCenterX - boundsWidth / 2,
-            floorCenterY - boundsHeight / 2,
+            encuadreCenterX - boundsWidth / 2,
+            encuadreCenterY - boundsHeight / 2,
             boundsWidth,
             boundsHeight
         );
@@ -249,6 +270,23 @@ class HotelScene extends Phaser.Scene {
                 }
             });
         });
+
+        return {
+            x: minX,
+            y: minY,
+            width: maxX - minX,
+            height: maxY - minY
+        };
+    }
+
+    // Rectángulo más pequeño que contiene por completo a los dos
+    // rectángulos recibidos (usado para que el encuadre de la
+    // cámara cubra tanto el piso como la pared de arriba).
+    unirBounds(a, b) {
+        const minX = Math.min(a.x, b.x);
+        const minY = Math.min(a.y, b.y);
+        const maxX = Math.max(a.x + a.width, b.x + b.width);
+        const maxY = Math.max(a.y + a.height, b.y + b.height);
 
         return {
             x: minX,
@@ -554,6 +592,297 @@ class HotelScene extends Phaser.Scene {
         });
     }
 
+    // ---------------------------------------------------------
+    // QUIZ POR TURNOS DE LA RECEPCIONISTA
+    //
+    // Cada estudiante tiene un turno (1-4) asignado según el
+    // orden de llegada en RoomPlayers. Cuando el diálogo activo
+    // (DialogueNode.targetPlayer) coincide con el turno propio,
+    // se muestran los 2 botones de respuesta; si no, se bloquea
+    // la interacción y se avisa a quién le toca.
+    // ---------------------------------------------------------
+    configurarQuizDialogo() {
+        this.miPlayerId = this.obtenerPlayerIdPropio();
+        this.dialogoActual = null;
+        this.esperandoResultadoPropio = false;
+
+        this.elDialogueBox = document.getElementById('hotel-dialogue-box');
+        this.elDialogueTurn = document.getElementById('hotel-dialogue-turn');
+        this.elDialogueText = document.getElementById('hotel-dialogue-text');
+        this.elDialogueOptions = document.getElementById('hotel-dialogue-options');
+        this.elDialogueWaiting = document.getElementById('hotel-dialogue-waiting');
+        this.elDialogueFeedback = document.getElementById('hotel-dialogue-feedback');
+        this.elHealthWrapper = document.getElementById('hotel-health-bar-wrapper');
+        this.elHealthFill = document.getElementById('hotel-health-bar-fill');
+
+        if (!window.socket) {
+            return;
+        }
+
+        // Igual que con los listeners de movimiento: quitar los
+        // de una entrada anterior a la escena antes de agregar
+        // los nuevos, para no duplicar reacciones.
+        [
+            'room:game_started',
+            'dialogue:success',
+            'dialogue:error',
+            'scenario:completed'
+        ].forEach((evento) => {
+            if (this[`_on${evento}`]) {
+                window.socket.off(evento, this[`_on${evento}`]);
+            }
+        });
+
+        this._onroom_game_started = (data) => this.manejarInicioEscenario(data);
+        this._ondialogue_success = (data) => this.manejarRespuestaCorrecta(data);
+        this._ondialogue_error = (data) => this.manejarRespuestaIncorrecta(data);
+        this._onscenario_completed = (data) => this.finalizarEscenario(data);
+
+        window.socket.on('room:game_started', this._onroom_game_started);
+        window.socket.on('dialogue:success', this._ondialogue_success);
+        window.socket.on('dialogue:error', this._ondialogue_error);
+        window.socket.on('scenario:completed', this._onscenario_completed);
+
+        // 'room:game_started' ya se disparó antes de que esta escena
+        // existiera (room.js lo usa para navegar a selección de
+        // escena y lo deja cacheado en window.__ultimoJuegoIniciado).
+        // Si no se procesa aquí, el primer diálogo nunca aparecería.
+        if (window.__ultimoJuegoIniciado) {
+            this.manejarInicioEscenario(window.__ultimoJuegoIniciado);
+        }
+    }
+
+    // El id del jugador (Player de la BD) se guarda al iniciar
+    // sesión en localStorage ('usuarioRegistrado'); es lo que el
+    // servidor usa como playerId/activePlayerId en RoomPlayers.
+    obtenerPlayerIdPropio() {
+        try {
+            const usuario = JSON.parse(
+                window.localStorage.getItem('usuarioRegistrado') || '{}'
+            );
+
+            return usuario.id || usuario.playerId || null;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    manejarInicioEscenario(data) {
+        if (!data) {
+            return;
+        }
+
+        this.elHealthWrapper?.classList.remove('oculto');
+        this.actualizarBarraVida(100);
+
+        this.mostrarDialogo(data.dialogue, data.activePlayerId, data.turns);
+    }
+
+    manejarRespuestaCorrecta(data) {
+        if (!data) {
+            return;
+        }
+
+        this.elDialogueFeedback?.classList.add('oculto');
+
+        if (this.esperandoResultadoPropio) {
+            this.esperandoResultadoPropio = false;
+            window.playHotelAnswerReaction(true);
+        }
+
+        if (data.nextDialogue) {
+            this.mostrarDialogo(data.nextDialogue, data.activePlayerId, data.turns);
+        }
+    }
+
+    manejarRespuestaIncorrecta(data) {
+        if (!data) {
+            return;
+        }
+
+        if (this.esperandoResultadoPropio) {
+            this.esperandoResultadoPropio = false;
+            window.playHotelAnswerReaction(false);
+        }
+
+        this.actualizarBarraVida(data.remainingHealth);
+
+        // El mismo diálogo se vuelve a mostrar (no avanza
+        // stepIndex hasta que respondan bien), reactivando los
+        // botones para quien tenga el turno. IMPORTANTE: esto debe
+        // ir ANTES de mostrar el feedback, porque mostrarDialogo()
+        // oculta el feedback de la ronda anterior al redibujar.
+        if (this.dialogoActual) {
+            this.mostrarDialogo(
+                this.dialogoActual,
+                this.dialogoActualActivePlayerId,
+                this.dialogoActualTurns
+            );
+        }
+
+        if (this.elDialogueFeedback) {
+            const feedback = data.feedback;
+            let texto = data.message || 'Respuesta incorrecta.';
+
+            if (feedback && typeof feedback === 'object') {
+                const clave = Object.keys(feedback)[0];
+                if (clave) {
+                    texto = `${clave}: ${feedback[clave]}`;
+                }
+            } else if (typeof feedback === 'string') {
+                texto = feedback;
+            }
+
+            this.elDialogueFeedback.textContent = texto;
+            this.elDialogueFeedback.classList.remove('oculto');
+        }
+    }
+
+    // Arma el cuadro de diálogo de la recepcionista: el texto en
+    // inglés siempre visible, y según de quién sea el turno, o
+    // bien los 2 botones de respuesta (posición aleatoria) o el
+    // mensaje de espera bloqueando la entrada.
+    mostrarDialogo(dialogue, activePlayerId, turns) {
+        if (!dialogue || !this.elDialogueBox) {
+            return;
+        }
+
+        this.dialogoActual = dialogue;
+        this.dialogoActualActivePlayerId = activePlayerId;
+        this.dialogoActualTurns = turns;
+
+        const listaTurnos = Array.isArray(turns) ? turns : [];
+        const turnoActivo = listaTurnos.find(
+            (t) => t.playerId === activePlayerId
+        );
+
+        const numeroTurno = turnoActivo
+            ? turnoActivo.turnOrder
+            : dialogue.targetPlayer;
+
+        const nombreJugadorActivo =
+            turnoActivo?.playerInfo?.fullname ||
+            turnoActivo?.playerInfo?.name ||
+            turnoActivo?.playerInfo?.username ||
+            `Player ${numeroTurno}`;
+
+        this.elDialogueBox.classList.remove('oculto');
+        this.elDialogueFeedback?.classList.add('oculto');
+
+        if (this.elDialogueTurn) {
+            this.elDialogueTurn.textContent = `Player ${numeroTurno}`;
+        }
+
+        if (this.elDialogueText) {
+            this.elDialogueText.textContent = dialogue.situationTextEn || '';
+        }
+
+        const esMiTurno =
+            this.miPlayerId !== null &&
+            activePlayerId !== null &&
+            String(this.miPlayerId) === String(activePlayerId);
+
+        if (this.elDialogueOptions) {
+            this.elDialogueOptions.innerHTML = '';
+        }
+
+        if (esMiTurno) {
+            this.elDialogueWaiting?.classList.add('oculto');
+            this.renderizarBotonesRespuesta(dialogue);
+        } else if (this.elDialogueWaiting) {
+            this.elDialogueWaiting.textContent =
+                `Espera... le toca responder a ${nombreJugadorActivo}.`;
+            this.elDialogueWaiting.classList.remove('oculto');
+        }
+    }
+
+    // Crea los 2 botones (correcto + distractor) en orden
+    // aleatorio, para que la respuesta correcta no siempre esté
+    // en la misma posición.
+    renderizarBotonesRespuesta(dialogue) {
+        if (!this.elDialogueOptions) {
+            return;
+        }
+
+        const opciones = [
+            { texto: dialogue.correctAnswerPattern, esCorrecta: true },
+            { texto: dialogue.wrongAnswer, esCorrecta: false }
+        ].filter((op) => op.texto);
+
+        // Fisher-Yates simple para 2 elementos: alcanza con un
+        // solo intercambio al azar.
+        if (opciones.length === 2 && Math.random() < 0.5) {
+            [opciones[0], opciones[1]] = [opciones[1], opciones[0]];
+        }
+
+        opciones.forEach((opcion) => {
+            const boton = document.createElement('button');
+            boton.type = 'button';
+            boton.className = 'hotel-dialogue-option-btn';
+            boton.textContent = `> ${opcion.texto}`;
+
+            boton.addEventListener('click', () => {
+                this.enviarRespuesta(opcion.texto);
+            });
+
+            this.elDialogueOptions.appendChild(boton);
+        });
+    }
+
+    // Envía la respuesta elegida al servidor y bloquea los
+    // botones mientras se espera el resultado (evita doble clic
+    // y respuestas fuera de turno).
+    enviarRespuesta(textoRespuesta) {
+        if (!window.socket || !this.roomCode || !this.dialogoActual) {
+            return;
+        }
+
+        this.esperandoResultadoPropio = true;
+
+        if (this.elDialogueOptions) {
+            this.elDialogueOptions
+                .querySelectorAll('button')
+                .forEach((btn) => {
+                    btn.disabled = true;
+                });
+        }
+
+        window.socket.emit('dialogue:submit_answer', {
+            roomId: this.roomCode,
+            dialogueId: this.dialogoActual.id,
+            selectedAnswer: textoRespuesta
+        });
+    }
+
+    // Refleja la vida grupal (GameSession.survivalHealth) en la
+    // barra de la esquina, cambiando a rojo cuando está baja.
+    actualizarBarraVida(porcentaje) {
+        if (!this.elHealthFill || typeof porcentaje !== 'number') {
+            return;
+        }
+
+        const valor = Math.max(0, Math.min(100, porcentaje));
+        this.elHealthFill.style.width = `${valor}%`;
+        this.elHealthFill.classList.toggle('hotel-health-low', valor <= 30);
+    }
+
+    finalizarEscenario(data) {
+        this.dialogoActual = null;
+
+        if (this.elDialogueTurn) {
+            this.elDialogueTurn.textContent = '¡Escenario completado!';
+        }
+
+        if (this.elDialogueText) {
+            this.elDialogueText.textContent =
+                data?.message || '¡Felicidades! Han completado el escenario con éxito.';
+        }
+
+        this.elDialogueOptions?.replaceChildren();
+        this.elDialogueWaiting?.classList.add('oculto');
+        this.elDialogueFeedback?.classList.add('oculto');
+    }
+
     // Manda la posición propia a los demás jugadores de la
     // sala, unas 20 veces por segundo como máximo (no en cada
     // frame, para no saturar el socket).
@@ -619,6 +948,25 @@ class HotelScene extends Phaser.Scene {
             floorBounds.x + floorBounds.width / 2,
             mostradorY + mostradorAltura - FRAME_SIZE / 2
         );
+    }
+
+    // Placa de créditos del equipo (ESR Student Developers),
+    // montada en la pared justo encima del elevador de la
+    // recepción, al ras del borde superior de las puertas
+    // (fila 4 del tileset, la misma que usa createMostrador).
+    createPlacaCreditos(floorBounds) {
+        const MOSTRADOR_FILA_INICIO = 4;
+        const bordeSuperiorPuertas = MOSTRADOR_FILA_INICIO * FRAME_SIZE;
+
+        const placa = this.add.image(
+            floorBounds.x + floorBounds.width / 2,
+            bordeSuperiorPuertas - 4,
+            'placa_creditos'
+        );
+
+        placa.setOrigin(0.5, 1);
+        placa.setScale(0.22);
+        placa.setDepth(3);
     }
 
     // Personaje fijo del recepcionista. Mientras no exista su
