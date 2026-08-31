@@ -15,7 +15,10 @@ const GameSession = sequelize.define('GameSession', {
   survivalHealth: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: false,
-    defaultValue: 0.00,
+    // La vida grupal arranca llena (100%) y se va descontando con
+    // cada respuesta incorrecta (ver dialogue:submit_answer en
+    // roomHandler.js); con 0.00 como default nacía "muerta".
+    defaultValue: 100.00,
   },
   accumulatedEnglishScore: {
     type: DataTypes.INTEGER,

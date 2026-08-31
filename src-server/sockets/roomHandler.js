@@ -2,6 +2,8 @@ const jwt = require('jsonwebtoken');
 const { GroupRoom, RoomPlayer, Player, Scenario, DialogueNode, GameSession } = require('../models');
 const { sequelize } = require('../config/db'); // 👈 Importado para operaciones acumulativas (sequelize.literal)
 
+const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
+
 // Almacén en memoria para guardar el estado de las salas activas en tiempo real
 const rooms = {};
 
@@ -188,7 +190,8 @@ module.exports = (io, socket) => {
         id: socket.id,
         dbPlayerId: studentId || null,
         name: finalUsername,
-        isReady: false
+        isReady: false, // Nuevo jugador entra como NO LISTO por defecto
+        character: null // Se asigna con room:select_character
       });
     }
 
@@ -222,6 +225,35 @@ module.exports = (io, socket) => {
         io.to(roomId).emit('room:update', room);
       }
     }
+  });
+
+  // 3.B. ELEGIR PERSONAJE (exclusivo por sala: nadie más lo puede repetir)
+  socket.on('room:select_character', (data) => {
+    const { roomId, character } = data || {};
+    const room = rooms[roomId];
+
+    if (!room) {
+      return socket.emit('room:error', { message: 'La sala no existe.' });
+    }
+
+    const jugador = room.players.find(p => p.id === socket.id);
+    if (!jugador) {
+      return socket.emit('room:error', { message: 'No formas parte de esta sala.' });
+    }
+
+    const ocupadoPorOtro = room.players.some(
+      p => p.character === character && p.id !== socket.id
+    );
+
+    if (ocupadoPorOtro) {
+      return socket.emit('room:error', {
+        message: 'Ese personaje ya fue elegido por otro jugador.'
+      });
+    }
+
+    jugador.character = character;
+    console.log(`🧑‍🎤 "${jugador.name}" eligió el personaje "${character}" en la sala ${roomId}`);
+    io.to(roomId).emit('room:update', room);
   });
 
   // 4. INICIAR JUEGO CON CREACIÓN DE GAME SESSIONS Y ASIGNACIÓN DE TURNOS
@@ -263,7 +295,7 @@ module.exports = (io, socket) => {
           roomPlayers = await RoomPlayer.findAll({
             where: { roomId: room.dbRoomId },
             order: [['createdAt', 'ASC']],
-            include: [{ model: Player, attributes: ['id', 'username', 'fullname'] }]
+            include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
           });
         } catch (errDbFetch) {
           console.warn('⚠️ No se pudieron obtener los RoomPlayers de la BD, utilizando datos de memoria:', errDbFetch.message);
@@ -292,7 +324,7 @@ module.exports = (io, socket) => {
 
       // Determinamos los jugadores a registrar (priorizando MariaDB y usando memoria como respaldo)
       const listaJugadores = roomPlayers.length > 0 
-        ? roomPlayers.map(rp => ({ playerId: rp.playerId, name: rp.Player?.fullname || rp.Player?.username }))
+        ? roomPlayers.map(rp => ({ playerId: rp.playerId, name: rp.Player?.name || rp.Player?.username }))
         : room.players.map(p => ({ playerId: p.dbPlayerId, name: p.name }));
 
       if (idSalaDB) {
@@ -353,6 +385,58 @@ module.exports = (io, socket) => {
     }
   });
 
+  // 4.B. EL PROFESOR ABRE LA ESCENA DEL HOTEL PARA TODOS A LA VEZ
+  socket.on('room:start_scene', (data) => {
+    const { roomId } = data || {};
+    const room = rooms[roomId];
+
+    if (!room) {
+      return socket.emit('room:error', { message: 'La sala no existe.' });
+    }
+
+    if (room.hostId !== socket.id) {
+      return socket.emit('room:error', { message: 'Solo el profesor puede iniciar la escena.' });
+    }
+
+    console.log(`🎬 El profesor abrió la escena para todos en la sala ${roomId}`);
+
+    io.to(roomId).emit('room:scene_started', { roomId });
+  });
+
+  // 4.C. SINCRONIZAR POSICIÓN DE JUGADORES DENTRO DE LA ESCENA
+  // (que cada quien vea a los demás compañeros de la sala).
+  // No se guarda nada en memoria: solo se reenvía al resto de
+  // la sala, muchas veces por segundo mientras alguien camina.
+  socket.on('room:player_move', (data) => {
+    const { roomId, x, y, character, direction, moving } = data || {};
+
+    if (!roomId || !rooms[roomId]) {
+      return;
+    }
+
+    const jugador = rooms[roomId].players.find(
+      (p) => p.id === socket.id
+    );
+
+    // Si quien envía no es un jugador de la sala (ej. el
+    // profesor, que solo supervisa), no se reenvía nada: no
+    // debe aparecer como personaje moviéndose.
+    if (!jugador) {
+      return;
+    }
+
+    // socket.to() (no io.to()): no reenviar al propio emisor.
+    socket.to(roomId).emit('room:player_move', {
+      playerId: socket.id,
+      name: jugador.name,
+      x,
+      y,
+      character,
+      direction,
+      moving
+    });
+  });
+
   // 4.1 SUBMIT DE RESPUESTA EN DIÁLOGO (Validación, Puntos, Vida Grupal y Avance)
   socket.removeAllListeners('dialogue:submit_answer');
   socket.on('dialogue:submit_answer', async (data) => {
@@ -408,7 +492,7 @@ module.exports = (io, socket) => {
             roomPlayers = await RoomPlayer.findAll({
               where: { roomId: room.dbRoomId },
               order: [['createdAt', 'ASC']],
-              include: [{ model: Player, attributes: ['id', 'username', 'fullname'] }]
+              include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
             });
           }
 
@@ -484,7 +568,7 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 5. REGRESAR A LA SALA / LOBBY
+  // 5. REGRESAR A LA SALA / LOBBY (SINCRONIZACIÓN FORZADA Y GLOBAL)
   socket.removeAllListeners('room:back_to_lobby');
   socket.on('room:back_to_lobby', (data) => {
     const { roomId } = data || {};

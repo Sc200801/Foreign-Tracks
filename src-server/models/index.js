@@ -22,6 +22,17 @@ GroupRoom.belongsTo(Teacher, { foreignKey: 'teacherId' });
 GroupRoom.belongsToMany(Player, { through: RoomPlayer, foreignKey: 'roomId' });
 Player.belongsToMany(GroupRoom, { through: RoomPlayer, foreignKey: 'playerId' });
 
+// 3.B. Asociaciones directas sobre la tabla intermedia RoomPlayer: la
+// relación belongsToMany de arriba NO habilita por sí sola hacer
+// `RoomPlayer.findAll({ include: [Player] })` (se necesita este
+// belongsTo explícito), y ese include es justo lo que usan
+// roomController.js y roomHandler.js para armar el orden de turnos.
+RoomPlayer.belongsTo(Player, { foreignKey: 'playerId' });
+Player.hasMany(RoomPlayer, { foreignKey: 'playerId' });
+
+RoomPlayer.belongsTo(GroupRoom, { foreignKey: 'roomId' });
+GroupRoom.hasMany(RoomPlayer, { foreignKey: 'roomId' });
+
 // 4. Partida (GameSession) y sus conexiones
 Player.hasMany(GameSession, { foreignKey: 'playerId' });
 GameSession.belongsTo(Player, { foreignKey: 'playerId' });
