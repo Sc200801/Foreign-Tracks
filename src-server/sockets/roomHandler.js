@@ -184,11 +184,16 @@ module.exports = (io, socket) => {
         console.warn('⚠️ Se omitió el guardado en RoomPlayer: falta dbRoomId o el ID del estudiante.');
       }
 
+      // 🎯 INICIALIZACIÓN DE MÉTRICAS PARA EL PODIO
       room.players.push({
         id: socket.id,
         dbPlayerId: studentId || null,
         name: finalUsername,
-        isReady: false
+        avatar: data?.avatar || '',
+        isReady: false,
+        correctAnswers: 0,       // Contador de aciertos
+        totalTimeSeconds: 0,     // Tiempo acumulado en segundos
+        questionStartTime: null  // Timestamp de inicio de la pregunta actual
       });
     }
 
@@ -330,6 +335,14 @@ module.exports = (io, socket) => {
 
       const activeTurn = turnAssignment.find(t => t.turnOrder === firstDialogue.targetPlayer) || turnAssignment[0];
 
+      // 🎯 MARCAR EL TIEMPO EN QUE COMIENZA LA PRIMERA PREGUNTA PARA TODOS LOS JUGADORES
+      const now = Date.now();
+      room.players.forEach(p => {
+        p.questionStartTime = now;
+        p.correctAnswers = 0;
+        p.totalTimeSeconds = 0;
+      });
+
       console.log(`🏁 Todos listos. El profesor inició la partida en la sala ${roomId}`);
 
       io.to(roomId).emit('room:game_started', {
@@ -385,6 +398,18 @@ module.exports = (io, socket) => {
         studentId = socket.user.id || socket.user.userId;
       }
 
+      // 🎯 CÁLCULO EN RAM DEL TIEMPO EMPLEADO Y ACIERTOS
+      if (playerInRoom) {
+        if (playerInRoom.questionStartTime) {
+          const elapsedSeconds = Math.round((Date.now() - playerInRoom.questionStartTime) / 1000);
+          playerInRoom.totalTimeSeconds += Math.max(1, elapsedSeconds);
+        }
+
+        if (isCorrect) {
+          playerInRoom.correctAnswers += 1;
+        }
+      }
+
       if (isCorrect) {
         // --- CASO RESPUESTA CORRECTA ---
         if (room.dbRoomId && studentId) {
@@ -420,6 +445,10 @@ module.exports = (io, socket) => {
 
           const activeTurn = turnAssignment.find(t => t.turnOrder === nextDialogue.targetPlayer) || turnAssignment[0];
 
+          // 🎯 ACTUALIZAR TIEMPO INICIAL PARA EL SIGUIENTE TURNO / DIÁLOGO
+          const nextQuestionTime = Date.now();
+          room.players.forEach(p => { p.questionStartTime = nextQuestionTime; });
+
           io.to(roomId).emit('dialogue:success', {
             message: '¡Respuesta correcta!',
             nextDialogue: {
@@ -434,8 +463,22 @@ module.exports = (io, socket) => {
             turns: turnAssignment
           });
         } else {
+          // 🎯 ESCENARIO COMPLETADO: CONSTRUIR Y EMITIR RESULTADOS AL PODIO
+          const finalPlayersData = room.players.map(p => ({
+            username: p.name,
+            correctAnswers: p.correctAnswers || 0,
+            totalTimeSeconds: p.totalTimeSeconds || 0,
+            avatar: p.avatar || ''
+          }));
+
           io.to(roomId).emit('scenario:completed', {
             message: '¡Felicidades! Han completado el escenario con éxito.'
+          });
+
+          // Evento de fin de juego con la payload estructurada para podium.js
+          io.to(roomId).emit('game:over', {
+            message: '¡La partida ha finalizado! Presentando resultados...',
+            players: finalPlayersData
           });
         }
 
@@ -467,6 +510,11 @@ module.exports = (io, socket) => {
           } catch (e) {
             parsedFeedback = currentDialogue.feedbackText;
           }
+        }
+
+        // 🎯 SI FUE INCORRECTA, REINICIAR EL CRONÓMETRO PARA EL REINTENTO DE LA PREGUNTA
+        if (playerInRoom) {
+          playerInRoom.questionStartTime = Date.now();
         }
 
         io.to(roomId).emit('dialogue:error', {

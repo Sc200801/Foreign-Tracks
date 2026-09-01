@@ -23,17 +23,8 @@
 // CONFIGURACIÓN DEL PUNTAJE
 // ============================================================
 
-const COLLAB_TO_NUMBER = {
-    alta: 100,
-    alto: 100,
-    media: 60,
-    medio: 60,
-    baja: 30,
-    bajo: 30
-};
-
-const PESO_PUNTAJE = 0.75;
-const PESO_COLABORACION = 0.25;
+const PUNTOS_POR_RESPUESTA = 100;
+const BONO_TIEMPO_MAXIMO = 50;
 
 
 // ============================================================
@@ -41,28 +32,17 @@ const PESO_COLABORACION = 0.25;
 // ============================================================
 
 function calcularRendimiento(jugador) {
+    const correctas = Number(jugador.correctAnswers) || 0;
+    const tiempoTotal = Number(jugador.totalTimeSeconds) || 0;
 
-    const tieneColaboracion =
-        jugador.collaboration !== undefined &&
-        jugador.collaboration !== null &&
-        jugador.collaboration !== '';
+    const puntosBase = correctas * PUNTOS_POR_RESPUESTA;
 
-    // Compatibilidad con jugadores antiguos
-    if (!tieneColaboracion) {
-        return Number(jugador.score) || 0;
+    let bonoVelocidad = 0;
+    if (correctas > 0 && tiempoTotal > 0) {
+        bonoVelocidad = Math.max(0, Math.round((correctas * BONO_TIEMPO_MAXIMO) - (tiempoTotal * 2)));
     }
 
-    const colaboracionNum =
-        COLLAB_TO_NUMBER[
-            String(jugador.collaboration).toLowerCase()
-        ] ?? 0;
-
-    const score = Number(jugador.score) || 0;
-
-    return (
-        score * PESO_PUNTAJE +
-        colaboracionNum * PESO_COLABORACION
-    );
+    return puntosBase + bonoVelocidad;
 }
 
 
@@ -70,28 +50,23 @@ function calcularRendimiento(jugador) {
 // MENSAJE FINAL
 // ============================================================
 
-function construirMensajeColaboracion(jugadoresOrdenados) {
-
-    const altaColaboracion = jugadoresOrdenados.filter((jugador) => {
-
-        const nivel = String(
-            jugador.collaboration || ''
-        ).toLowerCase();
-
-        return nivel === 'alta' || nivel === 'alto';
-
-    }).length;
-
-
-    if (altaColaboracion >= 3) {
-        return '¡Excelente trabajo en equipo! El chat estuvo lleno de ayuda mutua.';
+function construirMensajeFinal(jugadoresOrdenados) {
+    if (!jugadoresOrdenados || jugadoresOrdenados.length === 0) {
+        return '¡Gran esfuerzo de todos!';
     }
 
-    if (altaColaboracion >= 1) {
-        return 'Buen cierre. Sigan apoyándose en el chat para llegar aún más lejos.';
+    const ganador = jugadoresOrdenados[0];
+    const aciertosGanador = Number(ganador.correctAnswers) || 0;
+
+    if (aciertosGanador >= 8) {
+        return '¡Impresionante precisión y velocidad! Dominaron el escenario.';
     }
 
-    return '¡Partida completada! La próxima, prueben ayudarse más en el chat.';
+    if (aciertosGanador >= 4) {
+        return '¡Buen trabajo! Sigan practicando para mejorar su tiempo y precisión.';
+    }
+
+    return '¡Partida completada! La próxima vez tómense un momento extra para analizar cada pregunta.';
 }
 
 
@@ -468,15 +443,6 @@ function inyectarEstilosPodio() {
         }
 
 
-        #podium-modal .podium-fourth-badge {
-            font-size: 11px;
-            padding: 5px 7px;
-            background: #e5c3a7;
-            border: 2px solid #855a43;
-            white-space: nowrap;
-        }
-
-
         /* =====================================================
            MENSAJE FINAL
            ===================================================== */
@@ -609,7 +575,7 @@ function crearJugadorPodio(jugador, puesto) {
         obtenerAvatar(jugador);
 
     const puntos =
-        Number(jugador.score) || 0;
+        calcularRendimiento(jugador);
 
     const respuestas =
         Number(jugador.correctAnswers) || 0;
@@ -689,7 +655,6 @@ function crearCuartoLugar(jugador) {
     cuarto.className =
         'podium-fourth-new podium-reveal';
 
-
     const nombre =
         escaparHTML(jugador.username || 'Anonimo');
 
@@ -697,29 +662,10 @@ function crearCuartoLugar(jugador) {
         obtenerAvatar(jugador);
 
     const puntos =
-        Number(jugador.score) || 0;
+        calcularRendimiento(jugador);
 
-
-    let colaboracion = '';
-
-    if (jugador.collaboration) {
-
-        const nivel =
-            String(jugador.collaboration).toLowerCase();
-
-        const etiquetas = {
-            alta: 'COLAB ★★★',
-            alto: 'COLAB ★★★',
-            media: 'COLAB ★★',
-            medio: 'COLAB ★★',
-            baja: 'COLAB ★',
-            bajo: 'COLAB ★'
-        };
-
-        colaboracion =
-            etiquetas[nivel] || 'COLAB —';
-    }
-
+    const respuestas =
+        Number(jugador.correctAnswers) || 0;
 
     cuarto.innerHTML = `
 
@@ -739,17 +685,10 @@ function crearCuartoLugar(jugador) {
         </div>
 
         <div class="podium-fourth-points">
-            PUNTOS: ${puntos}
+            PUNTOS: ${puntos} (${respuestas} aciertos)
         </div>
 
-        ${
-            colaboracion
-            ? `<div class="podium-fourth-badge">${colaboracion}</div>`
-            : ''
-        }
-
     `;
-
 
     return cuarto;
 }
@@ -959,7 +898,7 @@ function mostrarPodio(jugadores = []) {
         'podium-footnote-new podium-reveal';
 
     footnote.textContent =
-        construirMensajeColaboracion(ordenados);
+        construirMensajeFinal(ordenados);
 
     layout.appendChild(footnote);
 
@@ -1206,53 +1145,4 @@ function cerrarPodio() {
             'oculto'
         );
     }
-}
-
-
-// ============================================================
-// PRUEBA DEL PODIO
-// ============================================================
-
-function testearPodio() {
-
-    const jugadoresPrueba = [
-
-        {
-            username: 'Nancy',
-            score: 850,
-            correctAnswers: 8,
-            collaboration: 'alta',
-            avatar: ''
-        },
-
-        {
-            username: 'Compañera',
-            score: 720,
-            correctAnswers: 7,
-            collaboration: 'media',
-            avatar: ''
-        },
-
-        {
-            username: 'Jugador 3',
-            score: 540,
-            correctAnswers: 5,
-            collaboration: 'alta',
-            avatar: ''
-        },
-
-        {
-            username: 'Jugador 4',
-            score: 300,
-            correctAnswers: 3,
-            collaboration: 'baja',
-            avatar: ''
-        }
-
-    ];
-
-
-    mostrarPodio(
-        jugadoresPrueba
-    );
 }

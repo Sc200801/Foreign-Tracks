@@ -50,13 +50,6 @@
       font-family: 'Press Start 2P', monospace;
     }
 
-    /* 🎨 Los estilos de la Tarjeta Flotante "¿Quiénes Somos?" y Podio
-       (.pixel-card-container, .pixel-title-modal, .pixel-content-box, .pixel-btn-yellow,
-       .podium-window, .results-banner, .podium-stage, .podium-card, .fourth-place, etc.)
-       viven únicamente en style.css. Se quitaron de aquí a propósito: este bloque
-       se carga DESPUÉS del <link rel="stylesheet" href="style.css">, así que si estas
-       clases se repitieran en ambos lados, las reglas de este bloque ganarían siempre
-       y taparían cualquier cambio hecho en style.css. */
   </style>
 </head>
 <body>
@@ -417,7 +410,10 @@
 <script src="src/js/auth-player.js"></script>
 <script src="src/js/auth-teacher.js"></script>
 <script src="src/js/room.js"></script>
+<!-- Lógica visual del podio -->
 <script src="src/js/podium.js"></script>
+<!-- Receptor de eventos socket del cliente -->
+<script src="src/js/podiumHandler.js"></script>
 <script type="module" src="src/js/game.js"></script>
 <script src="src/js/chat.js"></script>
 
