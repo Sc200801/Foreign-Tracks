@@ -28,6 +28,23 @@ const BONO_TIEMPO_MAXIMO = 50;
 
 
 // ============================================================
+// DICCIONARIO DE AVATARES / PERSONAJES
+// ============================================================
+
+const AVATARS_PERSONAJES = {
+  rubi: 'src/assets/characters/portraits/rubi.png',
+  luba: 'src/assets/characters/portraits/luba.png',
+  tuby: 'src/assets/characters/portraits/tuby.png',
+  Yoongui: 'src/assets/characters/portraits/Yoongui.png',
+  yoongui: 'src/assets/characters/portraits/Yoongui.png',
+  vera: 'src/assets/characters/portraits/vera.png',
+  aethel: 'src/assets/characters/portraits/aethel.png'
+};
+
+const AVATAR_DEFAULT = 'src/assets/characters/portraits/rubi.png';
+
+
+// ============================================================
 // CALCULAR RENDIMIENTO
 // ============================================================
 
@@ -85,29 +102,37 @@ function escaparHTML(texto) {
 
 
 // ============================================================
-// AVATAR
+// AVATAR DINÁMICO
 // ============================================================
 
 function obtenerAvatar(jugador) {
+    if (!jugador) return AVATAR_DEFAULT;
 
-    if (
-        jugador.avatar &&
-        String(jugador.avatar).trim() !== ''
-    ) {
-        return jugador.avatar;
+    // Lee la clave del personaje enviada desde la sala/lobby
+    const charKey = (jugador.character || jugador.avatar || '').toString().trim();
+    const charKeyLower = charKey.toLowerCase();
+
+    // 1. Buscar en el diccionario por nombre exacto o en minúsculas
+    if (AVATARS_PERSONAJES[charKey]) {
+        return AVATARS_PERSONAJES[charKey];
+    }
+    if (AVATARS_PERSONAJES[charKeyLower]) {
+        return AVATARS_PERSONAJES[charKeyLower];
     }
 
-    return 'assets/default-avatar.png';
+    // 2. Si ya viene con una ruta relativa/absoluta válida
+    if (charKey.startsWith('src/') || charKey.startsWith('http')) {
+        return charKey;
+    }
+
+    // 3. Fallback por defecto si no coincide ninguna
+    return AVATAR_DEFAULT;
 }
 
 
 // ============================================================
 // INSERTAR ESTILOS DEL PODIO
 // ============================================================
-//
-// Esto permite que el nuevo diseño funcione aunque tu CSS anterior
-// todavía tenga las clases del podio viejo.
-//
 
 function inyectarEstilosPodio() {
 
@@ -558,7 +583,7 @@ function inyectarEstilosPodio() {
 
 
 // ============================================================
-// CREAR TARJETA DE JUGADOR
+// CREAR TARJETA DE JUGADOR (TOP 3)
 // ============================================================
 
 function crearJugadorPodio(jugador, puesto) {
@@ -591,7 +616,7 @@ function crearJugadorPodio(jugador, puesto) {
             class="podium-avatar"
             src="${avatar}"
             alt="${nombre}"
-            onerror="this.src='assets/default-avatar.png';"
+            onerror="this.onerror=null; this.src='${AVATAR_DEFAULT}';"
         >
 
         <div class="podium-stats">
@@ -624,7 +649,7 @@ function crearJugadorPodio(jugador, puesto) {
     `;
 
 
-    // Corregir 2nd y 3rd
+    // Corregir ordinales 1st, 2nd, 3rd
     const numero = jugadorDiv.querySelector('.podium-place-number');
 
     if (puesto === 1) {
@@ -677,7 +702,7 @@ function crearCuartoLugar(jugador) {
             class="podium-fourth-avatar"
             src="${avatar}"
             alt="${nombre}"
-            onerror="this.src='assets/default-avatar.png';"
+            onerror="this.onerror=null; this.src='${AVATAR_DEFAULT}';"
         >
 
         <div class="podium-fourth-name">
@@ -835,11 +860,7 @@ function mostrarPodio(jugadores = []) {
 
 
     // --------------------------------------------------------
-    // MUY IMPORTANTE:
-    //
-    // Orden visual:
-    //     2do | 1ro | 3ro
-    //
+    // Orden visual: 2do | 1ro | 3ro
     // --------------------------------------------------------
 
     const jugador1 = ordenados[0];
@@ -1002,8 +1023,7 @@ function revelarPodioConAnimacion(
 
 
     // ========================================================
-    // REVELAR:
-    // 3ro → 2do → 1ro
+    // REVELAR: 3ro → 2do → 1ro
     // ========================================================
 
     const orden =

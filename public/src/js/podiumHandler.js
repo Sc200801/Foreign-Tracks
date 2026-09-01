@@ -1,26 +1,36 @@
-// src/js/podiumHandler.js
+// public/src/js/podiumHandler.js 
 
-// Verificar que exista la conexión del socket en el navegador
-if (window.socket) {
-  
-  // Escuchar cuando el servidor notifica el fin del juego
-  window.socket.on('game:over', (data) => {
-    console.log('🏆 Evento game:over recibido:', data);
+function inicializarEscuchaPodio() {
+  const socket = window.socket;
+
+  // Si window.socket ya fue creado por room.js y está listo:
+  if (socket) {
+    console.log('🏆 Receptor del Podio conectado exitosamente a Socket.io.');
     
-    const { players } = data || {};
+    // Desvincula escucha previa para evitar duplicados
+    socket.off('game:over');
+    
+    // Escuchar la señal de fin de juego emitida desde roomHandler.js (Backend)
+    socket.on('game:over', (data) => {
+      console.log('🏆 Evento game:over recibido:', data);
+      
+      const { players } = data || {};
 
-    if (players && Array.isArray(players)) {
-      // Si la función mostrarPodio de podium.js existe, la invocamos pasándole los datos reales
-      if (typeof window.mostrarPodio === 'function') {
-        window.mostrarPodio(players);
-      } else if (typeof mostrarPodio === 'function') {
-        mostrarPodio(players);
-      } else {
-        console.error('❌ Error: La función mostrarPodio no está disponible globalmente.');
+      if (players && Array.isArray(players)) {
+        if (typeof window.mostrarPodio === 'function') {
+          window.mostrarPodio(players);
+        } else if (typeof mostrarPodio === 'function') {
+          mostrarPodio(players);
+        } else {
+          console.error('❌ Error: La función mostrarPodio no está disponible en window.');
+        }
       }
-    }
-  });
-
-} else {
-  console.warn('⚠️ window.socket no está definido aún al cargar socketClient.js');
+    });
+  } else {
+    // Si room.js aún no ha inicializado window.socket, reintenta en 300ms
+    setTimeout(inicializarEscuchaPodio, 300);
+  }
 }
+
+// Iniciar la escucha al cargar el archivo
+inicializarEscuchaPodio();

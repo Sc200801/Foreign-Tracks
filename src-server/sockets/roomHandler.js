@@ -193,7 +193,7 @@ module.exports = (io, socket) => {
         name: finalUsername,
         avatar: data?.avatar || '',
         isReady: false, // Nuevo jugador entra como NO LISTO por defecto
-        character: null, // Se asigna con room:select_character
+        character: data?.character || data?.avatar || null, // Se asigna o actualiza luego con room:select_character
         correctAnswers: 0,       // Contador de aciertos
         totalTimeSeconds: 0,     // Tiempo acumulado en segundos
         questionStartTime: null  // Timestamp de inicio de la pregunta actual
@@ -417,9 +417,6 @@ module.exports = (io, socket) => {
   });
 
   // 4.C. SINCRONIZAR POSICIÓN DE JUGADORES DENTRO DE LA ESCENA
-  // (que cada quien vea a los demás compañeros de la sala).
-  // No se guarda nada en memoria: solo se reenvía al resto de
-  // la sala, muchas veces por segundo mientras alguien camina.
   socket.on('room:player_move', (data) => {
     const { roomId, x, y, character, direction, moving } = data || {};
 
@@ -431,14 +428,10 @@ module.exports = (io, socket) => {
       (p) => p.id === socket.id
     );
 
-    // Si quien envía no es un jugador de la sala (ej. el
-    // profesor, que solo supervisa), no se reenvía nada: no
-    // debe aparecer como personaje moviéndose.
     if (!jugador) {
       return;
     }
 
-    // socket.to() (no io.to()): no reenviar al propio emisor.
     socket.to(roomId).emit('room:player_move', {
       playerId: socket.id,
       name: jugador.name,
@@ -552,7 +545,8 @@ module.exports = (io, socket) => {
             username: p.name,
             correctAnswers: p.correctAnswers || 0,
             totalTimeSeconds: p.totalTimeSeconds || 0,
-            avatar: p.avatar || ''
+            // 💡 FIX PODIO: Asignar personaje seleccionado (p.character) o fallback
+            avatar: p.character || p.avatar || 'rubi'
           }));
 
           io.to(roomId).emit('scenario:completed', {
