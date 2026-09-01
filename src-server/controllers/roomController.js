@@ -15,7 +15,7 @@ exports.getRoomTurnOrder = async (req, res) => {
       include: [
         {
           model: Player,
-          attributes: ['id', 'username', 'fullname']
+          attributes: ['id', 'username', 'name']
         }
       ]
     });

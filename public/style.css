@@ -55,6 +55,7 @@
   overflow: hidden;
 }
 
+
 body {
   margin: 0;
   padding: 0;
@@ -302,6 +303,29 @@ button, .btn {
 .btn-pixel:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px #3E2723;
+}
+
+/* =========================================================
+   SELECCIÓN DE PERSONAJE (SALA DE ESPERA - CARRUSEL)
+   ========================================================= */
+.character-preview.selected {
+  border-color: #2e7d32 !important;
+  box-shadow: 0 0 0 3px #2e7d32;
+  background-color: #e8ffe8 !important;
+}
+
+.character-preview.taken {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  filter: grayscale(1);
+}
+
+#character-preview-status.status-selected {
+  color: #2e7d32;
+}
+
+#character-preview-status.status-taken {
+  color: #c0392b;
 }
 
 .btn-main { background-color: #FFF59D; color: #3E2723; } 
@@ -1454,3 +1478,128 @@ input[type="text"], input[type="password"] {
     transform: none !important;
   }
 }
+
+/* =========================================================
+   BARRA DE VIDA GRUPAL Y DIÁLOGO POR TURNOS (ESCENA HOTEL)
+   ========================================================= */
+.hotel-health-bar-wrapper {
+  position: fixed !important;
+  top: 20px !important;
+  left: 20px !important;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 999998 !important;
+  background-color: rgba(20, 20, 35, 0.85);
+  border: 3px solid #3E2723;
+  border-radius: 8px;
+  padding: 0.4rem 0.7rem;
+  box-shadow: 3px 3px 0px #000000;
+}
+
+.hotel-health-icon {
+  font-size: 1.1rem;
+}
+
+.hotel-health-bar-track {
+  width: 160px;
+  height: 14px;
+  background-color: #1a1a2e;
+  border: 2px solid #3E2723;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.hotel-health-bar-fill {
+  height: 100%;
+  width: 100%;
+  background-color: #66BB6A;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.hotel-health-bar-fill.hotel-health-low {
+  background-color: #E53935;
+}
+
+.hotel-dialogue-box {
+  position: fixed !important;
+  bottom: 25px !important;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(90vw, 620px);
+  background-color: #dcd3c3;
+  border: 4px solid #3E2723;
+  border-radius: 8px;
+  box-shadow: 4px 4px 0px #000000;
+  padding: 1rem 1.2rem;
+  z-index: 999997 !important;
+  font-family: 'Press Start 2P', cursive, sans-serif;
+  color: #3E2723;
+  box-sizing: border-box;
+}
+
+.hotel-dialogue-turn {
+  font-size: 0.6rem;
+  color: #a54f4c;
+  margin-bottom: 0.5rem;
+}
+
+.hotel-dialogue-text {
+  font-size: 0.7rem;
+  line-height: 1.6;
+  margin: 0 0 0.8rem 0;
+  color: #3E2723;
+}
+
+.hotel-dialogue-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hotel-dialogue-option-btn {
+  font-family: 'Press Start 2P', cursive;
+  font-size: 0.62rem;
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  background-color: #FFB74D;
+  color: #3E2723;
+  border: 2px solid #3E2723;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 2px 2px 0px #3E2723;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.hotel-dialogue-option-btn:hover {
+  background-color: #FFA726;
+}
+
+.hotel-dialogue-option-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow: 0px 0px 0px #3E2723;
+}
+
+.hotel-dialogue-option-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hotel-dialogue-waiting {
+  font-size: 0.65rem;
+  color: #6b5b4b;
+  text-align: center;
+  margin: 0.4rem 0 0 0;
+}
+
+.hotel-dialogue-feedback {
+  font-size: 0.6rem;
+  line-height: 1.6;
+  color: #FFCDD2;
+  background-color: rgba(229, 57, 53, 0.15);
+  border: 2px solid #E53935;
+  border-radius: 4px;
+  padding: 0.5rem 0.7rem;
+  margin-top: 0.6rem;
+}
+
