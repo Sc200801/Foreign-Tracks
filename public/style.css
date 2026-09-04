@@ -866,6 +866,16 @@ input[type="text"], input[type="password"] {
   opacity: 0.6;
 }
 
+/* Opción resaltada al navegar con el D-pad/stick del control
+   (gamepad USB o Bluetooth, ver leerEntradaControlQuiz en
+   game.js); el botón "A"/Cross confirma la que esté así marcada. */
+.hotel-dialogue-option-btn.seleccionado {
+  background-color: #FFA726;
+  outline: 3px solid #ffffff;
+  outline-offset: 1px;
+  box-shadow: 2px 2px 0px #3E2723, 0 0 0 5px rgba(255, 183, 77, 0.45);
+}
+
 .hotel-dialogue-waiting {
   font-size: 0.65rem;
   color: #6b5b4b;

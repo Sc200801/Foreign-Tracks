@@ -606,6 +606,16 @@ class HotelScene extends Phaser.Scene {
         this.dialogoActual = null;
         this.esperandoResultadoPropio = false;
 
+        // Navegación de las respuestas con D-pad/stick + botón de
+        // confirmar del control (ver leerEntradaControlQuiz()).
+        this._botonesRespuesta = [];
+        this.quizIndiceSeleccionado = 0;
+        this._gamepadQuizPrevio = {
+            arriba: false,
+            abajo: false,
+            confirmar: false
+        };
+
         this.elDialogueBox = document.getElementById('hotel-dialogue-box');
         this.elDialogueTurn = document.getElementById('hotel-dialogue-turn');
         this.elDialogueText = document.getElementById('hotel-dialogue-text');
@@ -786,6 +796,11 @@ class HotelScene extends Phaser.Scene {
             this.elDialogueOptions.innerHTML = '';
         }
 
+        // Se limpia hasta que renderizarBotonesRespuesta() (si
+        // corresponde) los vuelva a llenar; evita que el control
+        // siga "navegando" botones que ya no existen.
+        this._botonesRespuesta = [];
+
         if (esMiTurno) {
             this.elDialogueWaiting?.classList.add('oculto');
             this.renderizarBotonesRespuesta(dialogue);
@@ -827,6 +842,26 @@ class HotelScene extends Phaser.Scene {
 
             this.elDialogueOptions.appendChild(boton);
         });
+
+        // Se guardan los botones recién creados para poder
+        // navegarlos con el D-pad/stick del control (ver
+        // leerEntradaControlQuiz()), empezando en el primero.
+        this._botonesRespuesta = Array.from(
+            this.elDialogueOptions.querySelectorAll('button')
+        );
+        this.quizIndiceSeleccionado = 0;
+        this.marcarBotonSeleccionado();
+    }
+
+    // Resalta visualmente cuál de los botones de respuesta está
+    // seleccionado en este momento por el control (D-pad/stick).
+    marcarBotonSeleccionado() {
+        this._botonesRespuesta.forEach((boton, indice) => {
+            boton.classList.toggle(
+                'seleccionado',
+                indice === this.quizIndiceSeleccionado
+            );
+        });
     }
 
     // Envía la respuesta elegida al servidor y bloquea los
@@ -846,6 +881,11 @@ class HotelScene extends Phaser.Scene {
                     btn.disabled = true;
                 });
         }
+
+        // Ya se envió la respuesta: el control deja de poder
+        // navegar/confirmar sobre estos botones hasta que llegue
+        // el resultado y se rearme el diálogo.
+        this._botonesRespuesta = [];
 
         window.socket.emit('dialogue:submit_answer', {
             roomId: this.roomCode,
@@ -868,6 +908,7 @@ class HotelScene extends Phaser.Scene {
 
     finalizarEscenario(data) {
         this.dialogoActual = null;
+        this._botonesRespuesta = [];
 
         if (this.elDialogueTurn) {
             this.elDialogueTurn.textContent = '¡Escenario completado!';
@@ -1099,11 +1140,21 @@ class HotelScene extends Phaser.Scene {
 
     // Lee el D-pad y el joystick izquierdo del primer control
     // conectado. No reemplaza al teclado, se combina con él.
+    //
+    // Mientras haya botones de respuesta activos en pantalla (es
+    // el turno del jugador local), el D-pad/stick se dedica por
+    // completo a navegar esas opciones (ver leerEntradaControlQuiz)
+    // y NO mueve al personaje; evita que "abajo" mueva al jugador
+    // y a la vez cambie de opción al mismo tiempo.
     leerEntradaControl() {
         const entrada = {
             x: 0,
             y: 0
         };
+
+        if (this._botonesRespuesta && this._botonesRespuesta.length > 0) {
+            return entrada;
+        }
 
         const gamepadPlugin = this.input.gamepad;
 
@@ -1138,7 +1189,65 @@ class HotelScene extends Phaser.Scene {
         return entrada;
     }
 
+    // Navega los botones de respuesta del quiz con el D-pad/stick
+    // izquierdo (arriba/abajo) y confirma la opción resaltada con
+    // el botón inferior del control (A en Xbox, Cross en
+    // PlayStation: buttons[0] en el mapeo estándar del navegador,
+    // igual para mandos por USB o por Bluetooth). Se detecta el
+    // "flanco" de cada botón (recién presionado) para que no se
+    // repita solo por mantenerlo apretado.
+    leerEntradaControlQuiz() {
+        if (!this._botonesRespuesta || this._botonesRespuesta.length === 0) {
+            return;
+        }
+
+        const gamepadPlugin = this.input.gamepad;
+        const control = gamepadPlugin ? gamepadPlugin.getPad(0) : null;
+
+        if (!control) {
+            return;
+        }
+
+        const ZONA_MUERTA = 0.5;
+
+        const arribaAhora =
+            control.up || control.leftStick.y < -ZONA_MUERTA;
+
+        const abajoAhora =
+            control.down || control.leftStick.y > ZONA_MUERTA;
+
+        // buttons[0]: botón de confirmar en el mapeo estándar
+        // (A en Xbox, Cross/X en PlayStation).
+        const confirmarAhora = control.buttons[0]?.pressed || false;
+
+        const previo = this._gamepadQuizPrevio;
+        const total = this._botonesRespuesta.length;
+
+        if (arribaAhora && !previo.arriba) {
+            this.quizIndiceSeleccionado =
+                (this.quizIndiceSeleccionado - 1 + total) % total;
+            this.marcarBotonSeleccionado();
+        } else if (abajoAhora && !previo.abajo) {
+            this.quizIndiceSeleccionado =
+                (this.quizIndiceSeleccionado + 1) % total;
+            this.marcarBotonSeleccionado();
+        }
+
+        if (confirmarAhora && !previo.confirmar) {
+            const boton = this._botonesRespuesta[this.quizIndiceSeleccionado];
+            if (boton && !boton.disabled) {
+                boton.click();
+            }
+        }
+
+        previo.arriba = arribaAhora;
+        previo.abajo = abajoAhora;
+        previo.confirmar = confirmarAhora;
+    }
+
     update() {
+        this.leerEntradaControlQuiz();
+
         if (
             !this.player ||
             !this.player.body
