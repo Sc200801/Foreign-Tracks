@@ -1,3 +1,18 @@
+// Al inicio de server.js
+const fs = require('fs');
+const path = require('path');
+
+const logStream = fs.createWriteStream(path.join(__dirname, 'src-server', 'logs', 'server.log'), { flags: 'a' });
+const origLog = console.log;
+
+// Sobreescribimos el comportamiento de console.log a nivel global
+console.log = function (...args) {
+  const timestamp = new Date().toISOString();
+  const message = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+
+  logStream.write(`[${timestamp}] ${message}\n`); // Guarda en archivo
+  origLog.apply(console, args); // Mantiene la impresión en pantalla
+};
 const express = require('express');
 const http = require('http');
 const cors = require('cors'); // <-- Habilitar CORS para HTTP
