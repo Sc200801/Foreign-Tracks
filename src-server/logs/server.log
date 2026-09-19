@@ -1,0 +1,60 @@
+[2026-09-19T19:37:30.357Z] ◇ injected env (8) from .env [2m// tip: ⌘ multiple files { path: ['.env.local', '.env'] }[0m
+[2026-09-19T19:37:30.383Z] --- VERIFICANDO VARIABLES QUE LEE NODE ---
+[2026-09-19T19:37:30.383Z] HOST: localhost
+[2026-09-19T19:37:30.384Z] USER: ForeingCreator2
+[2026-09-19T19:37:30.384Z] DB NAME: foreign_tracks_db
+[2026-09-19T19:37:30.385Z] PORT: 3306
+[2026-09-19T19:37:30.385Z] -----------------------------------------
+[2026-09-19T19:37:30.871Z] ◇ injected env (0) from .env [2m// tip: ⌘ custom filepath { path: '/custom/path/.env' }[0m
+[2026-09-19T19:37:31.321Z] Executing (e3b2a086-496d-40b3-b472-09abbf4f9a34): START TRANSACTION;
+[2026-09-19T19:37:31.348Z] Executing (e3b2a086-496d-40b3-b472-09abbf4f9a34): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-19T19:37:31.353Z] Executing (default): SELECT 1+1 AS result
+[2026-09-19T19:37:31.368Z] ✅ Conexión a MariaDB establecida exitosamente.
+[2026-09-19T19:37:31.384Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Players' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.401Z] Executing (default): SHOW INDEX FROM `Players`
+[2026-09-19T19:37:31.410Z] Executing (e3b2a086-496d-40b3-b472-09abbf4f9a34): COMMIT;
+[2026-09-19T19:37:31.414Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-19T19:37:31.416Z] Executing (1acedea8-e999-4521-a7fe-365445d06c1c): START TRANSACTION;
+[2026-09-19T19:37:31.429Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Teachers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.434Z] Executing (1acedea8-e999-4521-a7fe-365445d06c1c): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-19T19:37:31.445Z] Executing (1acedea8-e999-4521-a7fe-365445d06c1c): COMMIT;
+[2026-09-19T19:37:31.450Z] Executing (default): SHOW INDEX FROM `Teachers`
+[2026-09-19T19:37:31.455Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-19T19:37:31.461Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-19T19:37:31.467Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Scenarios' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.476Z] Executing (default): SHOW INDEX FROM `Scenarios`
+[2026-09-19T19:37:31.498Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-19T19:37:31.509Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Endings' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.513Z] Executing (default): SHOW INDEX FROM `Endings`
+[2026-09-19T19:37:31.521Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-19T19:37:31.525Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'DialogueNodes' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.530Z] Executing (default): SHOW INDEX FROM `DialogueNodes`
+[2026-09-19T19:37:31.534Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GroupRooms' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.538Z] Executing (default): SHOW INDEX FROM `GroupRooms`
+[2026-09-19T19:37:31.549Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'RoomPlayers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.553Z] Executing (default): SHOW INDEX FROM `RoomPlayers`
+[2026-09-19T19:37:31.564Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GameSessions' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.569Z] Executing (default): SHOW INDEX FROM `GameSessions`
+[2026-09-19T19:37:31.582Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'PlayerResponses' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-19T19:37:31.588Z] Executing (default): SHOW INDEX FROM `PlayerResponses`
+[2026-09-19T19:37:31.594Z] ✅ Base de datos sincronizada (force: false, alter: false)
+[2026-09-19T19:37:31.596Z] Executing (36f4ff50-4909-4eee-8f53-9ca75fbce28f): START TRANSACTION;
+[2026-09-19T19:37:31.600Z] Executing (36f4ff50-4909-4eee-8f53-9ca75fbce28f): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-19T19:37:31.605Z] Executing (36f4ff50-4909-4eee-8f53-9ca75fbce28f): COMMIT;
+[2026-09-19T19:37:31.607Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-19T19:37:31.608Z] Executing (e87fa556-a1ff-4465-8d21-ed862d4aa97d): START TRANSACTION;
+[2026-09-19T19:37:31.612Z] Executing (e87fa556-a1ff-4465-8d21-ed862d4aa97d): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-19T19:37:31.615Z] Executing (e87fa556-a1ff-4465-8d21-ed862d4aa97d): COMMIT;
+[2026-09-19T19:37:31.617Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-19T19:37:31.618Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-19T19:37:31.629Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-19T19:37:31.636Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-19T19:37:31.649Z] 🚀 Servidor ejecutándose en http://localhost:3000
+[2026-09-19T19:37:31.650Z] 🔐 Rutas de autenticación disponibles en http://localhost:3000/api/auth
+[2026-09-19T19:37:31.650Z] 🎬 Rutas de escenarios disponibles en http://localhost:3000/api/scenarios
+[2026-09-19T19:37:31.650Z] 🏠 Rutas de salas disponibles en http://localhost:3000/api/rooms
+[2026-09-19T19:37:45.696Z] 🔌 WebSocket conectado:
+[2026-09-19T19:37:45.699Z]    - Socket ID: ff4LRkRMH4wgzeGCAAAB
+[2026-09-19T19:37:45.699Z]    - Usuario: Student
+[2026-09-19T19:37:45.699Z]    - Rol: player
+[2026-09-19T19:37:45.700Z]    - Identidad: Player ID: guest-ff4LRkRMH4wgzeGCAAAB
