@@ -52,4 +52,28 @@ export default class HotelScene extends Phaser.Scene {
 
         console.log('✅ HotelScene: Escenario cargado y colisiones activadas.');
     }
+
+    // 👈 NUEVO: envía al backend la respuesta que el jugador seleccionó,
+    // sin bloquear el flujo del juego (no usamos await al llamarlo).
+    async sendPlayerResponse({ enteredText, isCorrect, scoreEarned, gameSessionId, dialogueNodeId }) {
+        try {
+            const response = await fetch('/api/responses', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    enteredText,
+                    isCorrect,
+                    scoreEarned,
+                    gameSessionId,
+                    dialogueNodeId,
+                }),
+            });
+
+            if (!response.ok) {
+                console.error('⚠️ No se pudo guardar la respuesta del jugador');
+            }
+        } catch (error) {
+            console.error('❌ Error de red al guardar la respuesta:', error);
+        }
+    }
 }

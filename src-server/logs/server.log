@@ -58,3 +58,206 @@
 [2026-09-19T19:37:45.699Z]    - Usuario: Student
 [2026-09-19T19:37:45.699Z]    - Rol: player
 [2026-09-19T19:37:45.700Z]    - Identidad: Player ID: guest-ff4LRkRMH4wgzeGCAAAB
+[2026-09-22T16:48:13.451Z] ◇ injected env (8) from .env [2m// tip: ⌘ enable debugging { debug: true }[0m
+[2026-09-22T16:48:13.476Z] --- VERIFICANDO VARIABLES QUE LEE NODE ---
+[2026-09-22T16:48:13.476Z] HOST: localhost
+[2026-09-22T16:48:13.477Z] USER: ForeingCreator2
+[2026-09-22T16:48:13.478Z] DB NAME: foreign_tracks_db
+[2026-09-22T16:48:13.478Z] PORT: 3306
+[2026-09-22T16:48:13.479Z] -----------------------------------------
+[2026-09-22T16:48:14.042Z] ◇ injected env (0) from .env [2m// tip: ◈ encrypted .env [www.dotenvx.com][0m
+[2026-09-22T16:48:14.507Z] Executing (4ac72b39-ea05-4c45-878c-127bba53477d): START TRANSACTION;
+[2026-09-22T16:48:14.531Z] Executing (4ac72b39-ea05-4c45-878c-127bba53477d): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-22T16:48:14.537Z] Executing (default): SELECT 1+1 AS result
+[2026-09-22T16:48:14.555Z] ✅ Conexión a MariaDB establecida exitosamente.
+[2026-09-22T16:48:14.564Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Players' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.577Z] Executing (default): SHOW INDEX FROM `Players`
+[2026-09-22T16:48:14.586Z] Executing (4ac72b39-ea05-4c45-878c-127bba53477d): COMMIT;
+[2026-09-22T16:48:14.589Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-22T16:48:14.592Z] Executing (b663afc0-7ea6-4f1d-a7cd-f5b130dea124): START TRANSACTION;
+[2026-09-22T16:48:14.602Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Teachers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.610Z] Executing (b663afc0-7ea6-4f1d-a7cd-f5b130dea124): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-22T16:48:14.618Z] Executing (default): SHOW INDEX FROM `Teachers`
+[2026-09-22T16:48:14.626Z] Executing (b663afc0-7ea6-4f1d-a7cd-f5b130dea124): COMMIT;
+[2026-09-22T16:48:14.631Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Scenarios' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.634Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-22T16:48:14.640Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-22T16:48:14.655Z] Executing (default): SHOW INDEX FROM `Scenarios`
+[2026-09-22T16:48:14.675Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-22T16:48:14.680Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Endings' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.685Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-22T16:48:14.689Z] Executing (default): SHOW INDEX FROM `Endings`
+[2026-09-22T16:48:14.693Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'DialogueNodes' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.700Z] Executing (default): SHOW INDEX FROM `DialogueNodes`
+[2026-09-22T16:48:14.705Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GroupRooms' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.709Z] Executing (default): SHOW INDEX FROM `GroupRooms`
+[2026-09-22T16:48:14.715Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'RoomPlayers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.719Z] Executing (default): SHOW INDEX FROM `RoomPlayers`
+[2026-09-22T16:48:14.725Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GameSessions' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.731Z] Executing (default): SHOW INDEX FROM `GameSessions`
+[2026-09-22T16:48:14.737Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'PlayerResponses' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-22T16:48:14.741Z] Executing (default): SHOW INDEX FROM `PlayerResponses`
+[2026-09-22T16:48:14.745Z] ✅ Base de datos sincronizada (force: false, alter: false)
+[2026-09-22T16:48:14.747Z] Executing (241f1f38-86d3-490d-b6ab-153e128a8d84): START TRANSACTION;
+[2026-09-22T16:48:14.751Z] Executing (241f1f38-86d3-490d-b6ab-153e128a8d84): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-22T16:48:14.756Z] Executing (241f1f38-86d3-490d-b6ab-153e128a8d84): COMMIT;
+[2026-09-22T16:48:14.757Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-22T16:48:14.759Z] Executing (5657af7d-5deb-4803-acc7-e7f49f73c2e0): START TRANSACTION;
+[2026-09-22T16:48:14.762Z] Executing (5657af7d-5deb-4803-acc7-e7f49f73c2e0): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-22T16:48:14.765Z] Executing (5657af7d-5deb-4803-acc7-e7f49f73c2e0): COMMIT;
+[2026-09-22T16:48:14.766Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-22T16:48:14.768Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-22T16:48:14.774Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-22T16:48:14.781Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-22T16:48:14.800Z] 🚀 Servidor ejecutándose en http://localhost:3000
+[2026-09-22T16:48:14.801Z] 🔐 Rutas de autenticación disponibles en http://localhost:3000/api/auth
+[2026-09-22T16:48:14.801Z] 🎬 Rutas de escenarios disponibles en http://localhost:3000/api/scenarios
+[2026-09-22T16:48:14.801Z] 🏠 Rutas de salas disponibles en http://localhost:3000/api/rooms
+[2026-09-22T16:48:28.506Z] 🔌 WebSocket conectado:
+[2026-09-22T16:48:28.512Z]    - Socket ID: T4Sdns4N3dfWa1X_AAAB
+[2026-09-22T16:48:28.512Z]    - Usuario: Student
+[2026-09-22T16:48:28.512Z]    - Rol: player
+[2026-09-22T16:48:28.513Z]    - Identidad: Player ID: guest-T4Sdns4N3dfWa1X_AAAB
+[2026-09-22T16:48:32.179Z] ❌ Usuario desconectado (Socket: T4Sdns4N3dfWa1X_AAAB, User ID: guest-T4Sdns4N3dfWa1X_AAAB) - Razón: transport close
+[2026-09-28T15:37:59.685Z] ◇ injected env (8) from .env [2m// tip: ⌘ custom filepath { path: '/custom/path/.env' }[0m
+[2026-09-28T15:37:59.694Z] --- VERIFICANDO VARIABLES QUE LEE NODE ---
+[2026-09-28T15:37:59.695Z] HOST: localhost
+[2026-09-28T15:37:59.695Z] USER: ForeingCreator2
+[2026-09-28T15:37:59.696Z] DB NAME: foreign_tracks_db
+[2026-09-28T15:37:59.697Z] PORT: 3306
+[2026-09-28T15:37:59.697Z] -----------------------------------------
+[2026-09-28T15:37:59.960Z] ◇ injected env (0) from .env [2m// tip: ⌘ multiple files { path: ['.env.local', '.env'] }[0m
+[2026-09-28T15:38:00.389Z] Executing (10f46b07-5f82-4185-8f27-b5df7e424c4b): START TRANSACTION;
+[2026-09-28T15:38:00.413Z] Executing (10f46b07-5f82-4185-8f27-b5df7e424c4b): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-28T15:38:00.418Z] Executing (default): SELECT 1+1 AS result
+[2026-09-28T15:38:00.431Z] ✅ Conexión a MariaDB establecida exitosamente.
+[2026-09-28T15:38:00.442Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Players' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.456Z] Executing (default): SHOW INDEX FROM `Players`
+[2026-09-28T15:38:00.464Z] Executing (10f46b07-5f82-4185-8f27-b5df7e424c4b): COMMIT;
+[2026-09-28T15:38:00.467Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-28T15:38:00.469Z] Executing (9bbb4f3e-b2e6-42e2-8964-2e89672ce108): START TRANSACTION;
+[2026-09-28T15:38:00.479Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Teachers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.485Z] Executing (9bbb4f3e-b2e6-42e2-8964-2e89672ce108): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-28T15:38:00.488Z] Executing (default): SHOW INDEX FROM `Teachers`
+[2026-09-28T15:38:00.500Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Scenarios' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.505Z] Executing (default): SHOW INDEX FROM `Scenarios`
+[2026-09-28T15:38:00.510Z] Executing (9bbb4f3e-b2e6-42e2-8964-2e89672ce108): COMMIT;
+[2026-09-28T15:38:00.516Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'Endings' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.519Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-28T15:38:00.525Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-28T15:38:00.533Z] Executing (default): SHOW INDEX FROM `Endings`
+[2026-09-28T15:38:00.539Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'DialogueNodes' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.544Z] Executing (default): SHOW INDEX FROM `DialogueNodes`
+[2026-09-28T15:38:00.562Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-28T15:38:00.567Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GroupRooms' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.574Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-28T15:38:00.577Z] Executing (default): SHOW INDEX FROM `GroupRooms`
+[2026-09-28T15:38:00.585Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'RoomPlayers' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.588Z] Executing (default): SHOW INDEX FROM `RoomPlayers`
+[2026-09-28T15:38:00.594Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'GameSessions' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.599Z] Executing (default): SHOW INDEX FROM `GameSessions`
+[2026-09-28T15:38:00.606Z] Executing (default): SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME = 'PlayerResponses' AND TABLE_SCHEMA = 'foreign_tracks_db'
+[2026-09-28T15:38:00.611Z] Executing (default): SHOW INDEX FROM `PlayerResponses`
+[2026-09-28T15:38:00.619Z] ✅ Base de datos sincronizada (force: false, alter: false)
+[2026-09-28T15:38:00.620Z] Executing (7580ab7e-8dfa-4879-abd2-1687a190f732): START TRANSACTION;
+[2026-09-28T15:38:00.625Z] Executing (7580ab7e-8dfa-4879-abd2-1687a190f732): SELECT `id`, `name`, `description` FROM `Scenarios` AS `Scenario` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-28T15:38:00.629Z] Executing (7580ab7e-8dfa-4879-abd2-1687a190f732): COMMIT;
+[2026-09-28T15:38:00.630Z] ℹ️ Escenario "Hotel" ya existía en la base de datos.
+[2026-09-28T15:38:00.632Z] Executing (5d39c7bc-6e5a-4d41-95ab-281238b7b31c): START TRANSACTION;
+[2026-09-28T15:38:00.635Z] Executing (5d39c7bc-6e5a-4d41-95ab-281238b7b31c): SELECT `id`, `title`, `description`, `minEnglishScore`, `minHealth` FROM `Endings` AS `Ending` WHERE `Ending`.`id` = 100;
+[2026-09-28T15:38:00.638Z] Executing (5d39c7bc-6e5a-4d41-95ab-281238b7b31c): COMMIT;
+[2026-09-28T15:38:00.640Z] ℹ️ Registro en Ending (id: 100) ya existía.
+[2026-09-28T15:38:00.642Z] Executing (default): DELETE FROM `DialogueNodes` WHERE `scenarioId` = 1
+[2026-09-28T15:38:00.649Z] Executing (default): INSERT INTO `DialogueNodes` (`id`,`situationTextEn`,`correctAnswerPattern`,`wrongAnswer`,`feedbackText`,`targetPlayer`,`stepIndex`,`scenarioId`) VALUES (NULL,'Hey there, guys! Who are you all?','We are travelers.','I am a tourist..','{\"❌ Atención al grupo\":\"Seleccionaste \'I am\', una forma que sirve para hablar solo de ti (singular).\"}',1,1,1),(NULL,'Do you all have your IDs? What do you guys have?','Here are our passports.','I have a red bag.','{\"❌ Revisa la pregunta\":\"Te han pedido los documentos de identidad (IDs), pero respondiste sobre una mochila (bag) y de forma individual.\"}',2,2,1),(NULL,'And your luggage? What color are your bags?','Our suitcases are yellow and blue.','My suitcase is blue.','{\"❌ Falta el equipaje del resto\":\"Usaste \'My\' (Mi), lo que responde únicamente por tu maleta.\"}',3,3,1),(NULL,'Got it! How long are you guys staying here?','We are staying for two nights. Thanks!','I am staying one day.','{\"❌ Registro incompleto\":\"Indicar \'I am staying\' registra a una sola persona y dejaría a tus compañeros fuera del hotel.\"}',4,4,1);
+[2026-09-28T15:38:00.653Z] 🌱 Nodos de diálogo del Hotel insertados correctamente (sin duplicados).
+[2026-09-28T15:38:00.666Z] 🚀 Servidor ejecutándose en http://localhost:3000
+[2026-09-28T15:38:00.666Z] 🔐 Rutas de autenticación disponibles en http://localhost:3000/api/auth
+[2026-09-28T15:38:00.666Z] 🎬 Rutas de escenarios disponibles en http://localhost:3000/api/scenarios
+[2026-09-28T15:38:00.667Z] 🏠 Rutas de salas disponibles en http://localhost:3000/api/rooms
+[2026-09-28T15:38:00.667Z] 📝 Ruta de respuestas disponible en http://localhost:3000/api/responses
+[2026-09-28T15:38:49.939Z] 🔌 WebSocket conectado:
+[2026-09-28T15:38:49.939Z]    - Socket ID: oX2kLwvD8E07hImcAAAB
+[2026-09-28T15:38:49.940Z]    - Usuario: Student
+[2026-09-28T15:38:49.940Z]    - Rol: player
+[2026-09-28T15:38:49.940Z]    - Identidad: Player ID: guest-oX2kLwvD8E07hImcAAAB
+[2026-09-28T15:56:04.356Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Teachers` AS `Teacher` WHERE `Teacher`.`username` = 'nan12365';
+[2026-09-28T15:56:04.366Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Players` AS `Player` WHERE `Player`.`username` = 'nan12365';
+[2026-09-28T15:56:28.731Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Teachers` AS `Teacher` WHERE `Teacher`.`username` = 'nan12365';
+[2026-09-28T15:56:28.736Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Players` AS `Player` WHERE `Player`.`username` = 'nan12365';
+[2026-09-28T15:56:29.192Z] Executing (default): INSERT INTO `Teachers` (`id`,`name`,`username`,`passwordHash`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?);
+[2026-09-28T15:56:29.233Z] ❌ Usuario desconectado (Socket: oX2kLwvD8E07hImcAAAB, User ID: guest-oX2kLwvD8E07hImcAAAB) - Razón: client namespace disconnect
+[2026-09-28T15:56:29.280Z] 🔌 WebSocket conectado:
+[2026-09-28T15:56:29.280Z]    - Socket ID: ulrR-9a56QCZ5z6iAAAD
+[2026-09-28T15:56:29.280Z]    - Usuario: nan12365
+[2026-09-28T15:56:29.280Z]    - Rol: teacher
+[2026-09-28T15:56:29.281Z]    - Identidad: Teacher ID: 3
+[2026-09-28T15:56:52.094Z] 
+===========================================
+[2026-09-28T15:56:52.094Z] 🚀 ¡SALA CREADA EN ROOMHANDLER.JS!
+[2026-09-28T15:56:52.094Z] 👨‍🏫 Profesor (Host): Nancy (ID DB: 3)
+[2026-09-28T15:56:52.094Z] 🏠 Sala: SPIDERMAN
+[2026-09-28T15:56:52.095Z] 🔑 Código ID: KXBJJ0
+[2026-09-28T15:56:52.095Z] ===========================================
+
+[2026-09-28T15:56:52.113Z] Executing (default): INSERT INTO `GroupRooms` (`id`,`groupName`,`accessCode`,`teacherId`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?);
+[2026-09-28T15:56:52.120Z] 💾 Sala registrada en MariaDB exitosamente (ID Registro: 33)
+[2026-09-28T15:57:23.989Z] 🔌 WebSocket conectado:
+[2026-09-28T15:57:23.992Z]    - Socket ID: zWFjXyd6BxmzpNrfAAAF
+[2026-09-28T15:57:23.993Z]    - Usuario: Student
+[2026-09-28T15:57:23.994Z]    - Rol: player
+[2026-09-28T15:57:23.995Z]    - Identidad: Player ID: guest-zWFjXyd6BxmzpNrfAAAF
+[2026-09-28T15:58:14.434Z] ❌ Usuario desconectado (Socket: zWFjXyd6BxmzpNrfAAAF, User ID: guest-zWFjXyd6BxmzpNrfAAAF) - Razón: transport close
+[2026-09-28T15:58:19.098Z] 🔌 WebSocket conectado:
+[2026-09-28T15:58:19.098Z]    - Socket ID: az07-_8W9DZqY5ZYAAAH
+[2026-09-28T15:58:19.098Z]    - Usuario: Student
+[2026-09-28T15:58:19.098Z]    - Rol: player
+[2026-09-28T15:58:19.098Z]    - Identidad: Player ID: guest-az07-_8W9DZqY5ZYAAAH
+[2026-09-28T15:58:39.606Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Teachers` AS `Teacher` WHERE `Teacher`.`username` = 'fofiiiii122';
+[2026-09-28T15:58:39.619Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Players` AS `Player` WHERE `Player`.`username` = 'fofiiiii122';
+[2026-09-28T15:58:42.615Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Teachers` AS `Teacher` WHERE `Teacher`.`username` = 'fofiiiii122';
+[2026-09-28T15:58:42.632Z] Executing (default): SELECT `id`, `name`, `username`, `passwordHash`, `createdAt`, `updatedAt` FROM `Players` AS `Player` WHERE `Player`.`username` = 'fofiiiii122';
+[2026-09-28T15:58:43.024Z] Executing (default): INSERT INTO `Players` (`id`,`name`,`username`,`passwordHash`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?);
+[2026-09-28T15:58:43.052Z] ❌ Usuario desconectado (Socket: az07-_8W9DZqY5ZYAAAH, User ID: guest-az07-_8W9DZqY5ZYAAAH) - Razón: client namespace disconnect
+[2026-09-28T15:58:43.122Z] 🔌 WebSocket conectado:
+[2026-09-28T15:58:43.122Z]    - Socket ID: zo2zmFO6iJoNziF8AAAJ
+[2026-09-28T15:58:43.123Z]    - Usuario: fofiiiii122
+[2026-09-28T15:58:43.123Z]    - Rol: player
+[2026-09-28T15:58:43.123Z]    - Identidad: Player ID: 4
+[2026-09-28T15:59:08.317Z] Executing (01389665-b8e2-42f9-a2fa-f7d2c4d4d476): START TRANSACTION;
+[2026-09-28T15:59:08.323Z] Executing (01389665-b8e2-42f9-a2fa-f7d2c4d4d476): SELECT `id`, `groupRole`, `createdAt`, `updatedAt`, `roomId`, `playerId` FROM `RoomPlayers` AS `RoomPlayer` WHERE `RoomPlayer`.`roomId` = 33 AND `RoomPlayer`.`playerId` = 4 LIMIT 1;
+[2026-09-28T15:59:08.336Z] Executing (01389665-b8e2-42f9-a2fa-f7d2c4d4d476): INSERT INTO `RoomPlayers` (`id`,`groupRole`,`createdAt`,`updatedAt`,`roomId`,`playerId`) VALUES (DEFAULT,?,?,?,?,?);
+[2026-09-28T15:59:08.345Z] Executing (01389665-b8e2-42f9-a2fa-f7d2c4d4d476): COMMIT;
+[2026-09-28T15:59:08.348Z] 💾 Estudiante ID 4 registrado en RoomPlayer (ID Registro: 2) para la sala DB 33
+[2026-09-28T15:59:08.349Z] 🎮 Jugador "sofi" (Total: 1/4) activo en sala: KXBJJ0
+[2026-09-28T15:59:40.879Z] Executing (default): SELECT `RoomPlayer`.`id`, `RoomPlayer`.`groupRole`, `RoomPlayer`.`createdAt`, `RoomPlayer`.`updatedAt`, `RoomPlayer`.`roomId`, `RoomPlayer`.`playerId`, `Player`.`id` AS `Player.id`, `Player`.`username` AS `Player.username`, `Player`.`name` AS `Player.name` FROM `RoomPlayers` AS `RoomPlayer` LEFT OUTER JOIN `Players` AS `Player` ON `RoomPlayer`.`playerId` = `Player`.`id` WHERE `RoomPlayer`.`roomId` = 33 ORDER BY `RoomPlayer`.`createdAt` ASC;
+[2026-09-28T15:59:40.904Z] Executing (default): SELECT `Scenario`.`id`, `Scenario`.`name`, `Scenario`.`description`, `DialogueNodes`.`id` AS `DialogueNodes.id`, `DialogueNodes`.`situationTextEn` AS `DialogueNodes.situationTextEn`, `DialogueNodes`.`correctAnswerPattern` AS `DialogueNodes.correctAnswerPattern`, `DialogueNodes`.`wrongAnswer` AS `DialogueNodes.wrongAnswer`, `DialogueNodes`.`feedbackText` AS `DialogueNodes.feedbackText`, `DialogueNodes`.`targetPlayer` AS `DialogueNodes.targetPlayer`, `DialogueNodes`.`stepIndex` AS `DialogueNodes.stepIndex`, `DialogueNodes`.`scenarioId` AS `DialogueNodes.scenarioId` FROM `Scenarios` AS `Scenario` LEFT OUTER JOIN `DialogueNodes` AS `DialogueNodes` ON `Scenario`.`id` = `DialogueNodes`.`scenarioId` WHERE `Scenario`.`name` = 'Hotel';
+[2026-09-28T15:59:40.915Z] Executing (bb900958-48f6-4856-89c3-24a758b3204f): START TRANSACTION;
+[2026-09-28T15:59:40.918Z] Executing (bb900958-48f6-4856-89c3-24a758b3204f): SELECT `id`, `badgesEarned`, `survivalHealth`, `accumulatedEnglishScore`, `createdAt`, `updatedAt`, `playerId`, `roomId`, `endingId`, `currentScenarioId` FROM `GameSessions` AS `GameSession` WHERE `GameSession`.`roomId` = 33 AND `GameSession`.`playerId` = 4 LIMIT 1;
+[2026-09-28T15:59:40.928Z] Executing (bb900958-48f6-4856-89c3-24a758b3204f): INSERT INTO `GameSessions` (`id`,`badgesEarned`,`survivalHealth`,`accumulatedEnglishScore`,`createdAt`,`updatedAt`,`playerId`,`roomId`,`endingId`,`currentScenarioId`) VALUES (DEFAULT,?,?,?,?,?,?,?,?,?);
+[2026-09-28T15:59:40.934Z] Executing (bb900958-48f6-4856-89c3-24a758b3204f): COMMIT;
+[2026-09-28T15:59:40.937Z] 💾 Se crearon/verificaron 1 registros en GameSessions.
+[2026-09-28T15:59:40.938Z] 🏁 Todos listos. El profesor inició la partida en la sala KXBJJ0
+[2026-09-28T15:59:43.361Z] 🎬 El profesor abrió la escena para todos en la sala KXBJJ0
+[2026-09-28T16:00:10.254Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`id` = 117;
+[2026-09-28T16:00:10.277Z] Executing (default): INSERT INTO `PlayerResponses` (`id`,`enteredText`,`isCorrect`,`scoreEarned`,`gameSessionId`,`dialogueNodeId`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?);
+[2026-09-28T16:00:10.283Z] 💾 PlayerResponse guardado correctamente: jugador 4, diálogo 117
+[2026-09-28T16:00:10.312Z] Executing (default): UPDATE `GameSessions` SET `accumulatedEnglishScore`=accumulatedEnglishScore + 10,`updatedAt`=? WHERE `roomId` = ? AND `playerId` = ?
+[2026-09-28T16:00:10.322Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`scenarioId` = 1 AND `DialogueNode`.`stepIndex` = 2 LIMIT 1;
+[2026-09-28T16:00:10.332Z] Executing (default): SELECT `RoomPlayer`.`id`, `RoomPlayer`.`groupRole`, `RoomPlayer`.`createdAt`, `RoomPlayer`.`updatedAt`, `RoomPlayer`.`roomId`, `RoomPlayer`.`playerId`, `Player`.`id` AS `Player.id`, `Player`.`username` AS `Player.username`, `Player`.`name` AS `Player.name` FROM `RoomPlayers` AS `RoomPlayer` LEFT OUTER JOIN `Players` AS `Player` ON `RoomPlayer`.`playerId` = `Player`.`id` WHERE `RoomPlayer`.`roomId` = 33 ORDER BY `RoomPlayer`.`createdAt` ASC;
+[2026-09-28T16:00:12.147Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`id` = 118;
+[2026-09-28T16:00:12.155Z] Executing (default): INSERT INTO `PlayerResponses` (`id`,`enteredText`,`isCorrect`,`scoreEarned`,`gameSessionId`,`dialogueNodeId`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?);
+[2026-09-28T16:00:12.166Z] 💾 PlayerResponse guardado correctamente: jugador 4, diálogo 118
+[2026-09-28T16:00:12.172Z] Executing (default): UPDATE `GameSessions` SET `accumulatedEnglishScore`=accumulatedEnglishScore + 10,`updatedAt`=? WHERE `roomId` = ? AND `playerId` = ?
+[2026-09-28T16:00:12.182Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`scenarioId` = 1 AND `DialogueNode`.`stepIndex` = 3 LIMIT 1;
+[2026-09-28T16:00:12.192Z] Executing (default): SELECT `RoomPlayer`.`id`, `RoomPlayer`.`groupRole`, `RoomPlayer`.`createdAt`, `RoomPlayer`.`updatedAt`, `RoomPlayer`.`roomId`, `RoomPlayer`.`playerId`, `Player`.`id` AS `Player.id`, `Player`.`username` AS `Player.username`, `Player`.`name` AS `Player.name` FROM `RoomPlayers` AS `RoomPlayer` LEFT OUTER JOIN `Players` AS `Player` ON `RoomPlayer`.`playerId` = `Player`.`id` WHERE `RoomPlayer`.`roomId` = 33 ORDER BY `RoomPlayer`.`createdAt` ASC;
+[2026-09-28T16:00:14.782Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`id` = 119;
+[2026-09-28T16:00:14.791Z] Executing (default): INSERT INTO `PlayerResponses` (`id`,`enteredText`,`isCorrect`,`scoreEarned`,`gameSessionId`,`dialogueNodeId`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?);
+[2026-09-28T16:00:14.800Z] 💾 PlayerResponse guardado correctamente: jugador 4, diálogo 119
+[2026-09-28T16:00:14.811Z] Executing (default): UPDATE `GameSessions` SET `accumulatedEnglishScore`=accumulatedEnglishScore + 10,`updatedAt`=? WHERE `roomId` = ? AND `playerId` = ?
+[2026-09-28T16:00:14.818Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`scenarioId` = 1 AND `DialogueNode`.`stepIndex` = 4 LIMIT 1;
+[2026-09-28T16:00:14.830Z] Executing (default): SELECT `RoomPlayer`.`id`, `RoomPlayer`.`groupRole`, `RoomPlayer`.`createdAt`, `RoomPlayer`.`updatedAt`, `RoomPlayer`.`roomId`, `RoomPlayer`.`playerId`, `Player`.`id` AS `Player.id`, `Player`.`username` AS `Player.username`, `Player`.`name` AS `Player.name` FROM `RoomPlayers` AS `RoomPlayer` LEFT OUTER JOIN `Players` AS `Player` ON `RoomPlayer`.`playerId` = `Player`.`id` WHERE `RoomPlayer`.`roomId` = 33 ORDER BY `RoomPlayer`.`createdAt` ASC;
+[2026-09-28T16:00:16.508Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`id` = 120;
+[2026-09-28T16:00:16.515Z] Executing (default): INSERT INTO `PlayerResponses` (`id`,`enteredText`,`isCorrect`,`scoreEarned`,`gameSessionId`,`dialogueNodeId`,`createdAt`,`updatedAt`) VALUES (DEFAULT,?,?,?,?,?,?,?);
+[2026-09-28T16:00:16.522Z] 💾 PlayerResponse guardado correctamente: jugador 4, diálogo 120
+[2026-09-28T16:00:16.529Z] Executing (default): UPDATE `GameSessions` SET `accumulatedEnglishScore`=accumulatedEnglishScore + 10,`updatedAt`=? WHERE `roomId` = ? AND `playerId` = ?
+[2026-09-28T16:00:16.536Z] Executing (default): SELECT `id`, `situationTextEn`, `correctAnswerPattern`, `wrongAnswer`, `feedbackText`, `targetPlayer`, `stepIndex`, `scenarioId` FROM `DialogueNodes` AS `DialogueNode` WHERE `DialogueNode`.`scenarioId` = 1 AND `DialogueNode`.`stepIndex` = 5 LIMIT 1;
