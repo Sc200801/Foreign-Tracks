@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const { GroupRoom, RoomPlayer, Player, Scenario, DialogueNode, GameSession } = require('../models');
+const PlayerResponse = require('../models/PlayerResponse');
 const { sequelize } = require('../config/db'); // 👈 Importado para operaciones acumulativas (sequelize.literal)
 
 const JWT_SECRET = process.env.JWT_SECRET || 'mi_clave_secreta_super_segura';
@@ -146,10 +147,13 @@ module.exports = (io, socket) => {
       ? username.trim() 
       : `Jugador-${socket.id.slice(0, 4)}`;
 
-    let jugadorExistente = room.players.find(p => p.id === socket.id || p.name.toLowerCase() === finalUsername.toLowerCase());
+    let jugadorExistente = room.players.find(
+      p => p.id === socket.id || p.name.toLowerCase() === finalUsername.toLowerCase()
+    );
 
     if (jugadorExistente) {
       const timerKey = `player_${targetRoomId}_${jugadorExistente.name}`;
+
       if (disconnectTimers[timerKey]) {
         clearTimeout(disconnectTimers[timerKey]);
         delete disconnectTimers[timerKey];
@@ -157,9 +161,13 @@ module.exports = (io, socket) => {
 
       console.log(`🔄 Reconectando a "${finalUsername}" (Nuevo Socket: ${socket.id}). Conserva isReady = ${jugadorExistente.isReady}`);
       jugadorExistente.id = socket.id;
+
     } else {
+
       if (room.players.length >= 4) {
-        return socket.emit('room:error', { message: 'La sala ya está llena (máximo 4 jugadores).' });
+        return socket.emit('room:error', {
+          message: 'La sala ya está llena (máximo 4 jugadores).'
+        });
       }
 
       if (room.dbRoomId && studentId) {
@@ -179,9 +187,11 @@ module.exports = (io, socket) => {
           } else {
             console.log(`ℹ️ Registro de estudiante ID ${studentId} ya existía en RoomPlayer para la sala DB ${room.dbRoomId}`);
           }
+
         } catch (dbErr) {
           console.error('❌ Error al registrar RoomPlayer en MariaDB:', dbErr.message);
         }
+
       } else {
         console.warn('⚠️ Se omitió el guardado en RoomPlayer: falta dbRoomId o el ID del estudiante.');
       }
@@ -192,16 +202,19 @@ module.exports = (io, socket) => {
         dbPlayerId: studentId || null,
         name: finalUsername,
         avatar: data?.avatar || '',
-        isReady: false, // Nuevo jugador entra como NO LISTO por defecto
-        character: data?.character || data?.avatar || null, // Se asigna o actualiza luego con room:select_character
-        correctAnswers: 0,       // Contador de aciertos
-        totalTimeSeconds: 0,     // Tiempo acumulado en segundos
-        questionStartTime: null  // Timestamp de inicio de la pregunta actual
+        isReady: false,
+        character: data?.character || data?.avatar || null,
+        correctAnswers: 0,
+        totalTimeSeconds: 0,
+        questionStartTime: null
       });
     }
 
     socket.join(targetRoomId);
-    console.log(`🎮 Jugador "${finalUsername}" (Total: ${room.players.length}/4) activo en sala: ${targetRoomId}`);
+
+    console.log(
+      `🎮 Jugador "${finalUsername}" (Total: ${room.players.length}/4) activo en sala: ${targetRoomId}`
+    );
 
     const successPayload = {
       roomId: targetRoomId,
@@ -219,12 +232,14 @@ module.exports = (io, socket) => {
 
   // 3. CAMBIAR ESTADO "READY / PREPARADO" (Estudiantes)
   socket.removeAllListeners('room:toggle_ready');
+
   socket.on('room:toggle_ready', (data) => {
     const { roomId } = data || {};
     const room = rooms[roomId];
 
     if (room) {
       const player = room.players.find(p => p.id === socket.id);
+
       if (player) {
         player.isReady = !player.isReady;
         io.to(roomId).emit('room:update', room);
@@ -232,18 +247,23 @@ module.exports = (io, socket) => {
     }
   });
 
-  // 3.B. ELEGIR PERSONAJE (exclusivo por sala: nadie más lo puede repetir)
+  // 3.B. ELEGIR PERSONAJE
   socket.on('room:select_character', (data) => {
     const { roomId, character } = data || {};
     const room = rooms[roomId];
 
     if (!room) {
-      return socket.emit('room:error', { message: 'La sala no existe.' });
+      return socket.emit('room:error', {
+        message: 'La sala no existe.'
+      });
     }
 
     const jugador = room.players.find(p => p.id === socket.id);
+
     if (!jugador) {
-      return socket.emit('room:error', { message: 'No formas parte de esta sala.' });
+      return socket.emit('room:error', {
+        message: 'No formas parte de esta sala.'
+      });
     }
 
     const ocupadoPorOtro = room.players.some(
@@ -257,58 +277,90 @@ module.exports = (io, socket) => {
     }
 
     jugador.character = character;
-    console.log(`🧑‍🎤 "${jugador.name}" eligió el personaje "${character}" en la sala ${roomId}`);
+
+    console.log(
+      `🧑‍🎤 "${jugador.name}" eligió el personaje "${character}" en la sala ${roomId}`
+    );
+
     io.to(roomId).emit('room:update', room);
   });
 
   // 4. INICIAR JUEGO CON CREACIÓN DE GAME SESSIONS Y ASIGNACIÓN DE TURNOS
   socket.removeAllListeners('room:start');
+
   socket.on('room:start', async (data) => {
 
     const { roomId } = data || {};
     const room = rooms[roomId];
 
     if (!room) {
-      return socket.emit('room:error', { message: 'La sala no existe.' });
+      return socket.emit('room:error', {
+        message: 'La sala no existe.'
+      });
     }
 
     if (room.hostId !== socket.id) {
-      return socket.emit('room:error', { message: 'Solo el profesor puede iniciar la partida.' });
+      return socket.emit('room:error', {
+        message: 'Solo el profesor puede iniciar la partida.'
+      });
     }
 
     if (!room.players || room.players.length === 0) {
-      return socket.emit('room:error', { message: 'No hay estudiantes en la sala para iniciar el juego.' });
+      return socket.emit('room:error', {
+        message: 'No hay estudiantes en la sala para iniciar el juego.'
+      });
     }
 
-    // Filtrar a cualquier jugador cuyo estado NO sea explícitamente true
-    const sinPreparar = room.players.filter(p => p.isReady !== true);
+    const sinPreparar = room.players.filter(
+      p => p.isReady !== true
+    );
 
     if (sinPreparar.length > 0) {
-      const nombresPendientes = sinPreparar.map(p => p.name).join(', ');
-      console.log(`⚠️ Intento de inicio bloqueado. Faltan por confirmar: ${nombresPendientes}`);
-      
-      return socket.emit('room:error', { 
-        message: `No se puede iniciar. Aún hay alumnos sin confirmar listo: ${nombresPendientes}` 
+      const nombresPendientes = sinPreparar
+        .map(p => p.name)
+        .join(', ');
+
+      console.log(
+        `⚠️ Intento de inicio bloqueado. Faltan por confirmar: ${nombresPendientes}`
+      );
+
+      return socket.emit('room:error', {
+        message: `No se puede iniciar. Aún hay alumnos sin confirmar listo: ${nombresPendientes}`
       });
     }
 
     try {
+
       let roomPlayers = [];
-      
+
       if (room.dbRoomId) {
         try {
           roomPlayers = await RoomPlayer.findAll({
-            where: { roomId: room.dbRoomId },
+            where: {
+              roomId: room.dbRoomId
+            },
             order: [['createdAt', 'ASC']],
-            include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
+            include: [
+              {
+                model: Player,
+                attributes: ['id', 'username', 'name']
+              }
+            ]
           });
+
         } catch (errDbFetch) {
-          console.warn('⚠️ No se pudieron obtener los RoomPlayers de la BD, utilizando datos de memoria:', errDbFetch.message);
+
+          console.warn(
+            '⚠️ No se pudieron obtener los RoomPlayers de la BD, utilizando datos de memoria:',
+            errDbFetch.message
+          );
         }
       }
 
       const hotelScenario = await Scenario.findOne({
-        where: { name: 'Hotel' },
+        where: {
+          name: 'Hotel'
+        },
         include: [
           {
             model: DialogueNode,
@@ -317,8 +369,14 @@ module.exports = (io, socket) => {
         ]
       });
 
-      if (!hotelScenario || !hotelScenario.DialogueNodes || !hotelScenario.DialogueNodes.length) {
-        return socket.emit('room:error', { message: 'No se encontraron diálogos para el escenario Hotel.' });
+      if (
+        !hotelScenario ||
+        !hotelScenario.DialogueNodes ||
+        !hotelScenario.DialogueNodes.length
+      ) {
+        return socket.emit('room:error', {
+          message: 'No se encontraron diálogos para el escenario Hotel.'
+        });
       }
 
       const firstDialogue = hotelScenario.DialogueNodes[0];
@@ -327,15 +385,24 @@ module.exports = (io, socket) => {
       const createdSessions = [];
       const idSalaDB = room.dbRoomId || null;
 
-      // Determinamos los jugadores a registrar (priorizando MariaDB y usando memoria como respaldo)
-      const listaJugadores = roomPlayers.length > 0 
-        ? roomPlayers.map(rp => ({ playerId: rp.playerId, name: rp.Player?.name || rp.Player?.username }))
-        : room.players.map(p => ({ playerId: p.dbPlayerId, name: p.name }));
+      const listaJugadores = roomPlayers.length > 0
+        ? roomPlayers.map(rp => ({
+            playerId: rp.playerId,
+            name: rp.Player?.name || rp.Player?.username
+          }))
+        : room.players.map(p => ({
+            playerId: p.dbPlayerId,
+            name: p.name
+          }));
 
       if (idSalaDB) {
+
         for (const playerItem of listaJugadores) {
+
           if (playerItem.playerId) {
+
             try {
+
               const [session] = await GameSession.findOrCreate({
                 where: {
                   roomId: idSalaDB,
@@ -348,40 +415,85 @@ module.exports = (io, socket) => {
                   endingId: null
                 }
               });
+
               createdSessions.push(session);
+
             } catch (sessionErr) {
-              console.error(`❌ Error al crear GameSession para el jugador ID ${playerItem.playerId}:`, sessionErr.message);
+
+              console.error(
+                `❌ Error al crear GameSession para el jugador ID ${playerItem.playerId}:`,
+                sessionErr.message
+              );
             }
           }
         }
-        console.log(`💾 Se crearon/verificaron ${createdSessions.length} registros en GameSessions.`);
+
+        console.log(
+          `💾 Se crearon/verificaron ${createdSessions.length} registros en GameSessions.`
+        );
+
       } else {
-        console.warn('⚠️ No se creó registro en GameSessions debido a que la sala no posee dbRoomId.');
+
+        console.warn(
+          '⚠️ No se creó registro en GameSessions debido a que la sala no posee dbRoomId.'
+        );
       }
 
-      const turnAssignment = (roomPlayers.length > 0 ? roomPlayers : room.players).map((p, index) => ({
-        turnOrder: index + 1,
-        playerId: p.playerId || p.dbPlayerId || p.id,
-        playerInfo: p.Player || { username: p.name, fullname: p.name }
-      }));
+      // 🆕 Mapa playerId -> GameSession.id
+      room.gameSessionsByPlayer = {};
 
-      const activeTurn = turnAssignment.find(t => t.turnOrder === firstDialogue.targetPlayer) || turnAssignment[0];
+      createdSessions.forEach((session) => {
+        room.gameSessionsByPlayer[session.playerId] = session.id;
+      });
+
+      const turnAssignment = (
+        roomPlayers.length > 0
+          ? roomPlayers
+          : room.players
+      ).map((p, index) => {
+
+        const playerId =
+          p.playerId ||
+          p.dbPlayerId ||
+          p.id;
+
+        return {
+          turnOrder: index + 1,
+          playerId,
+          playerInfo: p.Player || {
+            username: p.name,
+            fullname: p.name
+          },
+          gameSessionId:
+            room.gameSessionsByPlayer[playerId] || null
+        };
+      });
+
+      const activeTurn =
+        turnAssignment.find(
+          t => t.turnOrder === firstDialogue.targetPlayer
+        ) || turnAssignment[0];
 
       // 🎯 MARCAR EL TIEMPO EN QUE COMIENZA LA PRIMERA PREGUNTA PARA TODOS LOS JUGADORES
       const now = Date.now();
+
       room.players.forEach(p => {
         p.questionStartTime = now;
         p.correctAnswers = 0;
         p.totalTimeSeconds = 0;
       });
 
-      console.log(`🏁 Todos listos. El profesor inició la partida en la sala ${roomId}`);
+      console.log(
+        `🏁 Todos listos. El profesor inició la partida en la sala ${roomId}`
+      );
 
       io.to(roomId).emit('room:game_started', {
         roomId: roomId,
         message: '¡El juego ha comenzado!',
         turns: turnAssignment,
-        activePlayerId: activeTurn ? activeTurn.playerId : null,
+        activePlayerId: activeTurn
+          ? activeTurn.playerId
+          : null,
         dialogue: {
           id: firstDialogue.id,
           stepIndex: firstDialogue.stepIndex,
@@ -393,39 +505,63 @@ module.exports = (io, socket) => {
       });
 
     } catch (error) {
-      console.error('❌ Error al iniciar partida en room:start:', error);
-      return socket.emit('room:error', { message: 'Ocurrió un error al procesar el inicio en la base de datos.' });
+
+      console.error(
+        '❌ Error al iniciar partida en room:start:',
+        error
+      );
+
+      return socket.emit('room:error', {
+        message: 'Ocurrió un error al procesar el inicio en la base de datos.'
+      });
     }
   });
 
   // 4.B. EL PROFESOR ABRE LA ESCENA DEL HOTEL PARA TODOS A LA VEZ
   socket.on('room:start_scene', (data) => {
+
     const { roomId } = data || {};
     const room = rooms[roomId];
 
     if (!room) {
-      return socket.emit('room:error', { message: 'La sala no existe.' });
+      return socket.emit('room:error', {
+        message: 'La sala no existe.'
+      });
     }
 
     if (room.hostId !== socket.id) {
-      return socket.emit('room:error', { message: 'Solo el profesor puede iniciar la escena.' });
+      return socket.emit('room:error', {
+        message: 'Solo el profesor puede iniciar la escena.'
+      });
     }
 
-    console.log(`🎬 El profesor abrió la escena para todos en la sala ${roomId}`);
+    console.log(
+      `🎬 El profesor abrió la escena para todos en la sala ${roomId}`
+    );
 
-    io.to(roomId).emit('room:scene_started', { roomId });
+    io.to(roomId).emit('room:scene_started', {
+      roomId
+    });
   });
 
   // 4.C. SINCRONIZAR POSICIÓN DE JUGADORES DENTRO DE LA ESCENA
   socket.on('room:player_move', (data) => {
-    const { roomId, x, y, character, direction, moving } = data || {};
+
+    const {
+      roomId,
+      x,
+      y,
+      character,
+      direction,
+      moving
+    } = data || {};
 
     if (!roomId || !rooms[roomId]) {
       return;
     }
 
     const jugador = rooms[roomId].players.find(
-      (p) => p.id === socket.id
+      p => p.id === socket.id
     );
 
     if (!jugador) {
@@ -443,43 +579,116 @@ module.exports = (io, socket) => {
     });
   });
 
-  // 4.1 SUBMIT DE RESPUESTA EN DIÁLOGO (Validación, Puntos, Vida Grupal y Avance)
+  // 4.1 SUBMIT DE RESPUESTA EN DIÁLOGO
   socket.removeAllListeners('dialogue:submit_answer');
+
   socket.on('dialogue:submit_answer', async (data) => {
-    const { roomId, dialogueId, selectedAnswer } = data || {};
+
+    const {
+      roomId,
+      dialogueId,
+      selectedAnswer
+    } = data || {};
 
     if (!roomId || !dialogueId || !selectedAnswer) {
-      return socket.emit('room:error', { message: 'Faltan parámetros requeridos para procesar la respuesta.' });
+      return socket.emit('room:error', {
+        message: 'Faltan parámetros requeridos para procesar la respuesta.'
+      });
     }
 
     const room = rooms[roomId];
+
     if (!room) {
-      return socket.emit('room:error', { message: 'La sala especificada no existe.' });
+      return socket.emit('room:error', {
+        message: 'La sala especificada no existe.'
+      });
     }
 
     try {
+
       // 1. Obtener el nodo de diálogo actual
-      const currentDialogue = await DialogueNode.findByPk(dialogueId);
+      const currentDialogue =
+        await DialogueNode.findByPk(dialogueId);
+
       if (!currentDialogue) {
-        return socket.emit('room:error', { message: 'No se encontró el nodo de diálogo.' });
+        return socket.emit('room:error', {
+          message: 'No se encontró el nodo de diálogo.'
+        });
       }
 
       // 2. Normalizar y comparar la respuesta elegida con la correcta
-      const isCorrect = selectedAnswer.trim().toLowerCase() === currentDialogue.correctAnswerPattern.trim().toLowerCase();
+      const isCorrect =
+        selectedAnswer.trim().toLowerCase() ===
+        currentDialogue.correctAnswerPattern.trim().toLowerCase();
 
-      // 3. Identificar al jugador que respondió (a través de socket.id o JWT)
-      let playerInRoom = room.players.find(p => p.id === socket.id);
-      let studentId = playerInRoom ? playerInRoom.dbPlayerId : null;
+      // 3. Identificar al jugador que respondió
+      let playerInRoom =
+        room.players.find(p => p.id === socket.id);
+
+      let studentId =
+        playerInRoom
+          ? playerInRoom.dbPlayerId
+          : null;
 
       if (!studentId && socket.user) {
-        studentId = socket.user.id || socket.user.userId;
+        studentId =
+          socket.user.id ||
+          socket.user.userId;
+      }
+
+      // ============================================================
+      // 💾 GUARDAR RESPUESTA EN PlayerResponses
+      // ============================================================
+
+      const gameSessionId =
+        room.gameSessionsByPlayer &&
+        room.gameSessionsByPlayer[studentId];
+
+      const scoreEarned =
+        isCorrect ? 10 : 0;
+
+      if (gameSessionId && studentId) {
+
+        try {
+
+          await PlayerResponse.create({
+            enteredText: selectedAnswer,
+            isCorrect: isCorrect,
+            scoreEarned: scoreEarned,
+            gameSessionId: gameSessionId,
+            dialogueNodeId: dialogueId
+          });
+
+          console.log(
+            `💾 PlayerResponse guardado correctamente: jugador ${studentId}, diálogo ${dialogueId}`
+          );
+
+        } catch (responseError) {
+
+          console.error(
+            '❌ Error al guardar PlayerResponse:',
+            responseError.message
+          );
+        }
+      } else {
+
+        console.warn(
+          `⚠️ No se pudo guardar PlayerResponse. studentId: ${studentId}, gameSessionId: ${gameSessionId}`
+        );
       }
 
       // 🎯 CÁLCULO EN RAM DEL TIEMPO EMPLEADO Y ACIERTOS
       if (playerInRoom) {
+
         if (playerInRoom.questionStartTime) {
-          const elapsedSeconds = Math.round((Date.now() - playerInRoom.questionStartTime) / 1000);
-          playerInRoom.totalTimeSeconds += Math.max(1, elapsedSeconds);
+
+          const elapsedSeconds =
+            Math.round(
+              (Date.now() - playerInRoom.questionStartTime) / 1000
+            );
+
+          playerInRoom.totalTimeSeconds +=
+            Math.max(1, elapsedSeconds);
         }
 
         if (isCorrect) {
@@ -488,251 +697,591 @@ module.exports = (io, socket) => {
       }
 
       if (isCorrect) {
+
         // --- CASO RESPUESTA CORRECTA ---
+
         if (room.dbRoomId && studentId) {
+
           await GameSession.update(
-            { accumulatedEnglishScore: sequelize.literal('accumulatedEnglishScore + 10') },
-            { where: { roomId: room.dbRoomId, playerId: studentId } }
+            {
+              accumulatedEnglishScore:
+                sequelize.literal(
+                  'accumulatedEnglishScore + 10'
+                )
+            },
+            {
+              where: {
+                roomId: room.dbRoomId,
+                playerId: studentId
+              }
+            }
           );
         }
 
-        const nextStepIndex = currentDialogue.stepIndex + 1;
-        const nextDialogue = await DialogueNode.findOne({
-          where: {
-            scenarioId: currentDialogue.scenarioId,
-            stepIndex: nextStepIndex
-          }
-        });
+        const nextStepIndex =
+          currentDialogue.stepIndex + 1;
+
+        const nextDialogue =
+          await DialogueNode.findOne({
+            where: {
+              scenarioId: currentDialogue.scenarioId,
+              stepIndex: nextStepIndex
+            }
+          });
 
         if (nextDialogue) {
+
           let roomPlayers = [];
+
           if (room.dbRoomId) {
-            roomPlayers = await RoomPlayer.findAll({
-              where: { roomId: room.dbRoomId },
-              order: [['createdAt', 'ASC']],
-              include: [{ model: Player, attributes: ['id', 'username', 'name'] }]
-            });
+
+            roomPlayers =
+              await RoomPlayer.findAll({
+                where: {
+                  roomId: room.dbRoomId
+                },
+                order: [['createdAt', 'ASC']],
+                include: [
+                  {
+                    model: Player,
+                    attributes: [
+                      'id',
+                      'username',
+                      'name'
+                    ]
+                  }
+                ]
+              });
           }
 
-          const turnAssignment = (roomPlayers.length > 0 ? roomPlayers : room.players).map((p, index) => ({
-            turnOrder: index + 1,
-            playerId: p.playerId || p.dbPlayerId || p.id,
-            playerInfo: p.Player || { username: p.name, fullname: p.name }
-          }));
+          const turnAssignment =
+            (
+              roomPlayers.length > 0
+                ? roomPlayers
+                : room.players
+            ).map((p, index) => {
 
-          const activeTurn = turnAssignment.find(t => t.turnOrder === nextDialogue.targetPlayer) || turnAssignment[0];
+              const playerId =
+                p.playerId ||
+                p.dbPlayerId ||
+                p.id;
+
+              return {
+                turnOrder: index + 1,
+                playerId,
+                playerInfo:
+                  p.Player || {
+                    username: p.name,
+                    fullname: p.name
+                  },
+                gameSessionId:
+                  (
+                    room.gameSessionsByPlayer &&
+                    room.gameSessionsByPlayer[playerId]
+                  ) || null
+              };
+            });
+
+          const activeTurn =
+            turnAssignment.find(
+              t =>
+                t.turnOrder ===
+                nextDialogue.targetPlayer
+            ) || turnAssignment[0];
 
           // 🎯 ACTUALIZAR TIEMPO INICIAL PARA EL SIGUIENTE TURNO / DIÁLOGO
-          const nextQuestionTime = Date.now();
-          room.players.forEach(p => { p.questionStartTime = nextQuestionTime; });
+          const nextQuestionTime =
+            Date.now();
 
-          io.to(roomId).emit('dialogue:success', {
-            message: '¡Respuesta correcta!',
-            nextDialogue: {
-              id: nextDialogue.id,
-              stepIndex: nextDialogue.stepIndex,
-              situationTextEn: nextDialogue.situationTextEn,
-              correctAnswerPattern: nextDialogue.correctAnswerPattern,
-              wrongAnswer: nextDialogue.wrongAnswer,
-              targetPlayer: nextDialogue.targetPlayer
-            },
-            activePlayerId: activeTurn ? activeTurn.playerId : null,
-            turns: turnAssignment
+          room.players.forEach(p => {
+            p.questionStartTime =
+              nextQuestionTime;
           });
+
+          io.to(roomId).emit(
+            'dialogue:success',
+            {
+              message: '¡Respuesta correcta!',
+
+              nextDialogue: {
+                id: nextDialogue.id,
+                stepIndex: nextDialogue.stepIndex,
+                situationTextEn:
+                  nextDialogue.situationTextEn,
+                correctAnswerPattern:
+                  nextDialogue.correctAnswerPattern,
+                wrongAnswer:
+                  nextDialogue.wrongAnswer,
+                targetPlayer:
+                  nextDialogue.targetPlayer
+              },
+
+              activePlayerId:
+                activeTurn
+                  ? activeTurn.playerId
+                  : null,
+
+              turns:
+                turnAssignment
+            }
+          );
+
         } else {
+
           // 🎯 ESCENARIO COMPLETADO: CONSTRUIR Y EMITIR RESULTADOS AL PODIO
-          const finalPlayersData = room.players.map(p => ({
-            username: p.name,
-            correctAnswers: p.correctAnswers || 0,
-            totalTimeSeconds: p.totalTimeSeconds || 0,
-            // 💡 FIX PODIO: Asignar personaje seleccionado (p.character) o fallback
-            avatar: p.character || p.avatar || 'rubi'
-          }));
 
-          io.to(roomId).emit('scenario:completed', {
-            message: '¡Felicidades! Han completado el escenario con éxito.'
-          });
+          const finalPlayersData =
+            room.players.map(p => ({
+              username: p.name,
+              correctAnswers:
+                p.correctAnswers || 0,
+              totalTimeSeconds:
+                p.totalTimeSeconds || 0,
 
-          // Evento de fin de juego con la payload estructurada para podium.js
-          io.to(roomId).emit('game:over', {
-            message: '¡La partida ha finalizado! Presentando resultados...',
-            players: finalPlayersData
-          });
+              // 💡 FIX PODIO
+              avatar:
+                p.character ||
+                p.avatar ||
+                'rubi'
+            }));
+
+          io.to(roomId).emit(
+            'scenario:completed',
+            {
+              message:
+                '¡Felicidades! Han completado el escenario con éxito.'
+            }
+          );
+
+          // Evento de fin de juego para podium.js
+          io.to(roomId).emit(
+            'game:over',
+            {
+              message:
+                '¡La partida ha finalizado! Presentando resultados...',
+              players:
+                finalPlayersData
+            }
+          );
         }
 
       } else {
+
         // --- CASO RESPUESTA INCORRECTA ---
+
         const DAMAGE = 20.00;
 
         if (room.dbRoomId) {
+
           await GameSession.update(
-            { survivalHealth: sequelize.literal(`GREATEST(0, survivalHealth - ${DAMAGE})`) },
-            { where: { roomId: room.dbRoomId } }
+            {
+              survivalHealth:
+                sequelize.literal(
+                  `GREATEST(0, survivalHealth - ${DAMAGE})`
+                )
+            },
+            {
+              where: {
+                roomId: room.dbRoomId
+              }
+            }
           );
         }
 
-        let currentHealth = 100 - DAMAGE;
+        let currentHealth =
+          100 - DAMAGE;
+
         if (room.dbRoomId) {
-          const sampleSession = await GameSession.findOne({
-            where: { roomId: room.dbRoomId }
-          });
+
+          const sampleSession =
+            await GameSession.findOne({
+              where: {
+                roomId: room.dbRoomId
+              }
+            });
+
           if (sampleSession) {
-            currentHealth = sampleSession.survivalHealth;
+            currentHealth =
+              sampleSession.survivalHealth;
           }
         }
 
         let parsedFeedback = null;
+
         if (currentDialogue.feedbackText) {
+
           try {
-            parsedFeedback = JSON.parse(currentDialogue.feedbackText);
+
+            parsedFeedback =
+              JSON.parse(
+                currentDialogue.feedbackText
+              );
+
           } catch (e) {
-            parsedFeedback = currentDialogue.feedbackText;
+
+            parsedFeedback =
+              currentDialogue.feedbackText;
           }
         }
 
-        // 🎯 SI FUE INCORRECTA, REINICIAR EL CRONÓMETRO PARA EL REINTENTO DE LA PREGUNTA
+        // 🎯 SI FUE INCORRECTA, REINICIAR EL CRONÓMETRO PARA EL REINTENTO
         if (playerInRoom) {
-          playerInRoom.questionStartTime = Date.now();
+          playerInRoom.questionStartTime =
+            Date.now();
         }
 
-        io.to(roomId).emit('dialogue:error', {
-          message: 'Respuesta incorrecta. La vida del grupo ha disminuido.',
-          damageTaken: DAMAGE,
-          remainingHealth: currentHealth,
-          feedback: parsedFeedback,
-          dialogueId: currentDialogue.id
-        });
+        io.to(roomId).emit(
+          'dialogue:error',
+          {
+            message:
+              'Respuesta incorrecta. La vida del grupo ha disminuido.',
+
+            damageTaken:
+              DAMAGE,
+
+            remainingHealth:
+              currentHealth,
+
+            feedback:
+              parsedFeedback,
+
+            dialogueId:
+              currentDialogue.id
+          }
+        );
       }
 
     } catch (error) {
-      console.error('❌ Error al procesar dialogue:submit_answer:', error);
-      return socket.emit('room:error', { message: 'Error interno al validar la respuesta.' });
+
+      console.error(
+        '❌ Error al procesar dialogue:submit_answer:',
+        error
+      );
+
+      return socket.emit(
+        'room:error',
+        {
+          message:
+            'Error interno al validar la respuesta.'
+        }
+      );
     }
   });
 
-  // 5. REGRESAR A LA SALA / LOBBY (SINCRONIZACIÓN FORZADA Y GLOBAL)
+  // 5. REGRESAR A LA SALA / LOBBY
   socket.removeAllListeners('room:back_to_lobby');
+
   socket.on('room:back_to_lobby', (data) => {
+
     const { roomId } = data || {};
+
     if (!roomId) return;
 
     const room = rooms[roomId];
 
-    console.log(`🔄 [ROOMHANDLER] Forzando regreso al lobby para la sala: ${roomId}`);
+    console.log(
+      `🔄 [ROOMHANDLER] Forzando regreso al lobby para la sala: ${roomId}`
+    );
 
-    io.to(roomId).emit('room:returned_to_lobby', { roomId });
+    io.to(roomId).emit(
+      'room:returned_to_lobby',
+      {
+        roomId
+      }
+    );
 
     if (room) {
-      if (room.hostId) io.sockets.sockets.get(room.hostId)?.join(roomId);
-      
+
+      if (room.hostId) {
+        io.sockets.sockets
+          .get(room.hostId)
+          ?.join(roomId);
+      }
+
       room.players.forEach(p => {
-        const socketJugador = io.sockets.sockets.get(p.id);
+
+        const socketJugador =
+          io.sockets.sockets.get(p.id);
+
         if (socketJugador) {
+
           socketJugador.join(roomId);
-          socketJugador.emit('room:returned_to_lobby', { roomId });
+
+          socketJugador.emit(
+            'room:returned_to_lobby',
+            {
+              roomId
+            }
+          );
         }
       });
 
-      io.to(roomId).emit('room:update', room);
+      io.to(roomId).emit(
+        'room:update',
+        room
+      );
     }
   });
 
-  // 6. SALIR DE UNA SALA DE JUEGO (Salida Voluntaria)
+  // 6. SALIR DE UNA SALA DE JUEGO
   socket.removeAllListeners('room:leave');
+
   socket.on('room:leave', (data) => {
+
     const { roomId } = data || {};
-    if (!roomId || !rooms[roomId]) return;
+
+    if (
+      !roomId ||
+      !rooms[roomId]
+    ) return;
 
     socket.leave(roomId);
-    console.log(`🚪 Usuario ${socket.id} salió voluntariamente de la sala: ${roomId}`);
 
-    const room = rooms[roomId];
+    console.log(
+      `🚪 Usuario ${socket.id} salió voluntariamente de la sala: ${roomId}`
+    );
+
+    const room =
+      rooms[roomId];
 
     if (room.hostId === socket.id) {
-      const errorMsg = 'El profesor ha cerrado la sala.';
-      io.to(roomId).emit('room:error', { message: errorMsg });
+
+      const errorMsg =
+        'El profesor ha cerrado la sala.';
+
+      io.to(roomId).emit(
+        'room:error',
+        {
+          message:
+            errorMsg
+        }
+      );
+
       delete rooms[roomId];
+
     } else {
-      room.players = room.players.filter(p => p.id !== socket.id);
-      io.to(roomId).emit('room:update', room);
+
+      room.players =
+        room.players.filter(
+          p => p.id !== socket.id
+        );
+
+      io.to(roomId).emit(
+        'room:update',
+        room
+      );
     }
   });
 
   // 7. GESTIÓN DEL CHAT MULTIJUGADOR Y MÉTRICA DE PARTICIPACIÓN
   socket.removeAllListeners('enviar-mensaje-chat');
+
   socket.on('enviar-mensaje-chat', (data) => {
-    const { roomId, usuario, mensaje, palabrasContadas, totalAcumulado, timestamp } = data || {};
+
+    const {
+      roomId,
+      usuario,
+      mensaje,
+      palabrasContadas,
+      totalAcumulado,
+      timestamp
+    } = data || {};
 
     if (!mensaje) return;
 
-    let senderName = usuario;
+    let senderName =
+      usuario;
+
     if (!senderName && socket.user) {
-      senderName = socket.user.fullname || socket.user.name || socket.user.username;
+
+      senderName =
+        socket.user.fullname ||
+        socket.user.name ||
+        socket.user.username;
     }
-    if (!senderName && roomId && rooms[roomId]) {
-      const p = rooms[roomId].players.find(player => player.id === socket.id);
-      if (p) senderName = p.name;
+
+    if (
+      !senderName &&
+      roomId &&
+      rooms[roomId]
+    ) {
+
+      const p =
+        rooms[roomId].players.find(
+          player =>
+            player.id === socket.id
+        );
+
+      if (p) {
+        senderName =
+          p.name;
+      }
     }
-    senderName = senderName || 'Estudiante';
+
+    senderName =
+      senderName ||
+      'Estudiante';
 
     const responsePayload = {
-      usuario: senderName,
-      mensaje: mensaje,
-      palabrasContadas: palabrasContadas || 0,
-      totalAcumulado: totalAcumulado || 0,
-      timestamp: timestamp || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      socketId: socket.id
+
+      usuario:
+        senderName,
+
+      mensaje:
+        mensaje,
+
+      palabrasContadas:
+        palabrasContadas || 0,
+
+      totalAcumulado:
+        totalAcumulado || 0,
+
+      timestamp:
+        timestamp ||
+        new Date().toLocaleTimeString(
+          [],
+          {
+            hour: '2-digit',
+            minute: '2-digit'
+          }
+        ),
+
+      socketId:
+        socket.id
     };
 
     if (roomId) {
-      io.to(roomId).emit('mensaje-chat-recibido', responsePayload);
+
+      io.to(roomId).emit(
+        'mensaje-chat-recibido',
+        responsePayload
+      );
+
     } else {
-      io.emit('mensaje-chat-recibido', responsePayload);
+
+      io.emit(
+        'mensaje-chat-recibido',
+        responsePayload
+      );
     }
   });
 
-  // 8. MANEJO DE DESCONEXIÓN INVOLUNTARIA (CON MARGEN DE GRACIA DE 10 SEGUNDOS)
+  // 8. MANEJO DE DESCONEXIÓN INVOLUNTARIA
   socket.removeAllListeners('disconnect');
+
   socket.on('disconnect', () => {
+
     for (const roomId in rooms) {
-      const room = rooms[roomId];
+
+      const room =
+        rooms[roomId];
 
       if (room.hostId === socket.id) {
-        console.log(`⚠️ Profesor desconectado temporalmente (Socket: ${socket.id}). Esperando 10s antes de cerrar sala...`);
-        
-        const hostTimerKey = `host_${roomId}`;
-        if (disconnectTimers[hostTimerKey]) clearTimeout(disconnectTimers[hostTimerKey]);
 
-        disconnectTimers[hostTimerKey] = setTimeout(() => {
-          if (rooms[roomId] && rooms[roomId].hostId === socket.id) {
-            console.log(`❌ El profesor no regresó. Cerrando sala ${roomId}...`);
-            io.to(roomId).emit('room:error', { message: 'El profesor se ha desconectado. La sala fue cerrada.' });
-            delete rooms[roomId];
-          }
-          delete disconnectTimers[hostTimerKey];
-        }, 10000);
+        console.log(
+          `⚠️ Profesor desconectado temporalmente (Socket: ${socket.id}). Esperando 10s antes de cerrar sala...`
+        );
+
+        const hostTimerKey =
+          `host_${roomId}`;
+
+        if (
+          disconnectTimers[hostTimerKey]
+        ) {
+          clearTimeout(
+            disconnectTimers[hostTimerKey]
+          );
+        }
+
+        disconnectTimers[hostTimerKey] =
+          setTimeout(() => {
+
+            if (
+              rooms[roomId] &&
+              rooms[roomId].hostId === socket.id
+            ) {
+
+              console.log(
+                `❌ El profesor no regresó. Cerrando sala ${roomId}...`
+              );
+
+              io.to(roomId).emit(
+                'room:error',
+                {
+                  message:
+                    'El profesor se ha desconectado. La sala fue cerrada.'
+                }
+              );
+
+              delete rooms[roomId];
+            }
+
+            delete disconnectTimers[
+              hostTimerKey
+            ];
+
+          }, 10000);
 
         break;
       }
 
-      const player = room.players.find(p => p.id === socket.id);
-      if (player) {
-        console.log(`⚠️ Estudiante "${player.name}" desconectado por micro-corte. Dando 10s para reconectarse...`);
-        
-        const playerTimerKey = `player_${roomId}_${player.name}`;
-        if (disconnectTimers[playerTimerKey]) clearTimeout(disconnectTimers[playerTimerKey]);
+      const player =
+        room.players.find(
+          p => p.id === socket.id
+        );
 
-        disconnectTimers[playerTimerKey] = setTimeout(() => {
-          if (rooms[roomId]) {
-            const index = rooms[roomId].players.findIndex(p => p.name === player.name && p.id === socket.id);
-            if (index !== -1) {
-              console.log(`❌ Estudiante "${player.name}" no se reconectó a tiempo. Removiendo de la sala ${roomId}.`);
-              rooms[roomId].players.splice(index, 1);
-              io.to(roomId).emit('room:update', rooms[roomId]);
+      if (player) {
+
+        console.log(
+          `⚠️ Estudiante "${player.name}" desconectado por micro-corte. Dando 10s para reconectarse...`
+        );
+
+        const playerTimerKey =
+          `player_${roomId}_${player.name}`;
+
+        if (
+          disconnectTimers[playerTimerKey]
+        ) {
+          clearTimeout(
+            disconnectTimers[playerTimerKey]
+          );
+        }
+
+        disconnectTimers[playerTimerKey] =
+          setTimeout(() => {
+
+            if (rooms[roomId]) {
+
+              const index =
+                rooms[roomId].players.findIndex(
+                  p =>
+                    p.name === player.name &&
+                    p.id === socket.id
+                );
+
+              if (index !== -1) {
+
+                console.log(
+                  `❌ Estudiante "${player.name}" no se reconectó a tiempo. Removiendo de la sala ${roomId}.`
+                );
+
+                rooms[roomId].players.splice(
+                  index,
+                  1
+                );
+
+                io.to(roomId).emit(
+                  'room:update',
+                  rooms[roomId]
+                );
+              }
             }
-          }
-          delete disconnectTimers[playerTimerKey];
-        }, 10000);
+
+            delete disconnectTimers[
+              playerTimerKey
+            ];
+
+          }, 10000);
 
         break;
       }

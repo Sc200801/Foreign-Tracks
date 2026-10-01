@@ -20,10 +20,12 @@ const { Server } = require('socket.io');
 const { sequelize, connectDB } = require('./src-server/config/db');
 require('dotenv').config();
 
-// 1. Importar las rutas de autenticación, escenarios y salas
+// 1. Importar las rutas de autenticación, escenarios, salas, respuestas y reportes
 const authRoutes = require('./src-server/routes/authRoutes');
 const scenarioRoutes = require('./src-server/routes/scenarioRoutes');
-const roomRoutes = require('./src-server/routes/roomRoutes'); // 👈 AGREGADO AQUÍ
+const roomRoutes = require('./src-server/routes/roomRoutes');
+const responseRoutes = require('./src-server/routes/responseRoutes');
+const reportRoutes = require('./src-server/routes/reportRoutes'); // 👈 1. IMPORTADO AQUÍ
 
 // 2. Importar el manejador de salas y middleware de sockets
 const registerRoomHandlers = require('./src-server/sockets/roomHandler');
@@ -60,7 +62,9 @@ app.use(express.static('public'));
 // Integración de Rutas de la API REST
 app.use('/api/auth', authRoutes);
 app.use('/api/scenarios', scenarioRoutes);
-app.use('/api/rooms', roomRoutes); // 👈 AGREGADO AQUÍ
+app.use('/api/rooms', roomRoutes);
+app.use('/api', responseRoutes);
+app.use('/api/reports', reportRoutes); // 👈 2. REGISTRADO AQUÍ
 
 // Middleware de autenticación de WebSockets (Valida JWT en handshake)
 io.use(authSocketMiddleware);
@@ -112,6 +116,8 @@ async function startServer() {
       console.log(`🔐 Rutas de autenticación disponibles en http://localhost:${PORT}/api/auth`);
       console.log(`🎬 Rutas de escenarios disponibles en http://localhost:${PORT}/api/scenarios`);
       console.log(`🏠 Rutas de salas disponibles en http://localhost:${PORT}/api/rooms`);
+      console.log(`📝 Ruta de respuestas disponible en http://localhost:${PORT}/api/responses`);
+      console.log(`📊 Ruta de reportes pedagógicos disponible en http://localhost:${PORT}/api/reports`); // 👈 LOG AGREGADO
     });
   } catch (error) {
     console.error('❌ Error crítico al iniciar el servidor:', error);
