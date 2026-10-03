@@ -1,14 +1,18 @@
 // ==========================================
-// 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN (RED LOCAL)
+// 1. CONFIGURACIÓN DEL SERVIDOR Y AUTENTICACIÓN (DINÁMICA)
 // ==========================================
 
-// Detecta automáticamente la IP o Host actual (localhost, 192.168.X.X, etc.)
-const HOST_ACTUAL = window.location.hostname;
-const PUERTO = '3000';
+// Evalúa si se accede por IP local / localhost o por un Túnel Público (Cloudflare)
+const esEntornoLocal = window.location.hostname === 'localhost' || window.location.hostname.match(/^\d+\.\d+\.\d+\.\d+$/);
+
+// En red local usa puerto :3000; en el túnel público usa la URL sin puerto adicional
+const BASE_URL = esEntornoLocal 
+    ? `${window.location.protocol}//${window.location.hostname}:3000` 
+    : window.location.origin;
 
 const CONFIG = {
-    API_URL: `http://${HOST_ACTUAL}:${PUERTO}/api`,
-    SOCKET_URL: `http://${HOST_ACTUAL}:${PUERTO}`
+    API_URL: `${BASE_URL}/api`,
+    SOCKET_URL: BASE_URL
 };
 
 function obtenerToken() {
