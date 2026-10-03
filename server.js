@@ -43,10 +43,11 @@ const server = http.createServer(app);
 // Habilitar CORS para las peticiones HTTP de la API REST
 app.use(cors());
 
-// Inicialización de Socket.io con mayor tolerancia a latencia (Ngrok / Red Escolar)
+// Inicialización de Socket.io con mayor tolerancia a latencia (Túneles / Red Móvil)
 const io = new Server(server, {
   cors: {
     origin: '*',
+    methods: ['GET', 'POST']
   },
   pingTimeout: 30000,  // Tiempo de espera antes de declarar desconexión (30 seg)
   pingInterval: 10000, // Intervalo entre pings de control (10 seg)

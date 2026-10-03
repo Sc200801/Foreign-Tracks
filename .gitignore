@@ -1,3 +1,3 @@
 node_modules/
-.envsrc-server/logs/server.log
+.env
 src-server/logs/
