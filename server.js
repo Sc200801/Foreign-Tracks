@@ -49,8 +49,8 @@ const io = new Server(server, {
     origin: '*',
     methods: ['GET', 'POST']
   },
-  pingTimeout: 30000,  // Tiempo de espera antes de declarar desconexión (30 seg)
-  pingInterval: 10000, // Intervalo entre pings de control (10 seg)
+  pingTimeout: 60000,  // Tiempo de espera antes de declarar desconexión (60 seg)
+  pingInterval: 25000, // Intervalo entre pings de control (25 seg)
 });
 
 // Middlewares HTTP para procesar JSON y datos de formularios
