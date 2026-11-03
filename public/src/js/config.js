@@ -7,7 +7,7 @@ const esEntornoLocal = window.location.hostname === 'localhost' || window.locati
 
 // En red local usa puerto :3000; en el túnel público usa la URL sin puerto adicional
 const BASE_URL = esEntornoLocal 
-    ? `${window.location.protocol}//${window.location.hostname}:3000` 
+    ? `${window.location.protocol}//${window.location.hostname}:${window.location.port}` 
     : window.location.origin;
 
 const CONFIG = {
