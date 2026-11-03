@@ -1,0 +1,1 @@
+-- Inicialización manejada automáticamente por Sequelize en el arranque de la app

@@ -1,0 +1,33 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8201:3000"
+    environment:
+      - PORT=3000
+      - DB_HOST=db
+      - DB_USER=ForeingCreator
+      - DB_PASS=FT_2026@Foreign#0
+      - DB_NAME=foreign_tracks
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mariadb:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: foreign_tracks
+      MYSQL_USER: ForeingCreator
+      MYSQL_PASSWORD: FT_2026@Foreign#0
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  db_data:
